@@ -1,0 +1,43 @@
+{
+   "background": {
+      "css": [ "libs/jquery/jquery-ui.theme-1.12.1.css" ],
+      "scripts": [ "libs/jquery/jquery-3.4.0.min.js", "libs/jquery/jquery-ui-1.12.1.min.js",
+         "libs/sanitize-html/sanitize-html.js", "extWordHighlighter.js" ]
+   },
+   "browser_action": {
+      "default_icon": "icon16.png",
+      "default_popup": "popup.html"
+   },
+   "commands": {
+      "ScrollHighlight": {
+         "description": "ScrollHighlight",
+         "suggested_key": {
+            "default": "Ctrl+Shift+Space",
+            "mac": "Command+Shift+Space"
+         }
+      }
+   },
+   "content_scripts": [ {
+      "all_frames": true,
+      "css": [ "libs/jquery/jquery-ui.theme-1.12.1.css", "highlightThis.css" ],
+      "js": [ "libs/jspdf.debug.js", "libs/jquery/jquery-3.4.0.min.js", "libs/jquery/jquery-ui-1.12.1.min.js", "hilitor.js", "tabWordHighlighter.js" ],
+      "match_about_blank": true,
+      "matches": [ "http://*/*", "https://*/*" ],
+      "run_at": "document_start"
+   } ],
+   "default_locale": "en",
+   "description": "Highlights existing, and new opportunites, for endorsements on voter guide pages.",
+   "icons": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "96": "icon96.png",
+      "128": "icon128.png"
+   },
+   "disabled----key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4qbwro4b0R7cWD43H9p1R/1zo2bXD92jSfXUG9cK4o/bPEQMn8jd4Zv8C50vB5r0Xo/HPFnc8Kb3gPzGs0vVMwiCTAvcANkgUyppUgOCMjdHeYFdHMlVPGKM0sDM9TUuKKgT2EjjZh+utU48H7JsMALLVBuUMFo2xsXj4hGFr44nx5B5TSfBwFCP6M+xI499Owa5wU65I/qe4HeVV7urF9dy/s0ttmBJWebTLPTbsF9QnJfCP+L1ewWflfHiVZscUkzW+IxkwGRbpth1yXFuRsJ/4UZBQtL7mo18lJaoU5qLdthJcwde4MiyvgvcD5ZUeTKXl5fo+vwd3+q/hX47LQIDAQAB",
+   "manifest_version": 2,
+   "name": "We Vote Endorsement Tool",
+   "permissions": [ "tabs", "contextMenus", "notifications", "activeTab", "alarms", "downloads", "storage" ],
+   "short_name": "We Vote Chrome Extension",
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.0.0"
+}

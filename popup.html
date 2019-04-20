@@ -1,0 +1,288 @@
+<html>
+<head>
+    <script src="popup.js"></script>
+    <link rel="stylesheet" href="application.css" type="text/css">
+    <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+</head>
+<body style="padding-bottom: 15px;">
+<div class="header" id="header">
+    <span class="title"><span id="litTitle"></span> <span id="offDesc"></span></span>
+    <a id="settingsLink" ><i class="fa fa-cog" aria-hidden="true"></i></a>
+    <div class="onoffswitch">
+        <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="myonoffswitch" checked>
+        <label class="onoffswitch-label" for="myonoffswitch">
+            <div class="onoffswitch-inner"></div>
+            <div class="onoffswitch-switch"></div>
+        </label>
+    </div>
+</div>
+
+
+<div>
+    <div id="menu">
+        <div id="byline" style="text-align:center;">The extension highlights all below words on the page</div>
+
+        <div id="intro" class="intro" style="display:none;"><h2 id="popup_nowords">There are no word lists defined</h2>
+
+            <p>
+                <span id="popup_create1">Create a word list with words to have </span>
+                <span id="popup_title" style="color:#7F0EC9;">Highlight This!</span>
+                <span id="popup_create2">detect and highlight them on web pages while browsing.</span>
+            </p>
+        </div>
+
+        <div class="addMenuLink" style="text-align:center;" ><span id="addGroupLink" class="addGroupLink">+<!--span id="popup_addnewlist">Add a new word list</span--></span></div>
+        <div id="wordlistmenu" >
+            <span  id="collapseAll" class="expandButton">Collapse all</span>
+            <div style="text-align:right; margin-right:5px;">
+                <input id="filterwords" placeholder="Filter">
+                <i id="filtersubmit" class="fa fa-search"></i>
+            </div>
+        </div>
+    </div>
+    <div id="wordDisplay">
+
+        <div id="wordData" style=" margin-top:5px;"></div>
+    </div>
+
+    <div id="onPage" style="display:none;">
+        <div><a id="toConfig" style="font-weight:bold;text-decoration:underline;">< Go to configure words</a></div>
+        <div style="text-align:center;"><h2 id="foundWords">We have found words on this page.</h2>
+            <table id="wordsfound" style="margin: 0 auto;"></table>
+            <div>
+                <a id="dontshowwords" class="secondaryLink">Stop showing the words found on the page</a>
+            </div>
+            <p style="color:#555;font-size:16px;">
+                <span id="popup_tip1">Tip: Use </span>
+                <a style="text-decoration:underline;" id="browseHighlight">
+                    <span id="OSKey">Control</span>
+                    <span id="popup_tip2">+Shift+Space</span></a>
+                <span id="popup_tip3">to browse through words on the page</span>
+            </p></div>
+
+    </div>
+    <div id="newGroupType" style="display:none;">
+        <h2 id="newGroupTitle" style="margin-bottom: 20px;">What type of word list do you want to create?</h2>
+        <span id="newGroupDetail">
+            A local list allows you to manage words directly
+            A remote list downloads a list of words from a remote site (e.g. pastebin)
+        </span>
+        <form id="createGroupForm"  style="margin-top: 20px;">
+            <input type="radio" id="typeLocal" name="type" value="local" checked><label for="typeLocal" id="localLabel">Local</label><br>
+            <input type="radio" id="typeRemote" name="type" value="remote"><label for="typeRemote" id="remoteLabel">Remote</label><br>
+            <!--input type="radio" id="typeRegex" name="type" value="regex"><label for="typeRegex" id="regexLabel">Regex</label><br-->
+            <div style="text-align:center; margin-top: 20px;">
+                <span id="cancelCreateGroup" class="secondaryLink">Cancel</span>
+                <span id="createGroupLink" class="primaryLink">Next</span>
+            </div>
+        </form>
+
+    </div>
+    <div id="newGroup" style="display:none;">
+        <h2 id="groupFormTitle"></h2>
+
+        <form id="groupForm">
+            <input type="hidden" id="editWordsGroupName">
+            <input type="hidden" id="field_listType">
+            <div>
+                <div id="deleteButton" class="deleteButton">
+                    <span id="deleteGroupLink"  style="text-align: right; margin-right:5px;">Delete word list</span>
+                    <i class="fa fa-trash"></i>
+                </div>
+            </div>
+            <div class="fieldRow">
+                <div class="fieldLabel" id="field_listname">List name:</div>
+                <input id="group">
+            </div>
+
+            <div class="tab">
+                <span class="general tablinks active" id="tabGeneral">General</span>
+                <span class="general tablinks" id="tabLimitations">Limitations</span>
+                <span class="general tablinks" id="tabAdvanced">Advanced</span>
+            </div>
+            <span id="firstScreen" class="general tabcontent">
+
+                <div class="fieldRow">
+                    <div class="fieldLabel" id="field_colors">Colors:</div>
+                    <div id="field_colors_help" style="font-size:12px;" >Select colors or type an html color code e.g. "#ccc" or "green"</div>
+
+                    <table>
+                        <tr>
+                    <td  id="field_foreground">Foreground:</td>
+                    <td id="groupFColorSelector"></td>
+                        </tr>
+                        <tr>
+                    <td id="field_background">Background:</td>
+                    <td id="groupColorSelector"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div id="highlightExample">
+                    <span id="example1">This is an</span>
+                    <span id="example">example</span>
+                    <span id="example2">of highlighted text</span>
+                </div>
+
+
+                <div class="fieldRow">
+                          <div class="fieldLabel" id="field_detection" style="float:left">Detection</div>
+                          <input id="findwords" type="checkbox" checked><label for="findwords" id="field_detection_help">Only detect complete words</label>
+                
+                    <div id="hintNonUnicode" style="display:none">Hint: you have added non unicode words to your list of words, uncheck this to detect them properly </div>
+                </div>
+                <div class="fieldRow" id="extSource">
+                      <div class="fieldLabel" id="field_source">Source:</div>
+                      <select id="field_remoteType">
+                          <option value="web">Web</option>
+                          <option value="pastebin">Pastebin</option>
+                      </select>
+                      <div id="remoteSourceAttributes">
+                          <div id="pastbinAttributes">
+                              <table>
+                                  <tr>
+                                      <td>Pastebin id</td>
+                                      <td><input id="pastebinId"></td>
+                                  </tr>
+                              </table>
+                          </div>
+                          <div id="webAttributes">
+                              <table>
+                                  <tr>
+                                      <td>URL</td>
+                                      <td><input id="remoteWebUrl" size="50"></td>
+                                  </tr>
+                              </table>
+                          </div>
+                    </div>
+                </div>
+                <div class="fieldRow" id="regexSection">
+                    <div id="regexSource">
+                        <div class="fieldLabel">Regex:</div>
+                        <textarea id="regex" style="width:100%; height:120px"></textarea>
+                    </div>
+                </div>
+                <div class="fieldRow" id="wordsSection">
+                          <div><span class="fieldLabel" id="field_words">Words: </span><span id="syncLink" class="secondaryLink"><i class="fa fa-refresh" aria-hidden="true"></i> sync</span></div>
+                              <textarea id="words" style="width:100%; height:220px"></textarea>
+
+                              <div id="field_words_help">You can use * and ? wildcards, each new line is considered as a word</div>
+                    </div>
+            </span>
+            <span id="secondScreen" style="display:none;" class="general tabcontent">
+                <div style="margin:10px;" id="sites_info">List the sites on which you want highlights to occur. You can define a white- and a blacklist. Blacklist has priority.
+                    If nothing is defined, highlights are set on all pages. You can use wildcards such as * and ?.
+                    <br /> examples: *.google.com, www.google.com, www.google.com/something/page.html, www.go?gle.com/*/page.html
+                </div>
+                <div class="fieldLabel" id="field_highlightOn">Highlight on</div>
+
+                <textarea id="highlightOnSites" style="width:100%; height:120px"></textarea>
+
+                <div class="fieldLabel" id="field_dontHighlight">Don't Highlight on:</div>
+
+                <textarea id="dontHighlightOnSites" style="width:100%; height:120px"></textarea>
+            </span>
+            <span id="thirdScreen" style="display: none" class="general tabcontent">
+                <div style="margin:10px;">
+                    <!--div class="fieldRow">
+                        <div class="fieldLabel" id="field_synchronizedStorage" style="float:left">Synchronize in all my Chrome browsers</div>
+                    </div>
+                    <div class="secondaryLink">Synchronize this list on all my Chrome browsers.</div>
+                    <div class="secondaryLink">Don't synchronize this list on all my Chrome browsers. Makes the list only availabe in the current browser.</div-->
+
+                    <div class="fieldRow">
+                        <div class="fieldLabel" id="field_showInEditableFields" style="float:left">Editable fields</div>
+                        <input id="showInEditableFields" type="checkbox" checked><label for="showInEditableFields" id="field_showInEditableFields_help">Highlight in editable fields</label>
+                    </div>
+                </div>
+            </span>
+            <div style="text-align:center; margin-top: 10px;">
+                <span id="cancelAddGroup" class="secondaryLink">Cancel</span>
+                <input id="formSubmitButton" type="submit" class="primaryLink" value="Add">
+            </div>
+
+        </form>
+    </div>
+
+    <div id="settingsGroup" style="display:none;">
+
+        <h2 id="popup_settings">Settings</h2>
+        <div style="position: absolute;top: 55px;">
+            <span id="backFromSettings" class="secondaryLink">< Back</span>
+        </div>
+        <div class="tab">
+            <span class="settings tablinks active" id="tabSettingsGeneral">General</span>
+            <span class="settings tablinks" id="tabSettingsBackup">Backup</span>
+        </div>
+        <span id="settingsGeneral" class="settings tabcontent">
+            <div style="margin:10px;">
+                <form>
+                    <div>
+                        <input type="checkbox" id="showFoundWords"><label for="showFoundWords"  id="field_showFoundWords">Show found words:</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="printHighlights"><label id="field_printHighlights">Print highlights:</label>
+                    </div>
+
+                    <div class="fieldLabel" id="field_neverHighlightOn">Never highlight on:</div>
+                    <div>
+                        <textarea id="neverHighlightOn" style="width:100%; height:150px"></textarea>
+                        <div id="field_neverHighlightOn_help">
+                            <br />List the sites on which you never want highlights to occur. You can use wildcards such as * and ?.
+                            <br /> examples: *.google.com, www.google.com, www.google.com/something/page.html
+                        </div>
+                    </div>
+                    <div style="text-align:center;margin-top: 20px;">
+                        <span id="cancelSettings" class="secondaryLink">Cancel</span>
+                        <span id="saveSettings" class="primaryLink">Save</span>
+                    </div>
+                </form>
+            </div>
+        </span>
+        <span id="settingsBackup" style="display: none" class="settings tabcontent">
+            <div style="margin:10px;">
+                <table>
+                    <tr>
+                        <td style="width:130px" class="fieldLabel" id="field_exportSettings">Export settings:</td>
+                        <td><span id="exportLink" class="SecondaryLink">Export</span></td>
+
+                    </tr>
+
+                    <tr>
+                        <td style="width:130px" class="fieldLabel" id="field_importSettings">Import settings:</td>
+                        <td>
+                            <form id="uploadform">
+                                <input type="file" id="importFile">
+                                <span class="primaryLink" id="importFileLink"  style="display:none;">Import</span>
+                            </form>
+                            <span id="importError" style="color:red;"/>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </span>
+    </div>
+
+    <div id="donate" style="display:none;">
+        <div class="devpicture"></div>
+        <p><span id="donate1">Hi</span></p>
+        <p><span id="donate2">I'm  </span></p>
+        <p><span id="donate3">Highlight </span></p>
+        <button id="donatebtn" class="donatebtn">Doe</button>
+
+        <p><a id="dontdonate" class="dontdonatelink">I don</a></p>
+    </div>
+    <div id="deleteGroup" style="display:none;font-size: 16px;
+                               text-align: center;
+                               margin-top: 50%">
+        <span id="popup_confirmDelete">Are you sure you want to delete the word list and its words?</span>
+        <div>
+            <span id="labelListName">List name</span> : <span id="deleteGroupName"/>
+        </div>
+        <div style="margin-top:10px">
+            <span id="yesDeleteGroup" class="secondaryLink">Yes</span>
+            <span id="noDeleteGroup" class="primaryLink">No</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>

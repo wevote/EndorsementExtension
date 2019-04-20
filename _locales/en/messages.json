@@ -1,0 +1,212 @@
+{
+   "application_description": {
+      "message": "Automatically finds and highlights words and phrases on the web page according to your list"
+   },
+   "application_title": {
+      "message": "Highlight This: finds and marks words"
+   },
+   "deleteGroupLink": {
+      "message": "Delete list"
+   },
+   "donate1": {
+      "message": "Hi, I hope you enjoy using Highlight This!"
+   },
+   "donate2": {
+      "message": "I'm developing the extension during my free time, support my work by donating 1&dollar; / 1&euro;."
+   },
+   "donate3": {
+      "message": "Highlight This! will always stay Free"
+   },
+   "donatebtn": {
+      "message": "Donate"
+   },
+   "dontdonate": {
+      "message": "I don't want to donate now, continue to use for free"
+   },
+   "example": {
+      "message": "example"
+   },
+   "example1": {
+      "message": "This is an"
+   },
+   "example2": {
+      "message": "of highlighted text"
+   },
+   "field_background": {
+      "message": "Background"
+   },
+   "field_colors": {
+      "message": "Colors"
+   },
+   "field_colors_help": {
+      "message": "Select colors or type an html color code e.g. '#ccc' or 'green'"
+   },
+   "field_detection": {
+      "message": "Detection"
+   },
+   "field_detection_help": {
+      "message": "Only detect complete words"
+   },
+   "field_dontHighlight": {
+      "message": "Don't Highlight on these sites"
+   },
+   "field_export": {
+      "message": "Export"
+   },
+   "field_exportSettings": {
+      "message": "Create a backup"
+   },
+   "field_foreground": {
+      "message": "Foreground"
+   },
+   "field_highlightOn": {
+      "message": "Highlight on these sites"
+   },
+   "field_import": {
+      "message": "Import"
+   },
+   "field_importSettings": {
+      "message": "Restore a backup"
+   },
+   "field_limitations": {
+      "message": "Limitations"
+   },
+   "field_listname": {
+      "message": "List name"
+   },
+   "field_neverHighlightOn": {
+      "message": "Never highlight on these sites"
+   },
+   "field_neverHighlightOn_help": {
+      "message": "List the sites on which you never want highlights to occur. \u003Cbr />\u003Cbr />You can use wildcards such as * and ?.\u003Cbr /> examples: *.google.com, www.google.com, www.google.com/something/page.html"
+   },
+   "field_printHighlights": {
+      "message": "Print highlights"
+   },
+   "field_showFoundWords": {
+      "message": "Show overview of found words"
+   },
+   "field_sitesToHighlight": {
+      "message": "Define on which sites to highlight"
+   },
+   "field_source": {
+      "message": "Source"
+   },
+   "field_words": {
+      "message": "Words"
+   },
+   "field_words_help": {
+      "message": "You can use * and ? wildcards. Each new line is considered as a word."
+   },
+   "localLabel": {
+      "message": "Local"
+   },
+   "newGroupDetail": {
+      "message": "A local list allows you to manage words directly.\u003Cbr />A remote list downloads a list of words from a remote site (e.g. pastebin)"
+   },
+   "popup_add": {
+      "message": "Add"
+   },
+   "popup_addnewlist": {
+      "message": "Add a new word list"
+   },
+   "popup_back": {
+      "message": "\u003C Back"
+   },
+   "popup_byline": {
+      "message": "The extension highlights all below words on the page"
+   },
+   "popup_cancel": {
+      "message": "Cancel"
+   },
+   "popup_collapseAll": {
+      "message": "Collapse all"
+   },
+   "popup_configureWords": {
+      "message": "\u003C Configure words"
+   },
+   "popup_confirmDelete": {
+      "message": "Are you sure you want to delete the list and its words?"
+   },
+   "popup_create1": {
+      "message": "Create a word list with words to have"
+   },
+   "popup_create2": {
+      "message": " detect and highlight them on web pages while browsing."
+   },
+   "popup_createWordList": {
+      "message": "Create a word list"
+   },
+   "popup_disabled": {
+      "message": "disabled"
+   },
+   "popup_dontshowwords": {
+      "message": "Stop showing this overview"
+   },
+   "popup_edit": {
+      "message": "Edit"
+   },
+   "popup_editWordlist": {
+      "message": "Edit word list"
+   },
+   "popup_expandAll": {
+      "message": "Expand all"
+   },
+   "popup_foundWords": {
+      "message": "We have highlighted these words on this page."
+   },
+   "popup_importFailed": {
+      "message": "Import failed"
+   },
+   "popup_labelListName": {
+      "message": "List name"
+   },
+   "popup_limitations": {
+      "message": "limitations"
+   },
+   "popup_next": {
+      "message": "Next"
+   },
+   "popup_no": {
+      "message": "No"
+   },
+   "popup_nowords": {
+      "message": "There are no word lists defined"
+   },
+   "popup_save": {
+      "message": "Save"
+   },
+   "popup_settings": {
+      "message": "Settings"
+   },
+   "popup_showDonate": {
+      "message": "Help & Donate!"
+   },
+   "popup_tip1": {
+      "message": "Tip: Use"
+   },
+   "popup_tip2": {
+      "message": "+Shift+Space"
+   },
+   "popup_tip3": {
+      "message": "to browse through words on the page"
+   },
+   "popup_title": {
+      "message": "We Vote Endorsement Tool"
+   },
+   "popup_yes": {
+      "message": "Yes"
+   },
+   "remoteLabel": {
+      "message": "Remote"
+   },
+   "sites_info": {
+      "message": "List the sites on which you want highlights to occur. You can define a white- and a blacklist, the blacklist has priority.\u003Cbr /> If nothing is defined, highlights are set on all pages. \u003Cbr />\u003Cbr />You can use wildcards such as * and ?.\u003Cbr /> examples: *.google.com, www.google.com, www.google.com/something/page.html, www.go?gle.com/*/page.html"
+   },
+   "synchronizing": {
+      "message": "Synchronizing"
+   },
+   "title_newGroupType": {
+      "message": "What type of word list do you want to create?"
+   }
+}

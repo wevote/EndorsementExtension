@@ -1,0 +1,464 @@
+body
+{
+  font-family:Arial;
+  width:450px;   
+  font-size:12px;
+  min-height:500px;
+  margin:0px;
+}
+
+#byline{    text-align: center;
+    margin-top: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+h2{
+    text-align: center;
+    color: #444;
+    -webkit-margin-after: 0px;
+}
+a {
+    cursor: hand;
+}
+
+form table tr{
+vertical-align:top;
+}
+
+.wordListContainer {
+    margin-bottom: 5px;
+    border: 1px solid #eee;
+    margin-left: 20px;
+    margin-right: 20px;
+    padding: 3px;
+    clear: both;
+    line-height: 30px;
+    min-height: 40px;
+    border-radius: 2px;
+}
+
+table{font-size: 12px;}
+.header{
+  height:35px;
+  background-color: #0091EA;
+}
+.title
+{
+  margin-left: 5px;
+  color:#fff;
+  font-size: 22px;
+  font-weight:normal;
+  line-height: 35px;
+}
+
+.groupHeader{
+  color: #333;
+  font-size: 16px;
+    float: left;
+    margin-left: 10px;
+    margin-top: 5px;
+
+}
+
+.groupDisabled{
+  color: #ccc !important;
+}
+
+.adSpace{
+  height:30px;
+  width:100%;
+  position:fixed;
+  bottom:0px;
+  left: 0px;
+  border-top: 1px solid lightgray;
+}
+
+.deleteIconSmall:before{
+
+  background:transparent url('images/x11.png') center top no-repeat;
+}
+.deleteIconSmall:hover{
+  background:transparent url('images/x11hover.png') center top no-repeat;
+}
+
+.editIconSmall:before{
+
+  background:transparent url('images/pen12.png') center top no-repeat;
+}
+.editIconSmall:hover{
+  background:transparent url('images/pen12hover.png') center top no-repeat;
+}
+
+
+button#editWordsButton {
+  display: block;
+}
+
+.addWordLink,.addGroupLink{
+    /* text-decoration: underline; */
+    cursor: pointer;
+    /* margin-top: 14px; */
+    /* font-weight: bold; */
+    color: white;
+    position: relative;
+    padding: 10px;
+    top: 5px;
+    font-size: 26px;
+}
+.addWordLink:hover, .addGroupLink:hover{
+  color:black;
+}
+
+.fieldLabel{
+    font-weight:bold;
+    vertical-align: top;
+    margin-right: 10px;}
+
+.secondaryLink, .primaryLink{
+  text-decoration:underline;
+  cursor: pointer;}
+
+.primaryLink{
+    background-color: #0091EA;
+    color: white;
+    text-decoration: none;
+    padding: 5 15 5 15;
+    border-radius: 2px;
+    text-align: center;
+}
+
+.primaryLink:hover {
+    color:#333;
+}
+.secondaryLink:hover{
+    color: #0091EA;
+}
+.onoffswitch {
+    position: relative; width: 66px;
+    -webkit-user-select:none; -moz-user-select:none; -ms-user-select: none;
+    margin-right: 5px;
+ /* margin-top: -33px;*/
+    margin-top: 2px;
+  position: relative;
+  float: right;
+}
+
+.onoffswitch-checkbox {
+    display: none;
+}
+
+.onoffswitch-label {
+    display: block; overflow: hidden; cursor: pointer;
+    border: 2px solid #fff; border-radius: 20px;
+}
+
+.onoffswitch-inner {
+    width: 200%; margin-left: -100%;
+    -moz-transition: margin 0.3s ease-in 0s; -webkit-transition: margin 0.3s ease-in 0s;
+    -o-transition: margin 0.3s ease-in 0s; transition: margin 0.3s ease-in 0s;
+}
+
+.onoffswitch-inner:before, .onoffswitch-inner:after {
+    float: left; width: 50%; height: 27px; padding: 0; line-height: 27px;
+    font-size: 14px; color: white; font-family: Trebuchet, Arial, sans-serif; font-weight: bold;
+    -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;
+}
+
+.onoffswitch-inner:before {
+    content: "On";
+    padding-left: 10px;
+    #background-color: #0091EA;
+    background-color: limegreen;
+    color: #FFFFFF;
+}
+
+.onoffswitch-inner:after {
+    content: "Off";
+    padding-right: 10px;
+
+    background-color: #EEEEEE;
+    color: #999999;
+    text-align: right;
+}
+
+.onoffswitch-switch {
+    width: 13px; margin: 7px;
+    background: #FFFFFF;
+    border: 2px solid #fff; border-radius: 20px;
+    position: absolute; top: 0; bottom: 0; right: 35px;
+    -moz-transition: all 0.3s ease-in 0s; -webkit-transition: all 0.3s ease-in 0s;
+    -o-transition: all 0.3s ease-in 0s; transition: all 0.3s ease-in 0s; 
+}
+
+.onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
+    margin-left: 0;
+}
+
+.onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
+    right: 0px; 
+}
+
+.colorsList{
+  list-style: none;
+  padding:0;
+    margin:0;
+    float: left;
+}
+/*.colorsList .color, .groupColor {
+  float:left;
+  width:15px; 
+  height:15px;
+}*/
+.color {
+border: 1px solid #eee;
+}
+.color:hover {
+border: 1px solid blue;
+}
+.color.selected{
+border:1px solid black;
+}
+
+.color {width: 15px;
+margin: 1px;
+height: 15px;
+float: left;
+    border-radius: 8px;
+}
+.addMenuLink{
+    width: 100%;
+    text-align: center;
+    position: fixed;
+    bottom: 10px;
+    /* color: white; */
+    background-color: #0091EA;
+    width: 40px;
+    height: 40px;
+    right: 5px;
+
+    border-radius: 21px;
+    /*border: 2px solid white;*/
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+
+}
+.groupColor {
+    /*padding: 0px 2px 0px 2px;*/
+    margin-right:2px;
+    margin-left:4px;
+    font-size: 21px;
+    text-align: center;
+    border-radius: 3px;
+    /*box-shadow: 1px 1px #e5e5e5;*/
+    width: 30px;
+    height: 30px;
+    border-radius: 15px;
+    float: left;
+    margin-top: 5px;
+}
+
+.intro{
+  text-align:center;
+  margin: 100 20 20;
+}
+.intro p{  font-size:16px;}
+
+.expandButton{
+    color: white;
+    float: left;
+    line-height: 20px;
+    margin-left: 5px;
+    background-color: #0091EA;
+    padding: 2px 7px 2px 7px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.deleteButton{
+    color: white;
+    float: right;
+    line-height: 20px;
+    margin-left: 5px;
+    background-color: #0091EA;
+    padding: 2px 7px 2px 7px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.expandButton:hover, .deleteButton:hover{
+    color:#333;
+}
+
+#settingsLink{font-size: 22px;
+    margin-left: 90px;
+    text-align: right;
+    color: white;
+    cursor: pointer;}
+#filterwords{line-height: 18px;font-size:12px;}
+
+
+.flipGroup, .editGroup{
+    color:#0091EA;
+    font-size: 16px;
+    margin-left: 10px;
+    padding-top: 10px;
+    width: 30px;
+    float: right;
+    cursor:pointer;
+}
+.flipGroup:hover, .editGroup:hover{
+    color:#333
+
+}
+
+.clearfix {
+    content: "";
+    display: table;
+    clear: both;
+}
+.wordlist{
+    margin-top: 0px;
+    line-height: initial;}
+
+#wordlistmenu {
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-top: 10px;
+    vertical-align: bottom;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+#filtersubmit {
+    position: relative;
+    z-index: 1;
+    left: -25px;
+    cursor: pointer;
+    width: 0;
+    color:#0091EA;
+}
+#newGroup,#settingsGroup{
+    padding-left:20px;
+    padding-right: 20px;
+}
+
+#deleteGroupLink{    float: left;  }
+.deleteButton>i{    font-size: 14px;
+    margin-top: 2px;
+    margin-left: 2px;}
+
+.fieldRow {
+    margin-top: 10px;
+}
+div#field_colors_help {
+    text-align: center;
+}
+#fcolor, #color{
+    float:left;
+}
+#highlightExample{
+    text-align: center;
+}
+#remoteSourceAttributes{
+border: 1px solid #eee;
+margin-left: 10px;
+margin-top: 3px;}
+
+input#group {
+    width: 200px;
+    font-size: 12px;
+    /* border-color: #eee; */
+}
+#newGroupType {
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+.disabledWords {
+    height: 120px !important;
+    background-color: #eee;
+}
+.groupTitle{
+    cursor:pointer;
+}
+
+.tab {
+    overflow: hidden;
+    border-bottom: 1px solid #eee;
+    /*background-color: #f1f1f1;*/
+}
+
+/* Style the buttons that are used to open the tab content */
+.tab span {
+    font-size: 12px;
+    margin-top: 10px;
+    margin-right: 16px;
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+/*    transition: 0.3s;*/
+}
+
+/* Change background color of buttons on hover */
+.tab span:hover {
+    border-bottom: 1px solid #0091EA !important;
+}
+
+/* Create an active/current tablink class */
+.tab span.active {
+    border-bottom: 3px solid #0091EA !important;
+}
+
+/* Style the tab content */
+/*.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+}*/
+
+.devpicture{
+    opacity: 1;
+    background-size: cover;
+    width: 76px;
+    height: 76px;
+    background-image: url(images/wim.jpg);
+    background-color: white;
+    box-shadow: rgba(2, 2, 2, 0.3) 0px 5px 12px 0px;
+    overflow: hidden;
+    border-radius: 50%;
+    background-position: center center;
+    background-repeat: no-repeat;
+    transition: opacity 0.3s ease 0s;
+    margin: 0 auto;
+}
+
+#donate{
+    margin: 10;
+    border: 1px solid #DDD;
+    text-align: center;
+    font-size: 16px;
+    color: #666;
+    padding: 15px;}
+
+.donatebtn{
+    background-color: darkorange;
+    font-size: 16px;
+    border-radius: 3px;
+    color: white;
+    width: 150px;
+    height: 30px;
+    cursor: hand;
+}
+
+.donatebtn:hover{
+    font-weight: bold;
+    background-color: orangered;
+}
+.dontdonatelink{
+    text-decoration: underline;
+
+}
+.dontdonatelink:hover{
+    font-weight:bold;
+}
