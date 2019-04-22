@@ -39,7 +39,7 @@ if(window.location == window.parent.location){
 
           // https://codepen.io/markconroy/pen/rZoNbm
           let hr = window.location.href;
-          let topMenuHeight = 100;
+          let topMenuHeight = 75;
           let sideAreaWidth = 400;
           let iFrameHeight = window.innerHeight - topMenuHeight;
           let iFrameWidth = window.innerWidth - sideAreaWidth;
@@ -62,7 +62,8 @@ if(window.location == window.parent.location){
           $(weFlexGrid).append('<section id="side-area">I\'m on the right side of endorsements!</section>');
 
           $(weContainer).css({
-            'margin': 'auto'
+            'margin': 'auto',
+            'background-color': 'white'
           });
 
           $(weFlexGrid).css({
@@ -72,7 +73,8 @@ if(window.location == window.parent.location){
 
           $("#frame-div").css({
             'flex': 1,
-            'border': '1px solid black'
+            'border': '2px solid black',
+            'margin-left': 20
           });
 
           $("#side-area").css({
@@ -84,19 +86,18 @@ if(window.location == window.parent.location){
           });
 
           $("#top-menu").css({
-            'vertical-align': 'middle'
+            'vertical-align': 'middle',
+            'padding': '1rem'
           });
 
           $("#logo").css({
-            height: 20,
-            'margin-left': 15,
-            'margin-right': 10,
+            height: 26,
+            margin: '9px 10px 3px 15px',
             'vertical-align': 'middle'
           });
           $("#email").css({
             height: 20,
-            'margin-left': '10%',
-            'margin-right': 10,
+            margin: '8px 20px',
             'border-color': 'rgb(206,212,218)',
             'border-width': 1,
             'border-radius': 4,
@@ -105,12 +106,10 @@ if(window.location == window.parent.location){
           });
           $("#topComment").css({
             height: 20,
-            'margin-left': 15,
-            'margin-right': 10,
             'border-color': 'rgb(206,212,218)',
             'border-width': 1,
             'border-radius': 4,
-            width: '60%',
+            width: '70%',
 
           });
 
