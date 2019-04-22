@@ -14,3 +14,6 @@ with many thanks to, and the permision of, [Wim Deboel](http://deboel.eu/).
 6. Clicking the "background page" link opens a chrome devtools instance that can be used to 
 debug your "Content Script" (Content scripts are the only component of an extension that has access to the web-page's DOM).
 
+Nuggets:
+1. That "Errors" button on the [chrome://extensions/](chrome://extensions/) shows some code validation errors, and some
+runtime errors.  It can be useful, but not as useful as the "background page" devtools.
