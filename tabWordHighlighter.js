@@ -68,7 +68,8 @@ if(window.location == window.parent.location){
             url: window.location.href.trim(),
           };
 
-          candidatePane( candidate, $("#sideArea"));
+          let noCandiatesFromServerYet = [];
+          candidatePanel( noCandiatesFromServerYet, $("#sideArea"));
 
         } catch(err) {
           console.log("jQuery dialog in tabWordHighligher threw: ", err);
