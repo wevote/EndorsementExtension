@@ -34,9 +34,6 @@ if(window.location == window.parent.location){
       /* debug && */ console.log("got a message", request);
       if (request.command === "openWeDialog") {
         try {
-          // this works, but css/html kind of ignores the outer frame, since lots is absolute, colors don't show
-          // $('body').children().wrapAll("<div class='we-outermost' style='margin=10px; background-color=yellowgreen'>");
-
           // https://codepen.io/markconroy/pen/rZoNbm
           let hr = window.location.href;
           let topMenuHeight = 75;
