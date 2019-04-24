@@ -1,0 +1,145 @@
+.noStyleWe {
+  background-color: unset;
+  border-radius: unset;
+  border: unset;
+  color: unset;
+  display: unset;
+  font-size: unset;
+  font-family: unset;
+  font-weight: unset;
+  font-style: unset;
+  margin: unset;
+  padding: unset;
+  text-transform: unset;
+  text-align: unset;
+  line-height: unset;
+  -webkit-margin-before: unset;
+  -webkit-margin-after: unset;
+  -webkit-margin-start: unset;
+  -webkit-margin-end: unset;
+  -webkit-tap-highlight-color: unset;
+}
+
+#weContainer {
+  margin: auto;
+  background-color: white;
+}
+
+#sideArea {
+  margin-left: 0;
+  margin-right: 0.5rem;
+  border-top: grey solid 2px;
+  padding: 1rem;
+  flex: 3;
+}
+
+#candidate {
+  backround-color: white;
+  border-bottom: 1px solid grey;
+}
+
+#photo {
+  height: 50px;
+  float: left;
+}
+
+#nameBox {
+  margin-left: 5px;
+  float: left;
+}
+
+#nameField {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 18px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: 700;
+  line-height: 15.4px;
+}
+
+#furlable {
+  display: inline-block;
+  margin: 5px;
+  width: 100%
+}
+
+#buttons {
+  width: 95%;
+  display: flex;
+  justify-content:space-between;
+  list-style-type: none;
+}
+
+#endorsedButton, #opposedButton, #infoButton {
+  width: unset;
+  height: 25px;
+  padding: 0px 4px;
+}
+
+#comment, #source {
+  width: 95%;
+  margin: 5px 0 5px 0;
+}
+
+.weButton {
+  color: black;
+  background-color: white;
+  border: 1px solid rgba(46, 60, 93, 0.5);;
+  border-radius: 4px;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.2);
+}
+
+#bottomButton {
+  width: 95%;
+}
+
+#saveButton {
+  float: right;
+  padding: 0px 4px;
+  margin-right: 5%;
+  /*text-transform: uppercase;*/
+}
+
+
+#weFlexGrid {
+  display: flex;
+  margin: auto -1rem 1rem;
+}
+
+#frameDiv {
+  flex: 1;
+  border: 2px solid black;
+  margin-left: 20px;
+}
+
+
+
+#topMenu {
+vertical-align: middle;
+padding: 1rem
+}
+
+#orgLogo {
+  height: 26px;
+  margin: 9px 10px 7px 10px;
+  vertical-align: middle
+}
+
+#email {
+  height: 20px;
+  margin: 8px 20px;
+  border-color: rgb(206,212,218);
+  border-width: 1px;
+  border-radius: 4px;
+  width: 10%;
+}
+
+#topComment {
+  height: 20px;
+  border-color: rgb(206,212,218);
+  border-width: 1px;
+  border-radius: 4px;
+  width: 60%;
+}
+

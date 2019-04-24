@@ -39,181 +39,187 @@ if(window.location == window.parent.location){
 
           // https://codepen.io/markconroy/pen/rZoNbm
           let hr = window.location.href;
-          let topMenuHeight = 100;
+          let topMenuHeight = 75;
           let sideAreaWidth = 400;
           let iFrameHeight = window.innerHeight - topMenuHeight;
           let iFrameWidth = window.innerWidth - sideAreaWidth;
           let bod = $('body');
           $(bod).children().wrapAll("<div id='we-trash' >").hide();  // if you remove it, other js goes nuts
-          $(bod).children().wrapAll("<div id='we-container' >");  // Ends up before we-trash
-          $('#we-trash').insertAfter('#we-container');
+          $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before we-trash
+          $('#we-trash').insertAfter('#weContainer');
 
-          let weContainer = $('#we-container');
+          let weContainer = $('#weContainer');
           $(weContainer).append("" +
-            "<span id='top-menu'>" +
-              "<img id='logo' src='https://www.sierraclub.org/sites/www.sierraclub.org/themes/pt/images/logos/sc-logo-green.svg'>" +
+            "<span id='topMenu'>" +
+              "<img id='orgLogo' src='https://www.sierraclub.org/sites/www.sierraclub.org/themes/pt/images/logos/sc-logo-green.svg'>" +
               "<b>Sierra Club</b>" +
               "<input type=\"text\" id='email' name='email' placeholder='Email' >" +
               "<input type=\"text\" id='topComment' name='topComment' placeholder='Comment here...' >" +
-            "</span>").append("<div id='we-flex-grid' ></div>");
+            "</span>").append("<div id='weFlexGrid' ></div>");
 
-          let weFlexGrid = $('#we-flex-grid');
-          $(weFlexGrid).append('<aside id="frame-div"><iframe id="frame" width=' + iFrameWidth + ' height=' + iFrameHeight + '></iframe></aside>');
-          $(weFlexGrid).append('<section id="side-area">I\'m on the right side of endorsements!</section>');
+          let weFlexGrid = $('#weFlexGrid');
+          $(weFlexGrid).append('<aside id="frameDiv"><iframe id="frame" width=' + iFrameWidth + ' height=' + iFrameHeight + '></iframe></aside>');
+          $(weFlexGrid).append('<section id="sideArea"></section>');
 
-          $(weContainer).css({
-            'margin': 'auto'
-          });
-
-          $(weFlexGrid).css({
-            'display': 'flex',
-            'margin': 'auto -1rem 1rem',
-          });
-
-          $("#frame-div").css({
-            'flex': 1,
-            'border': '1px solid black'
-          });
-
-          $("#side-area").css({
-            'margin-left': '0.5rem',
-            'margin-right': '0.5rem',
-            'padding': '1rem',
-            'flex': 3,
-            'background-color': 'cyan'
-          });
-
-          $("#top-menu").css({
-            'vertical-align': 'middle'
-          });
-
-          $("#logo").css({
-            height: 20,
-            'margin-left': 15,
-            'margin-right': 10,
-            'vertical-align': 'middle'
-          });
-          $("#email").css({
-            height: 20,
-            'margin-left': '10%',
-            'margin-right': 10,
-            'border-color': 'rgb(206,212,218)',
-            'border-width': 1,
-            'border-radius': 4,
-            width: '10%',
-
-          });
-          $("#topComment").css({
-            height: 20,
-            'margin-left': 15,
-            'margin-right': 10,
-            'border-color': 'rgb(206,212,218)',
-            'border-width': 1,
-            'border-radius': 4,
-            width: '60%',
-
-          });
+          // $(weContainer).css({
+          //   'margin': 'auto',
+          //   'background-color': 'white'
+          // });
+          //
+          // $(weFlexGrid).css({
+          //   'display': 'flex',
+          //   'margin': 'auto -1rem 1rem',
+          // });
+          //
+          // $("#frameDiv").css({
+          //   'flex': 1,
+          //   'border': '2px solid black',
+          //   'margin-left': 20
+          // });
+          //
+          // $("#sideArea").css({
+          //   'margin-left': '0.5rem',
+          //   'margin-right': '0.5rem',
+          //   'padding': '1rem',
+          //   'flex': 3,
+          // });
+          //
+          // $("#topMenu").css({
+          //   'vertical-align': 'middle',
+          //   'padding': '1rem'
+          // });
+          //
+          // $("#logo").css({
+          //   height: 26,
+          //   margin: '9px 10px 3px 15px',
+          //   'vertical-align': 'middle'
+          // });
+          // $("#email").css({
+          //   height: 20,
+          //   margin: '8px 20px',
+          //   'border-color': 'rgb(206,212,218)',
+          //   'border-width': 1,
+          //   'border-radius': 4,
+          //   width: '10%',
+          //
+          // });
+          // $("#topComment").css({
+          //   height: 20,
+          //   'border-color': 'rgb(206,212,218)',
+          //   'border-width': 1,
+          //   'border-radius': 4,
+          //   width: '60%',
+          //
+          // });
 
           $("#frame").attr("src", hr);
 
+          let candidate = {
+            photo: 'https://s3.amazonaws.com/ballotpedia-api/storage/uploads/thumbs/200/300/crop/best/Sharon_Sweda.jpg',
+            name: 'Sharon Sweda (Dem)',
+            office: 'Ohio State Senate to represent District 13',
+            comment: 'Sharon Sweda was born in Lorain, Ohio. Sweda\'s career experience includes owning American Patriot Title Agency.',
+            url: window.location.href.trim(),
+          };
+
+          candidatePane( candidate, $("#sideArea"));
 
 
-
-          if( false ) {
-            let pseudoDiv = parseInt(Date.now());
-            insertAnchorDiv(pseudoDiv);
-            let newSpan = $("#" + pseudoDiv);
-            let dlg = newSpan.dialog({
-              open: true,
-              height: "auto",
-              width: 1000,
-              modal: true,
-              buttons: {
-                "Save": function () {
-                  $(this).dialog("close");
-                },
-              },
-            });
-            let markup =
-              '<div id="dlgBody">' +
-              '  <div id="weButtonBar">' +
-              '    <button id="endorsed">Endorsed</button>' +
-              '    <button id="oppose">Oppose</button>' +
-              '    <button id="endorsed">Information Only</button>' +
-              '  </div>' +
-              '  <div id="innerBody">' +
-              '    <textarea id="comment" rows="4" cols="87" style="margin-left: 5px;" placeholder="Paste comment here...">' +
-              '    </textarea>' +
-              '    <textarea id="sourceURL" rows="1" cols="87" style="margin-left: 5px; color: #005999">' +
-              window.location.href.trim() +
-              '    </textarea>' +
-              '  </div>' +
-              '</div>';
-
-            $('#' + pseudoDiv).append(markup);
-
-            let localRole = $('[role="dialog"]');
-            // localRole.find(".ui-dialog-titlebar").hide();  // Remove stock title bar
-            let ic = $('<img class="icon-candidate-small" src="https://wevote-images.s3.amazonaws.com/wv02cand55913/twitter_profile_image-20190304_1_200x200.png" alt="candidate-photo">')
-              .css({
-                width: '40px', 'border-radius': '100rem', 'margin-top': 10,
-                'margin-left': 6
-              });
-            localRole.find(".ui-dialog-titlebar").css({'background-color': 'white', 'box-shadow': 'none'});
-            let $dialogTitle = localRole.find(".ui-dialog-title");
-            ic.insertBefore($dialogTitle);
-            let outer = localRole.css({
-              border: '1px solid rgba(0,0,0,.2)',
-              'border-radius': '.3rem',
-              'margin-top': '10px',
-              background: 'white',
-              'box-shadow': 'rgba(0, 0, 0, 0.5) 0px 0.5rem 1rem',
-            });
-
-            $("button[title='Close']").css({
-              float: "right",
-              'margin-top': 10,
-              'margin-right': 10
-            });
-
-            let save = $("button:contains('Save')");
-
-            $("button:contains('Save')").css({
-              float: "right",
-              'margin-top': 10,
-              'margin-right': 10
-            });
-
-
-            $('#weButtonBar').css({
-              'display': 'flex',
-              'justify-content': 'space-around',
-              'margin-top': 5,
-              'margin-bottom': 5
-            });
-
-            $('.ui-dialog-buttonset').css({height: 45});
-
-            $('.ui-resizable-handle').hide();
-
-            let wehtml = newSpan.html();
-
-            var specialElementHandlers = {
-              '#editor': function (element, renderer) {
-                return true;
-              }
-            };
-
-            var doc = new jsPDF();
-            doc.fromHTML(
-              wehtml, 15, 15,
-              {'width': 170, 'elementHandlers': specialElementHandlers},
-              function () {
-                doc.save('sample-file.pdf');
-              }
-            );
-            console.log("hi");
-          }
+          // if( false ) {
+          //   let pseudoDiv = parseInt(Date.now());
+          //   insertAnchorDiv(pseudoDiv);
+          //   let newSpan = $("#" + pseudoDiv);
+          //   let dlg = newSpan.dialog({
+          //     open: true,
+          //     height: "auto",
+          //     width: 1000,
+          //     modal: true,
+          //     buttons: {
+          //       "Save": function () {
+          //         $(this).dialog("close");
+          //       },
+          //     },
+          //   });
+          //   let markup =
+          //     '<div id="dlgBody">' +
+          //     '  <div id="weButtonBar">' +
+          //     '    <button id="endorsed">Endorsed</button>' +
+          //     '    <button id="oppose">Oppose</button>' +
+          //     '    <button id="endorsed">Information Only</button>' +
+          //     '  </div>' +
+          //     '  <div id="innerBody">' +
+          //     '    <textarea id="comment" rows="4" cols="87" style="margin-left: 5px;" placeholder="Paste comment here...">' +
+          //     '    </textarea>' +
+          //     '    <textarea id="sourceURL" rows="1" cols="87" style="margin-left: 5px; color: #005999">' +
+          //     window.location.href.trim() +
+          //     '    </textarea>' +
+          //     '  </div>' +
+          //     '</div>';
+          //
+          //   $('#' + pseudoDiv).append(markup);
+          //
+          //   let localRole = $('[role="dialog"]');
+          //   // localRole.find(".ui-dialog-titlebar").hide();  // Remove stock title bar
+          //   let ic = $('<img class="icon-candidate-small" src="https://wevote-images.s3.amazonaws.com/wv02cand55913/twitter_profile_image-20190304_1_200x200.png" alt="candidate-photo">')
+          //     .css({
+          //       width: '40px', 'border-radius': '100rem', 'margin-top': 10,
+          //       'margin-left': 6
+          //     });
+          //   localRole.find(".ui-dialog-titlebar").css({'background-color': 'white', 'box-shadow': 'none'});
+          //   let $dialogTitle = localRole.find(".ui-dialog-title");
+          //   ic.insertBefore($dialogTitle);
+          //   let outer = localRole.css({
+          //     border: '1px solid rgba(0,0,0,.2)',
+          //     'border-radius': '.3rem',
+          //     'margin-top': '10px',
+          //     background: 'white',
+          //     'box-shadow': 'rgba(0, 0, 0, 0.5) 0px 0.5rem 1rem',
+          //   });
+          //
+          //   $("button[title='Close']").css({
+          //     float: "right",
+          //     'margin-top': 10,
+          //     'margin-right': 10
+          //   });
+          //
+          //   let save = $("button:contains('Save')");
+          //
+          //   $("button:contains('Save')").css({
+          //     float: "right",
+          //     'margin-top': 10,
+          //     'margin-right': 10
+          //   });
+          //
+          //
+          //   $('#weButtonBar').css({
+          //     'display': 'flex',
+          //     'justify-content': 'space-around',
+          //     'margin-top': 5,
+          //     'margin-bottom': 5
+          //   });
+          //
+          //   $('.ui-dialog-buttonset').css({height: 45});
+          //
+          //   $('.ui-resizable-handle').hide();
+          //
+          //   let wehtml = newSpan.html();
+          //
+          //   var specialElementHandlers = {
+          //     '#editor': function (element, renderer) {
+          //       return true;
+          //     }
+          //   };
+          //
+          //   var doc = new jsPDF();
+          //   doc.fromHTML(
+          //     wehtml, 15, 15,
+          //     {'width': 170, 'elementHandlers': specialElementHandlers},
+          //     function () {
+          //       doc.save('sample-file.pdf');
+          //     }
+          //   );
+          //   console.log("hi");
+          // }
 
 
         } catch(err) {

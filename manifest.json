@@ -19,8 +19,8 @@
    },
    "content_scripts": [ {
       "all_frames": true,
-      "css": [ "libs/jquery/jquery-ui.theme-1.12.1.css", "highlightThis.css" ],
-      "js": [ "libs/jspdf.debug.js", "libs/jquery/jquery-3.4.0.min.js", "libs/jquery/jquery-ui-1.12.1.min.js", "hilitor.js", "tabWordHighlighter.js" ],
+      "css": [ "libs/jquery/jquery-ui.theme-1.12.1.css", "font-awesome/fonts/font-awesom-free-all.css","highlightThis.css", "weVote.css" ],
+      "js": [ "libs/jspdf.debug.js", "libs/jquery/jquery-3.4.0.min.js", "libs/jquery/jquery-ui-1.12.1.min.js", "hilitor.js", "tabWordHighlighter.js", "candidatePane.js" ],
       "match_about_blank": true,
       "matches": [ "http://*/*", "https://*/*" ],
       "run_at": "document_start"
