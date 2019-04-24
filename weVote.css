@@ -33,22 +33,23 @@
   flex: 3;
 }
 
-#candidate {
+[class^="candidate"] {
   backround-color: white;
   border-bottom: 1px solid grey;
+  margin-bottom: 1rem;
 }
 
-#photo {
+[class^="photo"] {
   height: 50px;
   float: left;
 }
 
-#nameBox {
+[class^="nameBox"] {
   margin-left: 5px;
   float: left;
 }
 
-#nameField {
+[class^="nameField"] {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 18px;
   font-style: normal;
@@ -57,26 +58,26 @@
   line-height: 15.4px;
 }
 
-#furlable {
+.furlable {
   display: inline-block;
   margin: 5px;
   width: 100%
 }
 
-#buttons {
+.buttons {
   width: 95%;
   display: flex;
   justify-content:space-between;
   list-style-type: none;
 }
 
-#endorsedButton, #opposedButton, #infoButton {
+[class^="endorsedButton"], [class^="opposedButton"], [class^=".infoButton"] {
   width: unset;
   height: 25px;
   padding: 0px 4px;
 }
 
-#comment, #source {
+[class^="commentWe"], [class^="sourceWe"] {
   width: 95%;
   margin: 5px 0 5px 0;
 }
@@ -90,11 +91,11 @@
   box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.2);
 }
 
-#bottomButton {
+.bottomButton {
   width: 95%;
 }
 
-#saveButton {
+[class^="saveButton"] {
   float: right;
   padding: 0px 4px;
   margin-right: 5%;
