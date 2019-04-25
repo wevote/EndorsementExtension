@@ -1,3 +1,5 @@
+const $ = window.$;
+
 let demoCandidates = [
   {
     photo: 'https://s3.amazonaws.com/ballotpedia-api/storage/uploads/thumbs/200/300/crop/best/ODP-1082.jpg',
@@ -34,11 +36,16 @@ let demoCandidates = [
     comment: 'Adam Vanho lives in Munroe Falls, Ohio. He graduated from Euclid High School. He earned a degree from Allegheny College and a law degree from Cleveland State University. VanHo\'s career experience includes working with the Ohio Attorney General\'s office and owning VanHo law.',
     url: window.location.href.trim(),
   },
+  {
+    photo: 'https://s3.amazonaws.com/ballotpedia-api/storage/uploads/thumbs/200/300/crop/best/barnet.JPG',
+    name: 'Kevin Barnet (Democrat)',
+    office: 'Ohio House of Representatives to represent District 1',
+    comment: 'I strongly support Clean Air. Clean Water, and Renewable Energy. I have pledged not to take campaign donations or PAC money from utilities, pipeline and/or fracking companies. I believe that the health of our community, the health of our planet, and the economic growth in research, development, and implementation of renewable energy in Ohio and Wayne county is an outstanding opportunity. I also strongly support reasonable gun restrictions.',
+    url: window.location.href.trim(),
+  },
 ];
 
-
-
-function candidatePanel(candidates, selector) {
+function candidatePanel(candidates, selector) {  // eslint-disable-line no-unused-vars
   if (candidates.length === 0) {
     candidates = demoCandidates;
   }
@@ -54,7 +61,7 @@ function candidatePane(i, candidate, selector) {
     "<div class='candidate'>" +
       "<div class='unfurlable'>" +
         "<span class='unfurlableTopMenu'>" +
-          "<img src=" + candidate.photo + " class='photo" + i + "  noStyleWe' />" +
+          "<img class='photo" + i + " noStyleWe' alt='candidate' src=" + candidate.photo + " />" +
           "<div class='nameBox" + i + "  noStyleWe'>" +
             "<div class='nameField" + i + " '>" + candidate.name + "</div>" +
             "<div class='titleField" + i + " '>" + candidate.office + "</div>" +
@@ -78,4 +85,5 @@ function candidatePane(i, candidate, selector) {
   $(selector).append(markup);
   $('.commentWe' + i).val(candidate.comment);
   $('.sourceWe' + i).val(candidate.url);
+  $(selector).css({'height': $('#frameDiv').height() + 'px', 'overflow': 'scroll'});
 }

@@ -31,7 +31,7 @@ module.exports = {
         "camelcase": "off",
         "capitalized-comments": "off",
         "class-methods-use-this": "error",
-        "comma-dangle": "error",
+        "comma-dangle": "off",
         "comma-spacing": "off",
         "comma-style": [
             "error",
@@ -75,7 +75,6 @@ module.exports = {
         "jsx-quotes": "error",
         "key-spacing": "off",
         "keyword-spacing": "off",
-        "line-comment-position": "error",
         "linebreak-style": [
             "error",
             "unix"
@@ -83,6 +82,7 @@ module.exports = {
         "lines-around-comment": "off",
         "lines-around-directive": "error",
         "lines-between-class-members": "error",
+        "line-comment-position": "off",
         "max-classes-per-file": "error",
         "max-depth": "off",
         "max-len": "off",
@@ -108,6 +108,7 @@ module.exports = {
         "no-caller": "error",
         "no-catch-shadow": "error",
         "no-confusing-arrow": "error",
+        "no-console": "off",
         "no-continue": "error",
         "no-div-regex": "error",
         "no-duplicate-imports": "error",
@@ -122,7 +123,7 @@ module.exports = {
         "no-floating-decimal": "error",
         "no-implicit-globals": "error",
         "no-implied-eval": "error",
-        "no-inline-comments": "error",
+        "no-inline-comments": "off",
         "no-inner-declarations": [
             "error",
             "functions"
@@ -196,7 +197,7 @@ module.exports = {
         "no-unneeded-ternary": "error",
         "no-use-before-define": "off",
         "no-useless-call": "error",
-        "no-useless-catch": "error",
+        // "no-useless-catch": "error",
         "no-useless-computed-key": "error",
         "no-useless-concat": "error",
         "no-useless-constructor": "error",
