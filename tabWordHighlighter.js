@@ -1,6 +1,15 @@
 // Content scripts are the only component of an extension that has access to the web-page's DOM. (this js file!)
 // Logs to the console of the page in the browser, not the one you open from the extensions page
 
+/* eslint no-unused-vars: 0 */
+/* eslint init-declarations: 0 */
+/* eslint no-empty-function: 0 */
+/* eslint no-lonely-if: 0 */
+/* eslint no-mixed-operators: 0 */
+/* eslint no-undef: 0 */
+/* eslint multiline-ternary: 0 */
+/* eslint no-ternary: 0 */
+
 var wordsArray = [];
 
 var ReadyToFindWords = true; //indicates if not in a highlight execution
@@ -60,14 +69,6 @@ if(window.location == window.parent.location){
 
           $("#frame").attr("src", hr);
 
-          let candidate = {
-            photo: 'https://s3.amazonaws.com/ballotpedia-api/storage/uploads/thumbs/200/300/crop/best/Sharon_Sweda.jpg',
-            name: 'Sharon Sweda (Dem)',
-            office: 'Ohio State Senate to represent District 13',
-            comment: 'Sharon Sweda was born in Lorain, Ohio. Sweda\'s career experience includes owning American Patriot Title Agency.',
-            url: window.location.href.trim(),
-          };
-
           let noCandiatesFromServerYet = [];
           candidatePanel( noCandiatesFromServerYet, $("#sideArea"));
 
@@ -107,30 +108,6 @@ if(window.location == window.parent.location){
 }
 else {
   debug&&console.log("not in main page",window.location)
-}
-
-function insertAnchorDiv (pseudoDiv) {
-  try {
-    if (typeof window.getSelection != "undefined") {
-      let sel = window.getSelection();
-      let selectedText = window.getSelection().toString();
-      let elementMatches = $(":contains(" + selectedText + ")");
-      // brings back an array of all the possible matches, from outermost down
-      let elem;
-      let fruits = ["html", "head", "body", "scripts"];
-      for( let i = 0; i < elementMatches.length; i++ ) {
-        elem = elementMatches[i];
-        if (elem && fruits.includes(elem.localName)) {
-          continue;
-        }
-        break;
-      }
-
-      elem.innerHTML = elem.innerHTML + "<div id='" + pseudoDiv + "'></div>";
-    }
-  } catch (err) {
-    console.log("insertAnchorDiv error: ", err);
-  }
 }
 
 function jumpNext() {
