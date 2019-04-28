@@ -46,7 +46,7 @@
 
 [class^="nameBox"] {
   margin-left: 5px;
-  float: left;
+  overlfow: hidden;  // Magics the div onto the same line as the image
 }
 
 [class^="nameField"] {
@@ -56,6 +56,19 @@
   font-variant: normal;
   font-weight: 700;
   line-height: 15.4px;
+  margin-top: -30px;
+  padding: 0 0 0 36px;
+}
+
+[class^="titleField"] {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: 500;
+  line-height: 15.4px;
+  padding: 3px 0 0 36px;
+
 }
 
 .furlable {
@@ -83,6 +96,12 @@
 }
 
 .weButton {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: 400;
+  line-height: 15.4px;
   color: black;
   background-color: white;
   border: 1px solid rgba(46, 60, 93, 0.5);;
@@ -102,7 +121,6 @@
   /*text-transform: uppercase;*/
 }
 
-
 #weFlexGrid {
   display: flex;
   margin: auto -1rem 1rem;
@@ -113,8 +131,6 @@
   border: 2px solid black;
   margin-left: 20px;
 }
-
-
 
 #topMenu {
 vertical-align: middle;
