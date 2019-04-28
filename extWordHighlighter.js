@@ -12,31 +12,25 @@
    This code relies on the scoping behaviour for the 'var' keyword, changing them all to 'let' will break things.
  */
 
-var highlighterEnabled = true;  // Don't globally change var to let! see note above
-var showFoundWords = true;
-var printHighlights = true;
-var neverHighlightOn = [];
-var HighlightsData = {};
-var noContextMenu=["_generated_background_page.html"];
-var debug= false;
+$(() => {
+  console.log("extWordHighlighter constructor");
+  var highlighterEnabled = true;  // Don't globally change var to let! see note above
+  var showFoundWords = true;
+  var printHighlights = true;
+  var neverHighlightOn = [];
+  var HighlightsData = {};
+  var noContextMenu = ["_generated_background_page.html"];
+  var debug = false;
 
-console.log("Steve @ Line 19");
-if (localStorage.HighlightsData) {
-  var HighlightsData = getDataFromStorage("HighlightsData");
-  console.log("Steve found localStorage ", HighlightsData);
-  // HighlightsData.Groups["Default Group"].Words =['Steve', 'Sara Bitter', 'Adam VanHo'];
-  HighlightsData = upgradeVersion(HighlightsData);
-  localStorage["HighlightsData"] = JSON.stringify(HighlightsData);
-}
-else {
-  console.log("Steve creating default");
+  let serverWords = window.getNamesFromApiServer('6000');
+
   var HighlightsData = {};
   HighlightsData.Version = "12";
   HighlightsData.neverHighlightOn = [];
   HighlightsData.ShowFoundWords = true;
   HighlightsData.PrintHighlights = true;
-  var today=new Date();
-  HighlightsData.Donate=today.setDate(today.getDate()+20);
+  var today = new Date();
+  HighlightsData.Donate = today.setDate(today.getDate() + 20);
   HighlightsData.Groups = {
     "Default Group": {
       "Color": "#ff6",
@@ -46,30 +40,21 @@ else {
       "FindWords": true,
       "ShowOn": [],
       "DontShowOn": [],
-      "Words": ['Bitter','Feinstein'],
+      "Words": serverWords, //['Bitter','Feinstein'],
       "Type": 'local',
       "Modified": Date.now()
     }
   };
   localStorage["HighlightsData"] = JSON.stringify(HighlightsData);
-}
 
-printHighlights=HighlightsData.PrintHighlights;
-showFoundWords=HighlightsData.ShowFoundWords;
-neverHighlightOn=HighlightsData.neverHighlightOn;
-//Context menu
+
+  printHighlights = HighlightsData.PrintHighlights;
+  showFoundWords = HighlightsData.ShowFoundWords;
+  neverHighlightOn = HighlightsData.neverHighlightOn;
+
+});
 
 function backup(inData, fromVersion){
-  /*let a = document.createElement('a');
-    let blob = new Blob([JSON.stringify(inData)], {type: "text/plain;charset=UTF-8"});
-    a.href = window.URL.createObjectURL(blob);
-    a.download = "HighlightThis_BackupBeforeUpgradeFromV"+fromVersion+".txt";
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click(); //this is probably the key - simulating a click on a download link
-    a=null;// we don't need this anymore*/
-
-
   var blob = new Blob([JSON.stringify(inData)], {type : "text/plain;charset=UTF-8"});
   url = window.URL.createObjectURL(blob);
   chrome.downloads.download({

@@ -2,7 +2,7 @@
    "background": {
       "css": [ "libs/jquery/jquery-ui.theme-1.12.1.css" ],
       "scripts": [ "libs/jquery/jquery-3.4.0.min.js", "libs/jquery/jquery-ui-1.12.1.min.js",
-         "libs/sanitize-html/sanitize-html.js", "extWordHighlighter.js" ]
+         "libs/sanitize-html/sanitize-html.js", "backgroundWe.js", "extWordHighlighter.js" ]
    },
    "browser_action": {
       "default_icon": "icon16.png",
