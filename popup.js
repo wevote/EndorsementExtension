@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    // test
+    // test 3c
 
     getAccessToken(() => {
       console.log('oauth2_access_token received');
