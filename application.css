@@ -462,3 +462,37 @@ input#group {
 .dontdonatelink:hover{
     font-weight:bold;
 }
+
+/* --- we stuff ------------  */
+
+.settingsDiv{
+    margin-bottom: 7px;
+}
+
+#config {
+    display: table;
+    width: 100%;
+}
+
+.weLabel {
+    display: table-cell;
+    width: 1px;
+    white-space: nowrap;
+    margin-left: 3px;
+}
+
+/*.weSpan {*/
+/*    display: table-cell;*/
+/*    padding: 0 0 0 5px;*/
+/*}*/
+
+.weInput {
+    margin-left: 8px;
+    width: 95%;
+}
+
+.saveSettings {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    box-shadow: rgba(0, 0, 0, 0.2) 0px 1px 2px 0px;
+
+}

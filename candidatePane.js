@@ -73,7 +73,7 @@ function candidatePane(i, candidate, selector) {
           "<button type='button' class='endorsedButton" + i + " weButton noStyleWe' >Endorsed</button>" +
           // "<button type='button' id='endorsedButton' class='fas fa-check' >Endorsed</button>" +
           "<button type='button' class='opposedButton" + i + " weButton noStyleWe' >Opposed</button>" +
-          "<button type='button' class='infoButton" + i + " weButton noStyleWe' >Information</button>" +
+          "<button type='button' class='infoButton" + i + " weButton noStyleWe' >Information Only</button>" +
         "</span>" +
         "<textarea rows='6' class='commentWe" + i + "' placeholder='url' />" +
         "<input type='text' class='sourceWe" + i + "' placeholder='url' />" +
