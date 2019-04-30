@@ -84,7 +84,7 @@
   list-style-type: none;
 }
 
-[class^="endorsedButton"], [class^="opposedButton"], [class^=".infoButton"] {
+[class^="endorsedButton"], [class^="opposedButton"], [class^="infoButton"] {
   width: unset;
   height: 25px;
   padding: 0px 4px;
