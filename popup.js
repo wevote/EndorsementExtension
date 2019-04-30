@@ -57,6 +57,45 @@ document.addEventListener('DOMContentLoaded', function () {
     return false;
   });
 
+  // STEVE STEVE STEVE
+  document.getElementById("loginTest").addEventListener('click', function () {
+    let voterDeviceId = localStorage['voterDeviceId'];
+    const weVoteServerApiRootUrl = 'http://localhost:8000/apis/v1';  // 'https://api.wevoteusa.org/apis/v1';
+
+    if (voterDeviceId === undefined) {
+      const requesIdURL = `${weVoteServerApiRootUrl}/deviceIdGenerate/`;
+      window.$.getJSON(requesIdURL, '', (res) => {
+        // console.log("get voter device id", res);
+        voterDeviceId = res.voter_device_id;
+        // console.log('voterDeviceId' + voterDeviceId);
+        localStorage['voterDeviceId'] = voterDeviceId;
+        // console.log('localStorage[\'voterDeviceId\'] =' +  localStorage['voterDeviceId'] );
+      }).fail((err) => {
+        console.log('error getting new voterDeviceId', err);
+      });
+    }
+
+
+    getAccessToken(() => {
+      console.log('oauth2_access_token received');
+    });
+
+    // // Do first step of twitter oAuth
+    // const requestOauth1URL = `${weVoteServerApiRootUrl}/twitterSignInStart` +
+    //   `?cordova=true&voter_device_id=${voterDeviceId}&return_url=http://nonsense.com`;
+    //
+    // window.$.get(requestOauth1URL, '', (res) => {
+    //   console.log("get html from test wevote oauth1", res);
+    //
+    // }).fail((err) => {
+    //   console.log('error', err);
+    // });
+
+    return false;
+  });
+
+
+
   document.getElementById("filterwords").addEventListener('keyup',function(){filterWords(this.value)});
 
   //words found page
@@ -190,6 +229,27 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
+const twToken = 'ZEtOMkZKelhVSlVrdDV4NTZoaFlmRU1vYTowcUdlTVc4d29OR0xNaEMyRHd3bmVDSnRKbjJwU2ZYeklkTldrckN3b1pIbzZ2eEd4OA==';
+
+function getAccessToken(cb) {
+  //const c = this;
+  let oauth2_access_token = '';
+  $.ajax({
+    type: 'POST',
+    url: 'https://api.twitter.com/oauth2/token',
+    headers: {
+      'Authorization': 'Basic ' + twToken,
+      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+    },
+    data: {'grant_type': 'client_credentials'},
+    dataType: 'json',
+    xhrFields: { withCredentials: false },
+    success: (res) => { oauth2_access_token = res['access_token']; cb(); }
+  });
+  console.log("STEVE oauth2_access_token = " + oauth2_access_token);
+}
+
+
 function hintNonUnicodeChar(value){
   if(value.match(/[^a-zA-Z0-9_\s]/)){
     document.getElementById("hintNonUnicode").style.display="block";
@@ -199,20 +259,21 @@ function hintNonUnicodeChar(value){
   }
 }
 
-function donate(state){
-  document.getElementById("donate").style.display="none";
-  document.getElementById("menu").style.display="block";
-  if(state){
-    window.open("https://www.paypal.me/WDeboel/1EUR");
-  }
-  chrome.extension.getBackgroundPage().setDonate(state);
-  if (onPageShown) {
-    drawInterface();
-  }
-  else {
-    onPage();
-  }
-}
+
+// function donate(state){
+//   document.getElementById("donate").style.display="none";
+//   document.getElementById("menu").style.display="block";
+//   if(state){
+//     window.open("https://www.paypal.me/WDeboel/1EUR");
+//   }
+//   chrome.extension.getBackgroundPage().setDonate(state);
+//   if (onPageShown) {
+//     drawInterface();
+//   }
+//   else {
+//     onPage();
+//   }
+// }
 
 function fillLiterals(){
   document.getElementById("litTitle").innerHTML = chrome.i18n.getMessage("popup_title");
@@ -246,10 +307,10 @@ function fillLiterals(){
   document.getElementById("field_dontHighlight").innerHTML = chrome.i18n.getMessage("field_dontHighlight");
   document.getElementById("cancelAddGroup").innerHTML = chrome.i18n.getMessage("popup_cancel");
   document.getElementById("popup_settings").innerHTML = chrome.i18n.getMessage("popup_settings");
-  document.getElementById("field_showFoundWords").innerHTML = chrome.i18n.getMessage("field_showFoundWords");
+  // document.getElementById("field_showFoundWords").innerHTML = chrome.i18n.getMessage("field_showFoundWords");
   document.getElementById("field_printHighlights").innerHTML = chrome.i18n.getMessage("field_printHighlights");
-  document.getElementById("field_neverHighlightOn").innerHTML = chrome.i18n.getMessage("field_neverHighlightOn");
-  document.getElementById("field_neverHighlightOn_help").innerHTML = chrome.i18n.getMessage("field_neverHighlightOn_help");
+  // document.getElementById("field_neverHighlightOn").innerHTML = chrome.i18n.getMessage("field_neverHighlightOn");
+  // document.getElementById("field_neverHighlightOn_help").innerHTML = chrome.i18n.getMessage("field_neverHighlightOn_help");
   document.getElementById("cancelSettings").innerHTML = chrome.i18n.getMessage("popup_cancel");
   document.getElementById("saveSettings").innerHTML = chrome.i18n.getMessage("popup_save");
   document.getElementById("field_exportSettings").innerHTML = chrome.i18n.getMessage("field_exportSettings");
@@ -379,40 +440,40 @@ function syncList(){
 
 function onPage() {
   onPageShown = true;
-  if (chrome.extension.getBackgroundPage().showFoundWords) {
-    chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-      debug && console.log("active tabs",tabs);
-      chrome.tabs.sendMessage(tabs[0].id, {command: "getMarkers"}, function (result) {
-        debug && console.log("got markers",result);
-
-        if (result == undefined) {
-          //on a chrome page
-          drawInterface();
-        }
-        else if (result[0] != undefined) {
-          document.getElementById("menu").style.display = "none";
-          document.getElementById("onPage").style.display = "block";
-          chrome.runtime.getPlatformInfo(
-            function (i) {
-
-              if (i.os == "mac") {
-                document.getElementById("OSKey").innerHTML = "Command";
-              }
-              else {
-                document.getElementById("OSKey").innerHTML = "Control";
-              }
-            });
-          renderFoundWords(result);
-        }
-        else {
-          drawInterface();
-        }
-      });
-    });
-  }
-  else {
+  // if (chrome.extension.getBackgroundPage().showFoundWords) {
+  //   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+  //     debug && console.log("active tabs",tabs);
+  //     chrome.tabs.sendMessage(tabs[0].id, {command: "getMarkers"}, function (result) {
+  //       debug && console.log("got markers",result);
+  //
+  //       if (result == undefined) {
+  //         //on a chrome page
+  //         drawInterface();
+  //       }
+  //       else if (result[0] != undefined) {
+  //         document.getElementById("menu").style.display = "none";
+  //         document.getElementById("onPage").style.display = "block";
+  //         chrome.runtime.getPlatformInfo(
+  //           function (i) {
+  //
+  //             if (i.os == "mac") {
+  //               document.getElementById("OSKey").innerHTML = "Command";
+  //             }
+  //             else {
+  //               document.getElementById("OSKey").innerHTML = "Control";
+  //             }
+  //           });
+  //         renderFoundWords(result);
+  //       }
+  //       else {
+  //         drawInterface();
+  //       }
+  //     });
+  //   });
+  // }
+  // else {
     drawInterface();
-  }
+  // }
 }
 
 function renderFoundWords(markers) {
@@ -447,11 +508,11 @@ function backToFirstScreen() {
 }
 
 function showSettings() {
-  document.getElementById("showFoundWords").checked=chrome.extension.getBackgroundPage().HighlightsData.ShowFoundWords;
+  // document.getElementById("showFoundWords").checked=chrome.extension.getBackgroundPage().HighlightsData.ShowFoundWords;
   document.getElementById("printHighlights").checked=chrome.extension.getBackgroundPage().HighlightsData.PrintHighlights;
-  if(HighlightsData.neverHighlightOn && HighlightsData.neverHighlightOn.length>0){
-    document.getElementById("neverHighlightOn").value=chrome.extension.getBackgroundPage().HighlightsData.neverHighlightOn.join("\n");
-  }
+  // if(HighlightsData.neverHighlightOn && HighlightsData.neverHighlightOn.length>0){
+  //   document.getElementById("neverHighlightOn").value=chrome.extension.getBackgroundPage().HighlightsData.neverHighlightOn.join("\n");
+  // }
   document.getElementById("wordDisplay").style.display = "none";
   document.getElementById("onPage").style.display = "none";
 
@@ -464,14 +525,14 @@ function showSettings() {
   document.getElementById("settingsGroup").style.display = "block";
 }
 
-function showDonate() {
-  /*document.getElementById("showFoundWords").checked=chrome.extension.getBackgroundPage().HighlightsData.ShowFoundWords;
-    document.getElementById("neverHighlightOn").value=chrome.extension.getBackgroundPage().HighlightsData.neverHighlightOn.join("\n");*/
-  document.getElementById("wordDisplay").style.display = "none";
-  document.getElementById("menu").style.display = "none";
-
-  document.getElementById("donateGroup").style.display = "block";
-}
+// function showDonate() {
+//   /*document.getElementById("showFoundWords").checked=chrome.extension.getBackgroundPage().HighlightsData.ShowFoundWords;
+//     document.getElementById("neverHighlightOn").value=chrome.extension.getBackgroundPage().HighlightsData.neverHighlightOn.join("\n");*/
+//   document.getElementById("wordDisplay").style.display = "none";
+//   document.getElementById("menu").style.display = "none";
+//
+//   document.getElementById("donateGroup").style.display = "block";
+// }
 
 
 function cancelSettings(){
@@ -521,17 +582,17 @@ function noDeleteGroup() {
 function saveSettings(){
   showWordsFound(document.getElementById("showFoundWords").checked);
   setPrintHighlights(document.getElementById("printHighlights").checked);
-  var neverHighlightOnSites = document.getElementById("neverHighlightOn").value.split("\n").filter(function (e) {
-    return e
-  });
-  var cleanNeverHighlightOnSites=[];
-  if(neverHighlightOnSites.length>0){
-    neverHighlightOnSites.forEach(function(item) {
-      cleanNeverHighlightOnSites.push( item.replace(/(http|https):\/\//gi, ""));
-    });
-  }
+  // var neverHighlightOnSites = document.getElementById("neverHighlightOn").value.split("\n").filter(function (e) {
+  //   return e
+  // });
+  // var cleanNeverHighlightOnSites=[];
+  // if(neverHighlightOnSites.length>0){
+  //   neverHighlightOnSites.forEach(function(item) {
+  //     cleanNeverHighlightOnSites.push( item.replace(/(http|https):\/\//gi, ""));
+  //   });
+  // }
 
-  chrome.extension.getBackgroundPage().setNeverHighligthOn(cleanNeverHighlightOnSites);
+  // chrome.extension.getBackgroundPage().setNeverHighligthOn(cleanNeverHighlightOnSites);
 
   cancelSettings();
 }

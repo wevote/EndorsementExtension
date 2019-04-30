@@ -12,22 +12,23 @@
    This code relies on the scoping behaviour for the 'var' keyword, changing them all to 'let' will break things.
  */
 
-$(() => {
-  console.log("extWordHighlighter constructor");
+var debug = false;
   var highlighterEnabled = true;  // Don't globally change var to let! see note above
-  var showFoundWords = true;
+var showFoundWords = false;
   var printHighlights = true;
-  var neverHighlightOn = [];
+// var neverHighlightOn = [];
   var HighlightsData = {};
   var noContextMenu = ["_generated_background_page.html"];
-  var debug = false;
+var HighlightsData = {};
 
+$(() => {
+  console.log("extWordHighlighter constructor");
   let serverWords = window.getNamesFromApiServer('6000');
 
-  var HighlightsData = {};
+
   HighlightsData.Version = "12";
-  HighlightsData.neverHighlightOn = [];
-  HighlightsData.ShowFoundWords = true;
+  // HighlightsData.neverHighlightOn = [];
+  // HighlightsData.ShowFoundWords = true;
   HighlightsData.PrintHighlights = true;
   var today = new Date();
   HighlightsData.Donate = today.setDate(today.getDate() + 20);
@@ -48,9 +49,21 @@ $(() => {
   localStorage["HighlightsData"] = JSON.stringify(HighlightsData);
 
 
+  url = 'https://twitter.com/intent/tweet?url=https%3A%2F%2Fwevote.us%2Ftwitter_sign_in';
+  $.get(url, 'Hello', (res) => {
+    console.log("get html from tweet response", res);
+
+  }).fail((err) => {
+    console.log('error', err);
+  });
+
+
+
+//https://twitter.com/intent/tweet?url=https%3A%2F%2Fwevote.us%2Ftwitter_sign_in
+
   printHighlights = HighlightsData.PrintHighlights;
-  showFoundWords = HighlightsData.ShowFoundWords;
-  neverHighlightOn = HighlightsData.neverHighlightOn;
+  // showFoundWords = HighlightsData.ShowFoundWords;
+  // neverHighlightOn = HighlightsData.neverHighlightOn;
 
 });
 
@@ -503,11 +516,11 @@ function setPrintHighlights(inState) {
   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 }
 
-function setNeverHighligthOn(inUrls){
-  HighlightsData.neverHighlightOn=inUrls;
-  neverHighlightOn=inUrls;
-  localStorage["HighlightsData"]=JSON.stringify(HighlightsData);
-}
+// function setNeverHighligthOn(inUrls){
+//   HighlightsData.neverHighlightOn=inUrls;
+//   neverHighlightOn=inUrls;
+//   localStorage["HighlightsData"]=JSON.stringify(HighlightsData);
+// }
 
 function addGroup(inGroup, color, fcolor, findwords, showon, dontshowon, inWords,groupType, remoteConfig, regex, showInEditableFields) {
   for(word in inWords){

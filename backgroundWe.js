@@ -1,8 +1,7 @@
 const $ = window.$;
 let weVoteNameMap = new Map();
 
-function getNamesFromApiServer(election) {
-  let raw_results = '';
+function getNamesFromApiServer(election) {  // eslint-disable-line no-unused-vars
   let words = [];
   // http://localhost:8000/apis/v1/candidatesSyncOut/?google_civic_election_id=2000&endorsement_names=1&state_code=
   const apiURL = `http://localhost:8000/apis/v1/candidatesSyncOut/?google_civic_election_id=${election}&endorsement_names=1`;
@@ -24,11 +23,11 @@ function getNamesFromApiServer(election) {
   return words;
 }
 
-function ctePanel(candidates, selector) {  // eslint-disable-line no-unused-vars
-  if (candidates.length === 0) {
-    candidates = demoCandidates;
-  }
-  for (let i = 0; i < candidates.length; i++) {
-    candidatePane(i, candidates[i], selector);
-  }
-}
+// function ctePanel(candidates, selector) {  // eslint-disable-line no-unused-vars
+//   if (candidates.length === 0) {
+//     candidates = demoCandidates;
+//   }
+//   for (let i = 0; i < candidates.length; i++) {
+//     candidatePane(i, candidates[i], selector);
+//   }
+// }
