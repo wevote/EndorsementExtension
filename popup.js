@@ -75,11 +75,11 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    // test 3c
-
-    getAccessToken(() => {
-      console.log('oauth2_access_token received');
-    });
+    // // test 3c
+    //
+    // getAccessToken(() => {
+    //   console.log('oauth2_access_token received');
+    // });
 
     // // Do first step of twitter oAuth
     // const requestOauth1URL = `${weVoteServerApiRootUrl}/twitterSignInStart` +
@@ -230,25 +230,35 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
-const twToken = 'ZEtOMkZKelhVSlVrdDV4NTZoaFlmRU1vYTowcUdlTVc4d29OR0xNaEMyRHd3bmVDSnRKbjJwU2ZYeklkTldrckN3b1pIbzZ2eEd4OA==';
-
-function getAccessToken(cb) {
+// const bearerTokenCredentials = 'AAAAAAAAAAAAAAAAAAAAANnvjwAAAAAAnlL1G17nvM5qidtRmRLUwcAmb%2Bw%3DdRVXwWzLbs0IWDKwnDiYIOlUFOG6otQYLEYN7eMsWBqCpxIfV7';
+//
+// function getAccessToken(cb) {
   //const c = this;
-  let oauth2_access_token = '';
-  $.ajax({
-    type: 'POST',
-    url: 'https://api.twitter.com/oauth2/token',
-    headers: {
-      'Authorization': 'Basic ' + twToken,
-      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-    },
-    data: {'grant_type': 'client_credentials'},
-    dataType: 'json',
-    xhrFields: { withCredentials: false },
-    success: (res) => { oauth2_access_token = res['access_token']; cb(); }
-  });
-  console.log("STEVE oauth2_access_token = " + oauth2_access_token);
-}
+  // let oauth2_access_token = '';
+  // $.ajax({
+  //   type: 'POST',
+  //   url: 'https://api.twitter.com/oauth2/token',
+  //   headers: {
+  //     'Authorization': 'Basic ' + bearerTokenCredentials,
+  //     'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+  //   },
+  //   data: {'grant_type': 'client_credentials'},
+  //   dataType: 'json',
+  //   xhrFields: { withCredentials: false },
+  //   success: (res) => {
+  //     console.log("token succes = ", res );
+  //     oauth2_access_token = res['access_token'];
+  //     cb();
+  //   },
+  //   error: function (jqXHR) {
+  //     if (jqXHR.status == 500) {
+  //       console.log('Internal error: ' + jqXHR.responseText);
+  //     } else {
+  //       console.log('Unexpected error: ' + jqXHR.responseText);
+  //     }
+  //   }
+  // })
+// }
 
 
 function hintNonUnicodeChar(value){
