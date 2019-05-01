@@ -49,17 +49,13 @@ $(() => {
   localStorage["HighlightsData"] = JSON.stringify(HighlightsData);
 
 
-  url = 'https://twitter.com/intent/tweet?url=https%3A%2F%2Fwevote.us%2Ftwitter_sign_in';
-  $.get(url, 'Hello', (res) => {
-    console.log("get html from tweet response", res);
-
-  }).fail((err) => {
-    console.log('error', err);
-  });
-
-
-
-//https://twitter.com/intent/tweet?url=https%3A%2F%2Fwevote.us%2Ftwitter_sign_in
+  // url = 'https://twitter.com/intent/tweet?url=https%3A%2F%2Fwevote.us%2Ftwitter_sign_in';
+  // $.get(url, 'Hello', (res) => {
+  //   console.log("get html from tweet response", res);
+  //
+  // }).fail((err) => {
+  //   console.log('error', err);
+  // });
 
   printHighlights = HighlightsData.PrintHighlights;
   // showFoundWords = HighlightsData.ShowFoundWords;
