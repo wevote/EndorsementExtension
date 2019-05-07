@@ -31,83 +31,107 @@ var markerPositions = [];
 var highlightMarkers = {};
 var markerScroll = false;
 var printHighlights = true;
+let voterInfo = {};
 
 var debug = false;
 
 // https://projects.sfchronicle.com/2018/voter-guide/endorsements-list/
 
-if(window.location == window.parent.location){
-  //only listen for messages in the main page, not in iframes
-  chrome.runtime.onMessage.addListener(
-    function (request, sender, sendResponse) {
-      /* debug && */ console.log("got a message", request);
-      if (request.command === "openWeDialog") {
-        try {
-          // https://codepen.io/markconroy/pen/rZoNbm
-          let hr = window.location.href;
-          let topMenuHeight = 75;
-          let sideAreaWidth = 400;
-          let iFrameHeight = window.innerHeight - topMenuHeight;
-          let iFrameWidth = window.innerWidth - sideAreaWidth;
-          let bod = $('body');
-          $(bod).children().wrapAll("<div id='we-trash' >").hide();  // if you remove it, other js goes nuts
-          $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before we-trash
-          $('#we-trash').insertAfter('#weContainer');
+$(() => {
+  if (window.location == window.parent.location) {
+    //only listen for messages in the main page, not in iframes
+    chrome.runtime.onMessage.addListener(
+      function (request, sender, sendResponse) {
+        /* debug && */
+        console.log("got a message", request);
+        if (request.command === "openWeDialog") {
+          try {
+            // https://codepen.io/markconroy/pen/rZoNbm
+            let hr = window.location.href;
+            let topMenuHeight = 75;
+            let sideAreaWidth = 400;
+            let iFrameHeight = window.innerHeight - topMenuHeight;
+            let iFrameWidth = window.innerWidth - sideAreaWidth;
+            let bod = $('body');
+            $(bod).children().wrapAll("<div id='we-trash' >").hide();  // if you remove it, other js goes nuts
+            $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before we-trash
+            $('#we-trash').insertAfter('#weContainer');
 
-          let weContainer = $('#weContainer');
-          $(weContainer).append("" +
-            "<span id='topMenu'>" +
-              "<img id='orgLogo' src='https://www.sierraclub.org/sites/www.sierraclub.org/themes/pt/images/logos/sc-logo-green.svg'>" +
-              "<b>Sierra Club</b>" +
-              "<input type=\"text\" id='email' name='email' placeholder='Email' >" +
-              "<input type=\"text\" id='topComment' name='topComment' placeholder='Comment here...' >" +
-            "</span>").append("<div id='weFlexGrid' ></div>");
+            let weContainer = $('#weContainer');
+            $(weContainer).append("" +
+              "<span id='topMenu'>" +
+              "</span>").append("<div id='weFlexGrid' ></div>");
 
-          let weFlexGrid = $('#weFlexGrid');
-          $(weFlexGrid).append('<aside id="frameDiv"><iframe id="frame" width=' + iFrameWidth + ' height=' + iFrameHeight + '></iframe></aside>');
-          $(weFlexGrid).append('<section id="sideArea"></section>');
+            let weFlexGrid = $('#weFlexGrid');
+            $(weFlexGrid).append('<aside id="frameDiv"><iframe id="frame" width=' + iFrameWidth + ' height=' + iFrameHeight + '></iframe></aside>');
+            $(weFlexGrid).append('<section id="sideArea"></section>');
 
-          $("#frame").attr("src", hr);
+            $("#frame").attr("src", hr);
 
-          let noCandiatesFromServerYet = [];
-          candidatePanel( noCandiatesFromServerYet, $("#sideArea"));
+            topMenu();
+            let noCandiatesFromServerYet = [];
+            candidatePanel(noCandiatesFromServerYet, $("#sideArea"));
 
-        } catch(err) {
-          console.log("jQuery dialog in tabWordHighligher threw: ", err);
+            document.getElementById("signIn").addEventListener('click', function () {
+              // console.log("Sign in pressed");
+              signIn();
+              return false;
+            });
+
+          } catch (err) {
+            console.log("jQuery dialog in tabWordHighligher threw: ", err);
+          }
+          return false;
+        } else {
+          if (sender.id == "abcibokldhgkclhihipipbiaednfcpia" || sender.id == "fgmbnmjmbjenlhbefngfibmjkpbcljaj" || sender.id == "highlightthis@deboel.eu") {
+            if (request.command == "ScrollHighlight") {
+              jumpNext();
+              showMarkers();
+              return false
+            }
+            if (request.command == "getMarkers") {
+              sendResponse(highlightMarkers);
+              return true;
+            }
+            if (request.command == "ClearHighlights") {
+              highlightMarkers = {};
+              return false;
+
+            }
+            if (request.command == "ReHighlight") {
+              let testWords = request.words;
+              testWords.push("Dianne")
+              reHighlight(request.words);
+              return false;
+
+            }
+          }
         }
-        return false;
-      } else {
-        if (sender.id == "abcibokldhgkclhihipipbiaednfcpia" || sender.id == "fgmbnmjmbjenlhbefngfibmjkpbcljaj" || sender.id == "highlightthis@deboel.eu") {
-          if (request.command == "ScrollHighlight") {
-            jumpNext();
-            showMarkers();
-            return false
-          }
-          if (request.command == "getMarkers") {
-            sendResponse(highlightMarkers);
-            return true;
-          }
-          if (request.command == "ClearHighlights") {
-            highlightMarkers = {};
-            return false;
-
-          }
-          if (request.command == "ReHighlight") {
-            let testWords = request.words;
-            testWords.push("Dianne")
-            reHighlight(request.words);
-            return false;
-
-          }
-        }
+        return true;
       }
-      return true;
-    }
+    );
+  } else {
+    debug && console.log("not in main page", window.location)
+  }
+});
 
-  );
-}
-else {
-  debug&&console.log("not in main page",window.location)
+function signIn() {
+  console.log("STEVE new signIn");
+  chrome.runtime.sendMessage({ command: "getVoterInfo",},
+    function (response) {
+      const { voterName, voterPhotoURL, voterWeVoteId, voterEmail } = response;
+      voterInfo = {
+        name: voterName,
+        photo: voterPhotoURL,
+        voterId: voterWeVoteId,
+        email: voterEmail
+      };
+
+      if (voterPhotoURL.length > 0) {
+        $('#signIn').replaceWith("<img class='photov voterPhoto noStyleWe' alt='candidate' src=" + voterPhotoURL + " />");
+      }
+    });
+  return false;
 }
 
 function jumpNext() {
@@ -164,6 +188,13 @@ function reHighlight(words) {
   findWords();
 }
 
+function getVoterDeviceId() {
+  // Capture the voter_device_id if we are on a wevote page
+  const tag = 'voter_device_id';
+  let b = document.cookie.match('(^|[^;]+)\\s*' + tag + '\\s*=\\s*([^;]+)');
+  return b ? b.pop() : '';
+}
+
 
 chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
   debug&&console.log('reponse from getStatus',window.location);
@@ -174,9 +205,10 @@ chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
 
     chrome.runtime.sendMessage({
       command: "getWords",
-      url: location.href.replace(location.protocol + "//", "")
+      url: location.href.replace(location.protocol + "//", ""),
+      id: getVoterDeviceId()
     }, function (response) {
-      debug&&console.log('got words');
+      console.log('got words response: ', response);
 
       for (group in response.words) {
         if (response.words[group].Enabled) {

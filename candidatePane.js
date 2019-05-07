@@ -54,7 +54,15 @@ function candidatePanel(candidates, selector) {  // eslint-disable-line no-unuse
   }
 }
 
-
+function topMenu() {  // eslint-disable-line no-unused-vars
+  let topMarkup = "" +
+    "<img id='orgLogo' src='https://www.sierraclub.org/sites/www.sierraclub.org/themes/pt/images/logos/sc-logo-green.svg'>" +
+    "<b>Sierra Club</b>" +
+    "<input type=\"text\" id='email' name='email' placeholder='Email' >" +
+    "<input type=\"text\" id='topComment' name='topComment' placeholder='Comment here...' >" +
+    "<button type='button' id='signIn' class='signInButton weButton noStyleWe'>SIGN IN</button>";
+  $('#topMenu').append(topMarkup);
+}
 
 function candidatePane(i, candidate, selector) {
   let markup = "" +

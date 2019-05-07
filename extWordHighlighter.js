@@ -12,14 +12,18 @@
    This code relies on the scoping behaviour for the 'var' keyword, changing them all to 'let' will break things.
  */
 
-var debug = false;
-  var highlighterEnabled = true;  // Don't globally change var to let! see note above
-var showFoundWords = false;
-  var printHighlights = true;
+let debug = false;
+let highlighterEnabled = true;  // Don't globally change var to let! see note above
+let showFoundWords = false;
+let printHighlights = true;
 // var neverHighlightOn = [];
-  var HighlightsData = {};
-  var noContextMenu = ["_generated_background_page.html"];
-var HighlightsData = {};
+let HighlightsData = {};
+let noContextMenu = ["_generated_background_page.html"];
+let voterName = '';
+let voterPhotoURL = '';
+let voterWeVoteId = '';
+let voterEmail = '';
+let deviceId = '';
 
 $(() => {
   console.log("extWordHighlighter constructor");
@@ -48,15 +52,6 @@ $(() => {
   };
   localStorage["HighlightsData"] = JSON.stringify(HighlightsData);
 
-
-  // url = 'https://twitter.com/intent/tweet?url=https%3A%2F%2Fwevote.us%2Ftwitter_sign_in';
-  // $.get(url, 'Hello', (res) => {
-  //   console.log("get html from tweet response", res);
-  //
-  // }).fail((err) => {
-  //   console.log('error', err);
-  // });
-
   printHighlights = HighlightsData.PrintHighlights;
   // showFoundWords = HighlightsData.ShowFoundWords;
   // neverHighlightOn = HighlightsData.neverHighlightOn;
@@ -74,7 +69,7 @@ function backup(inData, fromVersion){
 }
 
 function upgradeSyncedVersion(syncedData){
-  if(!syncedData.HightlightThis){}
+  //if(!syncedData.HightlightThis){}
 }
 function upgradeVersion(inData){
   var result={};
@@ -249,7 +244,7 @@ function updateContextMenu(inUrl){
       });
     }
 
-    // STEVE, not the way to do it!
+    // TODO: STEVE, not the way to do it!
     let idwe = chrome.contextMenus.create({
       "title": "Create We Vote Endorsement",
       "contexts": [contexts[0]],
@@ -258,7 +253,6 @@ function updateContextMenu(inUrl){
   }
 }
 
-//TODO : fix for Firefox
 chrome.tabs.onActivated.addListener(function(tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     debug&&console.log("in tabs onactivated", tabid, tabs);
@@ -278,14 +272,36 @@ chrome.tabs.onUpdated.addListener(
 );
 chrome.tabs.onCreated.addListener(function(tab){if(tab.url!=undefined){updateContextMenu(tab.url);}});
 
+function updateSignedInVoter() {
+  let voterDeviceId = localStorage['voterDeviceId'];
+  if (voterDeviceId && voterDeviceId.length > 0) {
+    const apiURL = `https://api.wevoteusa.org/apis/v1/voterRetrieve/?voter_device_id=${voterDeviceId}`;
+    console.log(apiURL);
+    $.getJSON(apiURL, '', (res) => {
+      console.log("get json from updateSignedInVoter API SUCCESS", res);
+      const {full_name: fullName, we_vote_id: weVoteId, voter_photo_url_medium: photoURL } = res;
+      voterName = fullName;
+      voterPhotoURL = photoURL;
+      voterWeVoteId = weVoteId;
+    }).fail((err) => {
+      console.log('updateSignedInVoter error', err);
+    });
+  }//https://api.wevoteusa.org/apis/v1/voterRetrieve/?voter_device_id=VbfiYGrnfUXouMWkjRzSMM2z0WhUYPSoIef0QD4gZKgxxcVhZRxy1IeTLNwlWJTaIGHhf0Yx6bse2ZqqkN8b8grW
+}
 
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
   console.log("Steve chrome.contextMenus.onClicked: ");
 
   // There is no DOM to attach to here
-  chrome.tabs.sendMessage(tab.id, {command: "openWeDialog"}, function(result) {
-    console.log( "on click result ", result);
+  chrome.tabs.sendMessage(tab.id, {
+    command: "openWeDialog",
+  }, function(result) {
+    console.log( "on click openWeDialog ", result);
+    let p1= new Promise((resolve, reject) => {
+      updateSignedInVoter();
+    });
   });
+
 
   if (info.menuItemId.indexOf("AddTo_") > -1) {
     groupName = info.menuItemId.replace("AddTo_", "");
@@ -360,7 +376,13 @@ chrome.runtime.onMessage.addListener(
       sendResponse({success:setPrintHighlights(request.state)});
     }
     if(request.command==="getWords") {
+      if (request.id && request.id.length > 0) {
+        localStorage['voterDeviceId'] = request.id;
+      }
       sendResponse({words:getWords(request.url)});
+    }
+    if(request.command==="getVoterInfo") {
+      sendResponse({ voterName, voterPhotoURL, voterWeVoteId, voterEmail });
     }
     if(request.command==="addGroup") {
       sendResponse({success:addGroup(request.group, request.color, request.fcolor, request.findwords, request.showon, request.dontshowon, request.words, request.groupType, request.remoteConfig, request.regex, request.showInEditableFields)});
@@ -500,7 +522,7 @@ function showDonate(){
 //   if(state){
 //     HighlightsData.Donate=today.setDate(today.getDate()+365);
 //   }
-//   else {
+//   else {
 //     HighlightsData.Donate=today.setDate(today.getDate()+100);
 //   }
 //   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
