@@ -25,13 +25,15 @@ var highlighterEnabled = true;
 var searchEngines = {
   'google.com': 'q',
   'bing.com': 'q'
-}
+};
 var markerCurrentPosition = -1;
 var markerPositions = [];
 var highlightMarkers = {};
 var markerScroll = false;
 var printHighlights = true;
 let voterInfo = {};
+let uniqueNameMatches = [];
+let voterDeviceId = '';
 
 var debug = false;
 
@@ -72,6 +74,8 @@ $(() => {
             let noCandiatesFromServerYet = [];
             candidatePanel(noCandiatesFromServerYet, $("#sideArea"));
 
+            updateTopMenu();
+
             document.getElementById("signIn").addEventListener('click', function () {
               // console.log("Sign in pressed");
               signIn();
@@ -81,9 +85,15 @@ $(() => {
           } catch (err) {
             console.log("jQuery dialog in tabWordHighligher threw: ", err);
           }
-          return false;
+          return true;  // indicates that we call the response function asynchronously.  https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
         } else {
-          if (sender.id == "abcibokldhgkclhihipipbiaednfcpia" || sender.id == "fgmbnmjmbjenlhbefngfibmjkpbcljaj" || sender.id == "highlightthis@deboel.eu") {
+          console.log("STEVE STEVE STEVE Received sender.id: ", sender.id + "   request.command: " + request.command);
+
+          if (sender.id === "pmpmiggdjnjhdlhgpfcafbkghhcjocai" ||
+              sender.id == "abcibokldhgkclhihipipbiaednfcpia" ||
+              sender.id == "fgmbnmjmbjenlhbefngfibmjkpbcljaj" ||
+              sender.id == "highlightthis@deboel.eu") {
+
             if (request.command == "ScrollHighlight") {
               jumpNext();
               showMarkers();
@@ -99,8 +109,8 @@ $(() => {
 
             }
             if (request.command == "ReHighlight") {
-              let testWords = request.words;
-              testWords.push("Dianne")
+              // let testWords = request.words["Default Group"].Words;
+              // testWords.push("Dianne")
               reHighlight(request.words);
               return false;
 
@@ -188,7 +198,7 @@ function reHighlight(words) {
   findWords();
 }
 
-function getVoterDeviceId() {
+function getVoterDeviceIdFromWeVoteDomainPage() {
   // Capture the voter_device_id if we are on a wevote page
   const tag = 'voter_device_id';
   let b = document.cookie.match('(^|[^;]+)\\s*' + tag + '\\s*=\\s*([^;]+)');
@@ -206,9 +216,13 @@ chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
     chrome.runtime.sendMessage({
       command: "getWords",
       url: location.href.replace(location.protocol + "//", ""),
-      id: getVoterDeviceId()
+      id: getVoterDeviceIdFromWeVoteDomainPage()  // is this nonsense?
     }, function (response) {
       console.log('got words response: ', response);
+      const id = response.storedDeviceId ? response.storedDeviceId : '';
+      if (response.storedDeviceId && response.storedDeviceId.length > 0) {
+        voterDeviceId = id;
+      }
 
       for (group in response.words) {
         if (response.words[group].Enabled) {
@@ -299,7 +313,7 @@ function findWords() {
       debug&&console.log('finding words',window.location);
 
       ReadyToFindWords=false;
-           
+
       var changed = false;
       var myHilitor = new Hilitor();
       var highlights = myHilitor.apply(wordsArray, printHighlights);
@@ -310,13 +324,22 @@ function findWords() {
           if (markerPositions.indexOf(highlightMarkers[marker].offset) == -1) {
             markerPositions.push(highlightMarkers[marker].offset);
           }
+
         }
         markerPositions.sort();
 
+        let len = Object.keys(highlightMarkers).length;
+        for ( let i = 0; i < len; i++) {
+          const word = highlightMarkers[i].word;
+          if (!uniqueNameMatches.includes(word)) {
+            uniqueNameMatches.push(word);
+          }
+        }
 
         chrome.runtime.sendMessage({
           command: "showHighlights",
-          label: highlights.numberOfHighlights.toString()
+          label: highlights.numberOfHighlights.toString(),
+          uniqueNames: uniqueNameMatches,
         }, function (response) {
         });
       }
@@ -347,5 +370,5 @@ function preg_quote (str,delimiter) {
   // *     returns 2: '\*RRRING\* Hello\?'
   // *     example 3: preg_quote("\\.+*?[^]$(){}=!<>|:");
   // *     returns 3: '\\\.\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:'
-  return (str + '').replace(new RegExp('[.\\\\+*?\\[\\^\\]$(){}=!<>|:\\' + (delimiter || '') + '-]', 'g'), '\\$&'); 
+  return (str + '').replace(new RegExp('[.\\\\+*?\\[\\^\\]$(){}=!<>|:\\' + (delimiter || '') + '-]', 'g'), '\\$&');
 }

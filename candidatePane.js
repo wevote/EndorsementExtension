@@ -56,12 +56,31 @@ function candidatePanel(candidates, selector) {  // eslint-disable-line no-unuse
 
 function topMenu() {  // eslint-disable-line no-unused-vars
   let topMarkup = "" +
-    "<img id='orgLogo' src='https://www.sierraclub.org/sites/www.sierraclub.org/themes/pt/images/logos/sc-logo-green.svg'>" +
-    "<b>Sierra Club</b>" +
-    "<input type=\"text\" id='email' name='email' placeholder='Email' >" +
-    "<input type=\"text\" id='topComment' name='topComment' placeholder='Comment here...' >" +
+    "<img id='orgLogo' src='https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png'>" +
+    "<b><span id='orgName'></span></b>" +
+    "<input type='text' id='email' name='email' placeholder='Email' >" +
+    "<input type='text' id='topComment' name='topComment' placeholder='Comment here...' >" +
     "<button type='button' id='signIn' class='signInButton weButton noStyleWe'>SIGN IN</button>";
   $('#topMenu').append(topMarkup);
+}
+
+// Call into the background script to do a voterGuidePossibilityRetrieve() api call, and return the data, then update the top menu
+function updateTopMenu() {  // eslint-disable-line no-unused-vars
+  console.log("STEVE updateTopMenu()");
+  chrome.runtime.sendMessage({ command: "getTopMenuData", url: window.location.href },
+    function (response) {
+      console.log("STEVE updateTopMenu() response", response);
+
+      if (response && Object.entries(response).length > 0 ) {
+        const { email, orgName, twitterHandle, weVoteId, orgWebsite, orgLogo, possibilityUrl, possibilityId } = response.data;  // eslint-disable-line no-unused-vars
+
+        $('#orgLogo').attr("src", orgLogo);
+        $("#orgName").text(orgName);
+        $("#email").text(email);
+      } else {
+        console.log("ERROR: updateTopMenu received empty response");
+      }
+    });
 }
 
 function candidatePane(i, candidate, selector) {
