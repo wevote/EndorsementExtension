@@ -17,3 +17,7 @@ debug your "Content Script" (Content scripts are the only component of an extens
 Nuggets:
 1. That "Errors" button on the [chrome://extensions/](chrome://extensions/) shows some code validation errors, and some
 runtime errors.  It can be useful, but not as useful as the "background page" devtools.
+
+Files:
+![ScreenShot](docs/images/fileArchitectureDrawing.png)
+<!-- https://docs.google.com/drawings/d/1C32qtyMrsqAZXxN7TEG3lryZXn56owVHnZhwxoAAOLo/edit?usp=sharing ->

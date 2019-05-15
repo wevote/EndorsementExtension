@@ -19,11 +19,11 @@ let printHighlights = true;
 // var neverHighlightOn = [];
 let HighlightsData = {};
 let noContextMenu = ["_generated_background_page.html"];
-let voterName = '';
-let voterPhotoURL = '';
-let voterWeVoteId = '';
-let voterEmail = '';
-let deviceId = '';
+// let voterName = '';
+// let voterPhotoURL = '';
+// let voterWeVoteId = '';
+// let voterEmail = '';
+let uniqueNames = [];
 
 $(() => {
   console.log("extWordHighlighter constructor");
@@ -72,7 +72,7 @@ function upgradeSyncedVersion(syncedData){
   //if(!syncedData.HightlightThis){}
 }
 function upgradeVersion(inData){
-  var result={};
+  //var result={};
   if(!inData.Version){
     //upgrade from v1
     inData={"Version":"6", "neverHighlightOn":[],"ShowFoundWords":true};
@@ -253,6 +253,17 @@ function updateContextMenu(inUrl){
   }
 }
 
+function processUniqueNames(uniqueNamesFromPage) {
+  console.log("STEVE uniqueNamesFromPage: ", uniqueNamesFromPage);
+  for (let i = 0; i < uniqueNamesFromPage.length; i++) {
+    const name = uniqueNamesFromPage[0];
+    if ( $.inArray(name, uniqueNames) === -1 ) {
+      uniqueNames.push(name);
+      // TODO: add a json fetch of some information
+    }
+  }
+}
+
 chrome.tabs.onActivated.addListener(function(tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     debug&&console.log("in tabs onactivated", tabid, tabs);
@@ -271,23 +282,6 @@ chrome.tabs.onUpdated.addListener(
   }
 );
 chrome.tabs.onCreated.addListener(function(tab){if(tab.url!=undefined){updateContextMenu(tab.url);}});
-
-function updateSignedInVoter() {
-  let voterDeviceId = localStorage['voterDeviceId'];
-  if (voterDeviceId && voterDeviceId.length > 0) {
-    const apiURL = `https://api.wevoteusa.org/apis/v1/voterRetrieve/?voter_device_id=${voterDeviceId}`;
-    console.log(apiURL);
-    $.getJSON(apiURL, '', (res) => {
-      console.log("get json from updateSignedInVoter API SUCCESS", res);
-      const {full_name: fullName, we_vote_id: weVoteId, voter_photo_url_medium: photoURL } = res;
-      voterName = fullName;
-      voterPhotoURL = photoURL;
-      voterWeVoteId = weVoteId;
-    }).fail((err) => {
-      console.log('updateSignedInVoter error', err);
-    });
-  }//https://api.wevoteusa.org/apis/v1/voterRetrieve/?voter_device_id=VbfiYGrnfUXouMWkjRzSMM2z0WhUYPSoIef0QD4gZKgxxcVhZRxy1IeTLNwlWJTaIGHhf0Yx6bse2ZqqkN8b8grW
-}
 
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
   console.log("Steve chrome.contextMenus.onClicked: ");
@@ -366,63 +360,56 @@ chrome.commands.onCommand.addListener(function(command) {
 });
 
 chrome.runtime.onMessage.addListener(
-  function(request, sender, sendResponse) {
+  (request, sender, sendResponse) => {    // eslint-disable-line complexity
     debug && console.log("message received", request, sender);
     //request=JSON.parse(evt.data);
-    if(request.command==="showWordsFound") {
+    if (request.command === "getTopMenuData") {
+      getOrganizationFound(request.url, sendResponse);
+      //sendResponse({data: getOrganizationFound(request.url)}); // TODO: STEVE WHAT ABOUT THAT URL!!!!
+    } else if (request.command==="showWordsFound") {
       sendResponse({success:showWordsFound(request.state)});
-    }
-    if(request.command==="setPrintHighlights") {
+    } else if(request.command==="setPrintHighlights") {
       sendResponse({success:setPrintHighlights(request.state)});
-    }
-    if(request.command==="getWords") {
+    } else if(request.command==="getWords") {
       if (request.id && request.id.length > 0) {
-        localStorage['voterDeviceId'] = request.id;
+        localStorage['voterDeviceId'] = request.id;     // Incoming voterDeviceId if we are viewing a wevote domain page.
       }
-      sendResponse({words:getWords(request.url)});
-    }
-    if(request.command==="getVoterInfo") {
+      sendResponse({
+        words:getWords(request.url),
+        storedDeviceId: localStorage['voterDeviceId'],  // Outgoing voterDeviceId for viewing all other pages
+      });
+    } else if(request.command==="getVoterInfo") {
+      const {voterName, voterPhotoURL, voterWeVoteId, voterEmail} = window;
       sendResponse({ voterName, voterPhotoURL, voterWeVoteId, voterEmail });
-    }
-    if(request.command==="addGroup") {
+    } else if(request.command==="addGroup") {
       sendResponse({success:addGroup(request.group, request.color, request.fcolor, request.findwords, request.showon, request.dontshowon, request.words, request.groupType, request.remoteConfig, request.regex, request.showInEditableFields)});
-    }
-    if(request.command==="deleteGroup") {
+    } else if(request.command==="deleteGroup") {
       sendResponse({success:deleteGroup(request.group)});
-    }
-    if(request.command==="addWord") {
+    } else if(request.command==="addWord") {
       sendResponse({success:addWord(request.word)});
-    }
-    if(request.command==="addWords") {
+    } else if(request.command==="addWords") {
       sendResponse({success:addWords(request.words)});
-    }
-    if(request.command==="syncList") {
+    } else if(request.command==="syncList") {
       sendResponse({success:syncWordList(HighlightsData.Groups[request.group], true,request.group)});
-    }
-    if(request.command==="setWords") {
+    } else if(request.command==="setWords") {
       sendResponse({success:setWords(request.words, request.group, request.color, request.fcolor, request.findwords, request.showon, request.dontshowon,  request.newname, request.groupType, request.remoteConfig,request.regex, request.showInEditableFields)});
-    }
-    if(request.command==="removeWord") {
+    } else if(request.command==="removeWord") {
       sendResponse({success:removeWord(request.word)});
-    }
-    if(request.command==="showHighlights") {
+    } else if(request.command==="showHighlights") {
       showHighlights(request.label,sender.tab.id);
+      processUniqueNames(request.uniqueNames);
       sendResponse({success: 'ok'});
-    }
-    if(request.command==="beep") {
+    } else if(request.command==="beep") {
       document.body.innerHTML += '<audio src="beep.wav" autoplay="autoplay"/>';
-    }
-    if(request.command==="getStatus") {
+    } else if(request.command==="getStatus") {
       sendResponse({status:highlighterEnabled, printHighlights: printHighlights});
-    }
-    if(request.command==="updateContextMenu"){
+    } else if(request.command==="updateContextMenu"){
       updateContextMenu(request.url);
       sendResponse({success: 'ok'});
-
-    }
-    if(request.command==="flipGroup") {
+    } else if(request.command==="flipGroup") {
       sendResponse({success: flipGroup(request.group, request.action)});
     }
+
     return true;
   });
 
@@ -505,6 +492,7 @@ function getDataFromStorage(dataType) {
 	localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   return true;
 }*/
+
 function showWordsFound(inState) {
   HighlightsData.ShowFoundWords=inState;
   showFoundWords=inState;

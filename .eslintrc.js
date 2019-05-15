@@ -48,10 +48,7 @@ module.exports = {
         "default-case": "off",
         "dot-location": "error",
         "dot-notation": "off",
-        "eol-last": [
-            "error",
-            "never"
-        ],
+        "eol-last": "off",
         "eqeqeq": "off",
         "func-call-spacing": "off",
         "func-name-matching": "error",
@@ -155,12 +152,7 @@ module.exports = {
         "no-octal-escape": "error",
         "no-param-reassign": "off",
         "no-path-concat": "error",
-        "no-plusplus": [
-            "error",
-            {
-                "allowForLoopAfterthoughts": true
-            }
-        ],
+        "no-plusplus": "off",
         "no-process-env": "error",
         "no-process-exit": "error",
         "no-proto": "error",
