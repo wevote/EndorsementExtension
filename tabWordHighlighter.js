@@ -47,45 +47,7 @@ $(() => {
         /* debug && */
         console.log("got a message", request);
         if (request.command === "openWeDialog") {
-          try {
-            // https://codepen.io/markconroy/pen/rZoNbm
-            let hr = window.location.href;
-            let topMenuHeight = 75;
-            let sideAreaWidth = 400;
-            let iFrameHeight = window.innerHeight - topMenuHeight;
-            let iFrameWidth = window.innerWidth - sideAreaWidth;
-            let bod = $('body');
-            $(bod).children().wrapAll("<div id='we-trash' >").hide();  // if you remove it, other js goes nuts
-            $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before we-trash
-            $('#we-trash').insertAfter('#weContainer');
-
-            let weContainer = $('#weContainer');
-            $(weContainer).append("" +
-              "<span id='topMenu'>" +
-              "</span>").append("<div id='weFlexGrid' ></div>");
-
-            let weFlexGrid = $('#weFlexGrid');
-            $(weFlexGrid).append('<aside id="frameDiv"><iframe id="frame" width=' + iFrameWidth + ' height=' + iFrameHeight + '></iframe></aside>');
-            $(weFlexGrid).append('<section id="sideArea"></section>');
-
-            $("#frame").attr("src", hr);
-
-            topMenu();
-            let noCandiatesFromServerYet = [];
-            candidatePanel(noCandiatesFromServerYet, $("#sideArea"));
-
-            updateTopMenu();
-
-            document.getElementById("signIn").addEventListener('click', function () {
-              // console.log("Sign in pressed");
-              signIn();
-              return false;
-            });
-
-          } catch (err) {
-            console.log("jQuery dialog in tabWordHighligher threw: ", err);
-          }
-          return true;  // indicates that we call the response function asynchronously.  https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
+          displayWeVoteUI();
         } else {
           console.log("STEVE STEVE STEVE Received sender.id: ", sender.id + "   request.command: " + request.command);
 
@@ -113,7 +75,6 @@ $(() => {
               // testWords.push("Dianne")
               reHighlight(request.words);
               return false;
-
             }
           }
         }
@@ -124,25 +85,6 @@ $(() => {
     debug && console.log("not in main page", window.location)
   }
 });
-
-function signIn() {
-  console.log("STEVE new signIn");
-  chrome.runtime.sendMessage({ command: "getVoterInfo",},
-    function (response) {
-      const { voterName, voterPhotoURL, voterWeVoteId, voterEmail } = response;
-      voterInfo = {
-        name: voterName,
-        photo: voterPhotoURL,
-        voterId: voterWeVoteId,
-        email: voterEmail
-      };
-
-      if (voterPhotoURL.length > 0) {
-        $('#signIn').replaceWith("<img class='photov voterPhoto noStyleWe' alt='candidate' src=" + voterPhotoURL + " />");
-      }
-    });
-  return false;
-}
 
 function jumpNext() {
   if (markerCurrentPosition == markerPositions.length - 1 || markerCurrentPosition > markerPositions.length - 1) {
