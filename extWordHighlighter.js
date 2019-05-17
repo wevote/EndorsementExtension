@@ -27,14 +27,16 @@ let uniqueNames = [];
 
 $(() => {
   console.log("extWordHighlighter constructor");
-  let serverWords = window.getNamesFromApiServer('6000');
+  window.getNamesFromApiServer(initializeHighlightsData, '6000');
 
+});
 
+function initializeHighlightsData(wordsFromServer) {
   HighlightsData.Version = "12";
   // HighlightsData.neverHighlightOn = [];
   // HighlightsData.ShowFoundWords = true;
   HighlightsData.PrintHighlights = true;
-  var today = new Date();
+  let today = new Date();
   HighlightsData.Donate = today.setDate(today.getDate() + 20);
   HighlightsData.Groups = {
     "Default Group": {
@@ -45,7 +47,7 @@ $(() => {
       "FindWords": true,
       "ShowOn": [],
       "DontShowOn": [],
-      "Words": serverWords, //['Bitter','Feinstein'],
+      "Words": wordsFromServer, //['Bitter','Feinstein'],
       "Type": 'local',
       "Modified": Date.now()
     }
@@ -55,11 +57,10 @@ $(() => {
   printHighlights = HighlightsData.PrintHighlights;
   // showFoundWords = HighlightsData.ShowFoundWords;
   // neverHighlightOn = HighlightsData.neverHighlightOn;
-
-});
+}
 
 function backup(inData, fromVersion){
-  var blob = new Blob([JSON.stringify(inData)], {type : "text/plain;charset=UTF-8"});
+  let blob = new Blob([JSON.stringify(inData)], {type : "text/plain;charset=UTF-8"});
   url = window.URL.createObjectURL(blob);
   chrome.downloads.download({
     url: url,
@@ -97,7 +98,7 @@ function upgradeVersion(inData){
     if (inData.Version === "3") {
       backup(inData,"3");
       //upgrade from v3
-      for (var highlightData in inData.Groups) {
+      for (let highlightData in inData.Groups) {
         inData.Groups[highlightData].FindWords=true;
         inData.Groups[highlightData].Fcolor="#000";
         inData.Groups[highlightData].ShowOn=[];
@@ -110,7 +111,7 @@ function upgradeVersion(inData){
     if (inData.Version === "4") {
       backup(inData,"4");
       //upgrade from v4
-      for (var highlightData in inData.Groups) {
+      for (let highlightData in inData.Groups) {
         inData.Groups[highlightData].Fcolor="#000";
         inData.Groups[highlightData].ShowOn=[];
         inData.Groups[highlightData].DontShowOn=[];
@@ -123,7 +124,7 @@ function upgradeVersion(inData){
     if (inData.Version === "5") {
       backup(inData,"5");
       //upgrade from v4
-      for (var highlightData in inData.Groups) {
+      for (let highlightData in inData.Groups) {
         inData.Groups[highlightData].DontShowOn=[];
       }
       inData.neverHighlightOn=[];
@@ -132,8 +133,8 @@ function upgradeVersion(inData){
     if (inData.Version === "6"){
       backup(inData,"6");
       //convert words to array
-      for (var highlightData in inData.Groups) {
-        var arr = Object.keys(inData.Groups[highlightData].Words).map(function(k) { return k});
+      for (let highlightData in inData.Groups) {
+        let arr = Object.keys(inData.Groups[highlightData].Words).map(function(k) { return k});
         inData.Groups[highlightData].Words=arr;
         inData.Groups[highlightData].Modified=Date.now();
       }
@@ -146,21 +147,21 @@ function upgradeVersion(inData){
     }
     if (inData.Version === "8"){
       backup(inData,"8");
-      for (var highlightData in inData.Groups) {
+      for (let highlightData in inData.Groups) {
         inData.Groups[highlightData].Type='local';
       }
       inData.Version="9";
     }
     if (inData.Version === "9"||inData.Version === "10"){
       backup(inData,inData.Version);
-      for (var highlightData in inData.Groups) {
+      for (let highlightData in inData.Groups) {
         inData.Groups[highlightData].ShowInEditableFields=false;
       }
       inData.Version="11";
     }
     if (inData.Version === "11"){
       backup(inData,inData.Version);
-      var today=new Date();
+      let today=new Date();
       inData.Donate=today;
       inData.Version="12";
     }
@@ -177,12 +178,12 @@ function createSearchMenu(){
     function (i) {
 
       if (i.os == "mac") {
-        var shortcut = "Shift+Cmd+Space";
+        let shortcut = "Shift+Cmd+Space";
       }
       else {
-        var shortcut = "Shift+Ctrl+Space";
+        let shortcut = "Shift+Ctrl+Space";
       }
-      var highLight = chrome.contextMenus.create({
+      let highLight = chrome.contextMenus.create({
         "title": "Jump to word (" + shortcut + ")",
         "id": "Highlight"
       });
@@ -197,12 +198,12 @@ function updateContextMenu(inUrl){
   if(inUrl&&noContextMenu.indexOf(inUrl) === -1){
     chrome.contextMenus.removeAll();
     createSearchMenu();
-    var contexts = ["selection"];
-    var filteredGroups=getWords(inUrl);  // Don't show highlights on pages that have been excluded
+    let contexts = ["selection"];
+    let filteredGroups=getWords(inUrl);  // Don't show highlights on pages that have been excluded
 
-    var sortedByModified = [];
+    let sortedByModified = [];
 
-    for (var group in filteredGroups){
+    for (let group in filteredGroups){
       if(filteredGroups[group].Type!="remote"){
         sortedByModified.push([group, filteredGroups[group].Modified])
       }
@@ -212,10 +213,10 @@ function updateContextMenu(inUrl){
         return b[1] - a[1]
       }
     );
-    var numItems=0;
-    for (var i = 0; i < contexts.length; i++) {
-      var context = contexts[i];
-      /*var sortedarr = [];
+    let numItems=0;
+    for (let i = 0; i < contexts.length; i++) {
+      let context = contexts[i];
+      /*let sortedarr = [];
       for (group in filteredGroups) {
           sortedarr.push(group)
       }
@@ -228,14 +229,14 @@ function updateContextMenu(inUrl){
             "id": "more"
           });
         }
-        var title = "+ " + group[0];
+        let title = "+ " + group[0];
         if (numItems>9){
-          var id = chrome.contextMenus.create({
+          let id = chrome.contextMenus.create({
             "title": title, "contexts": [context],
             "id": "AddTo_" + group[0], "parentId":"more"
           });
         } else {
-          var id = chrome.contextMenus.create({
+          let id = chrome.contextMenus.create({
             "title": title, "contexts": [context],
             "id": "AddTo_" + group[0]
           });
@@ -254,7 +255,8 @@ function updateContextMenu(inUrl){
 }
 
 function processUniqueNames(uniqueNamesFromPage) {
-  console.log("STEVE uniqueNamesFromPage: ", uniqueNamesFromPage);
+  // This function will be called multiple times as the page loads (to catch previously unrendered names), for simple pages this will seem unnecesary
+  // console.log("uniqueNamesFromPage: ", uniqueNamesFromPage);
   for (let i = 0; i < uniqueNamesFromPage.length; i++) {
     const name = uniqueNamesFromPage[0];
     if ( $.inArray(name, uniqueNames) === -1 ) {
@@ -299,7 +301,7 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
 
   if (info.menuItemId.indexOf("AddTo_") > -1) {
     groupName = info.menuItemId.replace("AddTo_", "");
-    var wordAlreadyAdded = false;
+    let wordAlreadyAdded = false;
 
     if (HighlightsData.Groups[groupName].Words.indexOf(info.selectionText)>-1) {
       wordAlreadyAdded = true;
@@ -365,7 +367,8 @@ chrome.runtime.onMessage.addListener(
     //request=JSON.parse(evt.data);
     if (request.command === "getTopMenuData") {
       getOrganizationFound(request.url, sendResponse);
-      //sendResponse({data: getOrganizationFound(request.url)}); // TODO: STEVE WHAT ABOUT THAT URL!!!!
+    } else if (request.command==="getPositions") {
+      getPossiblePositions( 65, sendResponse );// TODO: pass in possibilityID, not hard coded!  65 on production, 2 on local
     } else if (request.command==="showWordsFound") {
       sendResponse({success:showWordsFound(request.state)});
     } else if(request.command==="setPrintHighlights") {
@@ -421,8 +424,8 @@ function requestReHighlight(){
 }
 function importFile(contents){
   //validation needed
-  var validated=true;
-  var temp=JSON.parse(contents);
+  let validated=true;
+  let temp=JSON.parse(contents);
   if (temp.Version!=undefined){
     if (temp.Groups==undefined){validated=false;}
   }
@@ -437,20 +440,20 @@ function importFile(contents){
   return validated;
 }
 function getWords(inUrl){
-  var result={};
-  for(var neverShowOn in HighlightsData.neverHighlightOn){
+  let result={};
+  for(let neverShowOn in HighlightsData.neverHighlightOn){
     if (inUrl.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))){
       return result;
     }
   }
-  for (var highlightData in HighlightsData.Groups) {
-    var returnHighlight=false;
+  for (let highlightData in HighlightsData.Groups) {
+    let returnHighlight=false;
     if (HighlightsData.Groups[highlightData].Enabled){
       if (HighlightsData.Groups[highlightData].ShowOn.length==0){
         returnHighlight=true;
       }
       else {
-        for(var showOn in HighlightsData.Groups[highlightData].ShowOn){
+        for(let showOn in HighlightsData.Groups[highlightData].ShowOn){
           if (inUrl.match(globStringToRegex(HighlightsData.Groups[highlightData].ShowOn[showOn]))){
             returnHighlight=true;
           }
@@ -500,13 +503,13 @@ function showWordsFound(inState) {
 }
 
 function showDonate(){
-  var today=new Date();
+  let today=new Date();
   if (HighlightsData.Donate<today){return true;}
   return false;
 }
 
 // function setDonate(state){
-//   var today=new Date();
+//   let today=new Date();
 //   if(state){
 //     HighlightsData.Donate=today.setDate(today.getDate()+365);
 //   }
@@ -601,7 +604,7 @@ function setWords(inWords, inGroup, inColor, inFcolor, findwords, showon, dontsh
   HighlightsData.Groups[inGroup].DontShowOn = dontshowon;
   HighlightsData.Groups[inGroup].FindWords = findwords;
   HighlightsData.Groups[inGroup].ShowInEditableFields = showInEditableFields;
-  if (groupType=='remote'){
+  if (groupType === 'remote'){
     HighlightsData.Groups[inGroup].RemoteConfig=remoteConfig;
   }
   if (groupType === 'regex'){
@@ -614,7 +617,7 @@ function setWords(inWords, inGroup, inColor, inFcolor, findwords, showon, dontsh
         }
     }*/
   HighlightsData.Groups[inGroup].FindWords = findwords;
-  if (inGroup != newname) {
+  if (inGroup !== newname) {
     HighlightsData.Groups[newname] = HighlightsData.Groups[inGroup];
     delete HighlightsData.Groups[inGroup];
   }
@@ -640,7 +643,7 @@ function globStringToRegex(str) {
 function syncData() {
   debug && console.log(Date().toString() + " - start sync");
 
-  for (var highlightData in HighlightsData.Groups) {
+  for (let highlightData in HighlightsData.Groups) {
 
     if (HighlightsData.Groups[highlightData].Type === 'remote'){
       syncWordList(HighlightsData.Groups[highlightData], false,'');
@@ -650,7 +653,7 @@ function syncData() {
 }
 function syncWordList(list, notify, listname){
   debug && console.log('syncing ' + list);
-  var xhr = new XMLHttpRequest();
+  let xhr = new XMLHttpRequest();
   switch(list.RemoteConfig.type) {
   case 'pastebin':
     getSitesUrl='https://pastebin.com/raw/'+list.RemoteConfig.id;
@@ -662,7 +665,7 @@ function syncWordList(list, notify, listname){
   xhr.open("GET", getSitesUrl, true);
   xhr.onreadystatechange = function() {
     if (xhr.readyState === 4 && xhr.status === 200) {
-      var resp = sanitizeHtml(xhr.responseText,{allowedTags: [], allowedAttributes: []});
+      let resp = sanitizeHtml(xhr.responseText,{allowedTags: [], allowedAttributes: []});
       wordsToAdd = resp.split("\n").filter(function (e) {
         return e;
       });
@@ -716,7 +719,7 @@ openStatsDB.onsuccess = function() {
   tx.oncomplete = function() {
     db.close();
   };
-}
+};
 
 function preg_quote (str,delimiter) {
   // http://kevin.vanzonneveld.net

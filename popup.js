@@ -6,6 +6,8 @@ var onPageShown = false;
 var Collapsed=true;
 var enableSaveButton=false;
 var debug=false;
+const useProductionAPIs = true;
+const rootApiURL = useProductionAPIs ? 'https://api.wevoteusa.org/apis/v1' : 'http://127.0.0.1:8000/apis/v1';
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -60,10 +62,10 @@ document.addEventListener('DOMContentLoaded', function () {
   // STEVE STEVE STEVE
   document.getElementById("loginTest").addEventListener('click', function () {
     let voterDeviceId = localStorage['voterDeviceId'];
-    const weVoteServerApiRootUrl = 'http://localhost:8000/apis/v1';  // 'https://api.wevoteusa.org/apis/v1';
+    //const weVoteServerApiRootUrl = 'http://localhost:8000/apis/v1';  // 'https://api.wevoteusa.org/apis/v1';
 
     if (voterDeviceId === undefined) {
-      const requesIdURL = `${weVoteServerApiRootUrl}/deviceIdGenerate/`;
+      const requesIdURL = `${rootApiURL}/deviceIdGenerate/`;
       window.$.getJSON(requesIdURL, '', (res) => {
         // console.log("get voter device id", res);
         voterDeviceId = res.voter_device_id;
@@ -120,13 +122,13 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById("words").addEventListener('focusout',function(){
     //check if there are non unicode characters
     hintNonUnicodeChar(this.value);
-        
+
   });
 
   /*document.getElementById("words").addEventListener('paste',function(){
         //check if there are non unicode characters
         hintNonUnicodeChar(this.value);
-        
+
     })*/
 
   /*document.getElementById("backToFirstScreen").addEventListener('click', function () {
@@ -692,7 +694,7 @@ function flipGroup(inGroup, inAction) {
 function editGroup(inGroup) {
   var wordsText = "";
 
-    
+
 
   document.getElementById("highlightOnSites").value = HighlightsData.Groups[inGroup].ShowOn.join("\n");
   document.getElementById("dontHighlightOnSites").value = HighlightsData.Groups[inGroup].DontShowOn.join("\n");
@@ -752,7 +754,7 @@ function editGroup(inGroup) {
     document.getElementById("syncLink").style.display="none";
     document.getElementById("extSource").style.display = "none";
   }
-    
+
   backToFirstScreen();
   document.getElementById("deleteButton").style.display = "block";
   document.getElementById("findwords").checked = HighlightsData.Groups[inGroup].FindWords;
@@ -1144,7 +1146,7 @@ function getAsText(readFile) {
 function loaded(evt) {
   // Obtain the read file data
   var fileString = evt.target.result;
-    
+
   if(!chrome.extension.getBackgroundPage().importFile(fileString)){
     document.getElementById('importError').innerText=chrome.i18n.getMessage("popup_importFailed");
   }
