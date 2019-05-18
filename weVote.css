@@ -33,23 +33,27 @@
   flex: 3;
 }
 
-[class^="candidate"] {
-  backround-color: white;
+.unfurlable {
+  height: 60px;
+}
+
+.candidate {
+  background-color: white;
   border-bottom: 1px solid grey;
   margin-bottom: 1rem;
 }
 
-[class^="photo"] {
+.photo {
   height: 50px;
   float: left;
 }
 
-[class^="nameBox"] {
+.nameBox {
   margin-left: 5px;
-  overlfow: hidden;  // Magics the div onto the same line as the image
+  overflow: hidden;  // Magics the div onto the same line as the image
 }
 
-[class^="nameField"] {
+.candidateName {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 18px;
   font-style: normal;
@@ -57,17 +61,26 @@
   font-weight: 700;
   line-height: 15.4px;
   margin-top: -30px;
-  padding: 0 0 0 36px;
+  padding: 0 0 0 54px;
+}
+.candidateParty {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: 500;
+  line-height: 12px;
+  padding: 3px 0 0 54px;
 }
 
-[class^="titleField"] {
+.officeTitle {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 13px;
   font-style: normal;
   font-variant: normal;
   font-weight: 500;
   line-height: 15.4px;
-  padding: 3px 0 0 36px;
+  padding: 3px 0 0 54px;
 
 }
 
@@ -87,7 +100,7 @@
 [class^="endorsedButton"], [class^="opposedButton"], [class^="infoButton"] {
   width: unset;
   height: 25px;
-  padding: 0px 4px;
+  padding: 0 4px;
 }
 
 [class^="commentWe"], [class^="sourceWe"] {
@@ -107,7 +120,52 @@
   border: 1px solid rgba(46, 60, 93, 0.5);;
   border-radius: 4px;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-  box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.2);
+}
+
+.selectedEndorsed {
+  background-color: #60b864;
+  color: white;
+  position: relative;
+  left: 2px;
+  top: -2px;
+  width: 100px;
+}
+
+.selectedOpposed {
+  background-color: #f27034;
+  color: white;
+  position: relative;
+  left: 2px;
+  top: -2px;
+  width: 100px;
+}
+
+.deselected {
+  background-color: white;
+  color: #235470;
+  position: relative;
+  left: 2px;
+  top: -2px;
+  width: 100px;
+}
+
+.supportButtonSVG {
+  position: absolute;
+  height:32px;
+  top: -3px;
+  left: 1px;
+}
+
+.supportButtonText {
+  margin-left: 24px;
+  font-size: 12px !important;
+}
+
+.supportButtonTextNoIcon {
+  display: block;
+  text-align: center;
+  font-size: 12px !important;
 }
 
 .bottomButton {
@@ -128,7 +186,7 @@
 
 [class^="saveButton"] {
   float: right;
-  padding: 0px 4px;
+  padding: 0 4px;
   margin-right: 5%;
   /*text-transform: uppercase;*/
 }

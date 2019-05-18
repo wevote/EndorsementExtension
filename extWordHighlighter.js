@@ -176,12 +176,12 @@ function createSearchMenu(){
   console.log("steve in createSearchMenu");
   chrome.runtime.getPlatformInfo(
     function (i) {
-
+      let shortcut;
       if (i.os == "mac") {
-        let shortcut = "Shift+Cmd+Space";
+        shortcut = "Shift+Cmd+Space";
       }
       else {
-        let shortcut = "Shift+Ctrl+Space";
+        shortcut = "Shift+Ctrl+Space";
       }
       let highLight = chrome.contextMenus.create({
         "title": "Jump to word (" + shortcut + ")",

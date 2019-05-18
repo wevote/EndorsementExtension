@@ -263,7 +263,7 @@ function findWords() {
         highlightMarkers = highlights.markers;
         markerPositions = [];
         for (marker in highlightMarkers) {
-          if (markerPositions.indexOf(highlightMarkers[marker].offset) == -1) {
+          if (markerPositions.indexOf(highlightMarkers[marker].offset) === -1) {
             markerPositions.push(highlightMarkers[marker].offset);
           }
 
@@ -272,7 +272,7 @@ function findWords() {
 
         let len = Object.keys(highlightMarkers).length;
         for ( let i = 0; i < len; i++) {
-          const word = highlightMarkers[i].word;
+          let word = highlightMarkers[i].word;
           if (!uniqueNameMatches.includes(word)) {
             uniqueNameMatches.push(word);
           }
