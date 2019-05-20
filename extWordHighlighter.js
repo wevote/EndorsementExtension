@@ -289,13 +289,14 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
   console.log("Steve chrome.contextMenus.onClicked: ");
 
   // There is no DOM to attach to here
+  // TODO: This is the wrong way to do this, the content script should send a message, and wait for a WeVote API response
   chrome.tabs.sendMessage(tab.id, {
     command: "openWeDialog",
   }, function(result) {
     console.log( "on click openWeDialog ", result);
-    let p1= new Promise((resolve, reject) => {
-      updateSignedInVoter();
-    });
+    // let p1= new Promise((resolve, reject) => {
+    //   updateSignedInVoter();
+    // });
   });
 
 
@@ -382,8 +383,7 @@ chrome.runtime.onMessage.addListener(
         storedDeviceId: localStorage['voterDeviceId'],  // Outgoing voterDeviceId for viewing all other pages
       });
     } else if(request.command==="getVoterInfo") {
-      const {voterName, voterPhotoURL, voterWeVoteId, voterEmail} = window;
-      sendResponse({ voterName, voterPhotoURL, voterWeVoteId, voterEmail });
+      getVoterSignInInfo (sendResponse);
     } else if(request.command==="addGroup") {
       sendResponse({success:addGroup(request.group, request.color, request.fcolor, request.findwords, request.showon, request.dontshowon, request.words, request.groupType, request.remoteConfig, request.regex, request.showInEditableFields)});
     } else if(request.command==="deleteGroup") {
