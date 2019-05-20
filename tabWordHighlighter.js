@@ -186,7 +186,6 @@ chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
       //start the highlight loop
       highlightLoop();
     });
-
   }
 });
 

@@ -141,6 +141,15 @@
   width: 100px;
 }
 
+.selectedInfo {
+  background-color: #888888;
+  color: white;
+  position: relative;
+  left: 2px;
+  top: -2px;
+  width: 100px;
+}
+
 .deselected {
   background-color: white;
   color: #235470;

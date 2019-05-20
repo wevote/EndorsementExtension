@@ -1,9 +1,14 @@
 // Original JavaScript code by Chirp Internet: www.chirp.com.au
 // Please acknowledge use of this code by including this header.
 
-// modified to : 
+// modified to :
 //  - accept an array of words, phrases
 //  - return the amount of matches found
+
+// modified by WeVote to:
+//  - stop the recursive search for words at the id weContainer (our menus)
+//  - stop at the id weTrash (the original dom, that becomes dormant and invisible, with a fresh copy in the new iframe)
+
 
 function Hilitor(id, tag) {
 
@@ -121,8 +126,16 @@ function Hilitor(id, tag) {
 
     if (node == undefined || !node) {return;}
     if (!matchRegex) {return;}
-    if (skipTags.test(node.nodeName)||skipClasses.test(node.className)) {return;}
 
+    // Begin modification for WeVote
+    // Before change this was...  if (skipTags.test(node.nodeName)||skipClasses.test(node.className)) {return;}
+    if (skipTags.test(node.nodeName) ||
+        skipClasses.test(node.className) ||
+        node.id === "weTrash" ||
+        node.id === "weContainer") {
+      return;
+    }
+    // End of modification for WeVote
 
     if (node.hasChildNodes()) {
       for (var i = 0; i < node.childNodes.length; i++) {

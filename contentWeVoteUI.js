@@ -9,9 +9,9 @@ function displayWeVoteUI () {  // eslint-disable-line no-unused-vars
     let iFrameHeight = window.innerHeight - topMenuHeight;
     let iFrameWidth = window.innerWidth - sideAreaWidth;
     let bod = $('body');
-    $(bod).children().wrapAll("<div id='we-trash' >").hide();  // if you remove it, other js goes nuts
-    $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before we-trash
-    $('#we-trash').insertAfter('#weContainer');
+    $(bod).children().wrapAll("<div id='weTrash' >").hide();  // if you remove it, other js goes nuts
+    $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before weTrash
+    $('#weTrash').insertAfter('#weContainer');
 
     let weContainer = $('#weContainer');
     $(weContainer).append("" +
@@ -25,14 +25,11 @@ function displayWeVoteUI () {  // eslint-disable-line no-unused-vars
     $("#frame").attr("src", hr);
 
     topMenu();
-    // let noCandiatesFromServerYet = [];
-    // candidatePanel(noCandiatesFromServerYet, $("#sideArea"));
-
     updateTopMenu();
-
     updatePositionsPanel();
+    signIn(false);
   } catch (err) {
-    console.log("jQuery dialog in tabWordHighligher threw: ", err);
+    console.log("jQuery dialog in contentWeVoteUI threw: ", err);
   }
   return true;  // indicates that we call the response function asynchronously.  https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
 }
@@ -44,25 +41,54 @@ function displayWeVoteUI () {  // eslint-disable-line no-unused-vars
   Then when you navigate to some endorsement page. the device id will be available in local storage.
  */
 
-function signIn() {
+function signIn(showDialog) {
   console.log("STEVE new signIn");
   chrome.runtime.sendMessage({ command: "getVoterInfo",},
     function (response) {
-      const { voterName, voterPhotoURL, voterWeVoteId, voterEmail } = response;
+      const { success, error, err, voterName, photoURL, voterWeVoteId, voterEmail } = response.data;
+      console.log("STEVE signIn response: ", response);
       voterInfo = {
+        success: success,
+        error: error,
+        err: err,
         name: voterName,
-        photo: voterPhotoURL,
+        photo: photoURL,
         voterId: voterWeVoteId,
         email: voterEmail
       };
 
-      if (voterPhotoURL.length > 0) {
-        $('#signIn').replaceWith("<img class='photov voterPhoto noStyleWe' alt='candidate' src=" + voterPhotoURL + " />");
+      if (voterInfo.success) {
+        $('#signIn').replaceWith("<img id='signOut' class='photov voterPhoto noStyleWe' alt='candidate' src=" + voterInfo.photo + " />");
+        updatePositionsPanel();
+        document.getElementById("signOut").addEventListener('click', function () {
+          console.log("Sign Out pressed");
+          signOut();
+          return false;
+        });
+      } else {
+        console.log("signIn() getVoterInfo returned error: " + voterInfo.error + ", err: " + voterInfo.err);
+        if (showDialog) {
+          $('#loginPopUp').dialog({
+            dialogClass: "no-close",
+            width: 500,
+            position: { my: "right top", at: "left bottom", of: "#signIn" },
+            open: function() {
+              const markup = "<div style='text-align: center;'><b>Authenticate this Chrome extension,</b><br>" +
+                " by logging into the We Vote WebApp (https://wevote.us) in another tab.<br><br>" +
+                "Once you have logged into the We Vote Web App " +
+                "navigate back to this tab and press the <b>SIGN IN</b> button again to authenticate the We Vote Chrome Extension.</div>";
+              $(this).html(markup);
+            },
+          });
+        }
       }
     });
   return false;
 }
 
+function signOut() {
+  console.log("signOut has not been implemented.");
+}
 
 function topMenu() {
   let topMarkup = "" +
@@ -70,19 +96,16 @@ function topMenu() {
     "<b><span id='orgName'></span></b>" +
     "<input type='text' id='email' name='email' placeholder='Email' >" +
     "<input type='text' id='topComment' name='topComment' placeholder='Comment here...' >" +
-    "<button type='button' id='signIn' class='signInButton weButton noStyleWe'>SIGN IN</button>";
+    "<button type='button' id='signIn' class='signInButton weButton noStyleWe'>SIGN IN</button>" +
+    "<span id='loginPopUp'></span>";
   $('#topMenu').append(topMarkup);
 
-  console.log("STEVE BEFORE ADDING SI?GN??????IN HANDLER");
+  // console.log("BEFORE ADDING SIGN IN HANDLER");
   document.getElementById("signIn").addEventListener('click', function () {
     console.log("Sign in pressed");
-    signIn();
+    signIn(true);
     return false;
   });
-
-  // $('#signIn').on('click', 'button', function(){
-  //   signIn();
-  // });
 }
 
 // Call into the background script to do a voterGuidePossibilityRetrieve() api call, and return the data, then update the top menu
@@ -96,8 +119,8 @@ function updateTopMenu() {
         const { email, orgName, twitterHandle, weVoteId, orgWebsite, orgLogo, possibilityUrl, possibilityId } = response.data;  // eslint-disable-line no-unused-vars
 
         $('#orgLogo').attr("src", orgLogo);
-        $("#orgName").text(orgName);
-        $("#email").text(email);
+        $("#orgName").val(orgName);
+        $("#email").val(email);
       } else {
         console.log("ERROR: updateTopMenu received empty response");
       }
@@ -117,13 +140,10 @@ function updatePositionsPanel() {
         if (l > 0) {
           for (let i = 0; i < l; i++) {
             console.log("STEVE getPositions data: ", data[i]);
-            let { ballot_item_name: name, position_stance: stance, statement_text_stored: comment, more_info_url_stored: url,
+            let { ballot_item_name: name, position_stance_stored: stance, statement_text_stored: comment, more_info_url_stored: url,
               political_party: party, office_name: officeName, ballot_item_image_url_https_large: imageURL,
             } = data[i];
 
-            // if (party && party.length > 0) {
-            //   name += " (" + party + ")";
-            // }
             let position = {
               name: name,
               party: party,
@@ -162,8 +182,8 @@ function rightPositionPanes(i, candidate, selector) {
           supportButton(i, 'oppose', candidate.stance ) +
           supportButton(i, 'info', candidate.stance ) +
         "</span>" +
-        "<textarea rows='6' class='commentWe" + i + "' placeholder='url' />" +
-        "<input type='text' class='sourceWe" + i + "' placeholder='url' />" +
+        "<textarea rows='6' class='commentWe" + i + "' />" +
+        "<input type='text' class='sourceWe" + i + "' />" +
         "<span class='bottomButton'>" +
           "<button type='button' class='saveButton" + i + " weButton noStyleWe' >Save</button>" +
         "</span>" +
@@ -175,7 +195,7 @@ function rightPositionPanes(i, candidate, selector) {
   $(selector).css({'height': $('#frameDiv').height() + 'px', 'overflow': 'scroll'});
 }
 
-// Svgs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
+// SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
 function supportButton(i, type, stance ) {
   let buttonText = '';
   let fillColor = '';
@@ -204,15 +224,15 @@ function supportButton(i, type, stance ) {
   } else {
     buttonText = 'INFO ONLY';
     textClass = 'supportButtonTextNoIcon';
-    if (stance === "NO_STANCE") {
+    if (stance === "INFO_ONLY") {
       fillColor = 'white';
-      selectionStyle = 'selectedOpposed';
+      selectionStyle = 'selectedInfo';
     } else {
       fillColor = '#235470';
       selectionStyle = 'deselected';
     }
-
   }
+
   let markup = "<button type='button' class='endorsedButton" + i + " weButton noStyleWe " + selectionStyle + "'>";
 
   if (type === 'endorse' || type === 'oppose') {

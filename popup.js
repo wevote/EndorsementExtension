@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return false;
   });
 
-  // STEVE STEVE STEVE
+  // STEVE STEVE STEVE TODO: This was a valuable experiment, but I don't think we need this -- if there is no id, they need to go to wevote.us to get one, and get it through the contentWeVote path.
   document.getElementById("loginTest").addEventListener('click', function () {
     let voterDeviceId = localStorage['voterDeviceId'];
     //const weVoteServerApiRootUrl = 'http://localhost:8000/apis/v1';  // 'https://api.wevoteusa.org/apis/v1';
@@ -76,24 +76,6 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('error getting new voterDeviceId', err);
       });
     }
-
-    // // test 3c
-    //
-    // getAccessToken(() => {
-    //   console.log('oauth2_access_token received');
-    // });
-
-    // // Do first step of twitter oAuth
-    // const requestOauth1URL = `${weVoteServerApiRootUrl}/twitterSignInStart` +
-    //   `?cordova=true&voter_device_id=${voterDeviceId}&return_url=http://nonsense.com`;
-    //
-    // window.$.get(requestOauth1URL, '', (res) => {
-    //   console.log("get html from test wevote oauth1", res);
-    //
-    // }).fail((err) => {
-    //   console.log('error', err);
-    // });
-
     return false;
   });
 

@@ -39,7 +39,7 @@ function getOrganizationFound (locationHref, sendResponse) {
   let data = {};
   const hrefEncoded = encodeURIComponent(locationHref);
   const apiURL = `${rootApiURL}/voterGuidePossibilityRetrieve/?voter_device_id=${localStorage['voterDeviceId']}&url_to_scan=${hrefEncoded}`;
-  console.log("STEVE STEVE voterGuidePossibilityRetrieve apiURL: " + apiURL);
+  console.log("voterGuidePossibilityRetrieve apiURL: " + apiURL);
   $.getJSON(apiURL, '', (res) => {
     console.log("voterGuidePossibilityRetrieve API results", res);
     if (res && res.organization) {
@@ -50,7 +50,7 @@ function getOrganizationFound (locationHref, sendResponse) {
       } = res.organization;
       const {voter_guide_possibility_edit: possibilityUrl, voter_guide_possibility_id: possibilityId} = res;
 
-      console.log("STEVE STEVE voter_guide_possibility_id:", possibilityId);
+      console.log("voter_guide_possibility_id:", possibilityId);
 
       data = {
         email: email,
@@ -73,20 +73,41 @@ function getOrganizationFound (locationHref, sendResponse) {
   return data;
 }
 
-function updateSignedInVoter() {
+function getVoterSignInInfo (sendResponse) {
+  let data = {};
   let voterDeviceId = localStorage['voterDeviceId'];
+  const apiURL = `${rootApiURL}/voterRetrieve/?voter_device_id=${voterDeviceId}`;
+  console.log("getVoterSignInInfo apiURL: " + apiURL);
+
   if (voterDeviceId && voterDeviceId.length > 0) {
-    const apiURL = `${rootApiURL}/voterRetrieve/?voter_device_id=${voterDeviceId}`;
-    console.log("STEVE voterRetrieve: " + apiURL);
     $.getJSON(apiURL, '', (res) => {
-      console.log("get json from updateSignedInVoter API SUCCESS", res);
-      const {full_name: fullName, we_vote_id: weVoteId, voter_photo_url_medium: photoURL } = res;
-      window.voterName = fullName;
-      window.voterPhotoURL = photoURL;
-      window.voterWeVoteId = weVoteId;
+      console.log("get json from getVoterSignInInfo voterRetrieve API SUCCESS", res);
+      const {success, full_name: fullName, we_vote_id: weVoteId, voter_photo_url_medium: photoURL } = res;
+      data = {
+        success:  success,
+        error:    success ? '' : res.status,
+        fullName: fullName,
+        photoURL: photoURL,
+        weVoteId: weVoteId,
+      };
+      // console.log("get json from updateSignedInVoter photoURL" + photoURL);
+      sendResponse({data: data});
     }).fail((err) => {
-      console.log('updateSignedInVoter error', err);
+      data = {
+        success: false,
+        error: "EXCEPTION",
+        err: err,
+      };
+      console.log('getVoterSignInInfo error', err);
+      sendResponse({data: data});
     });
+  } else {
+    console.log("NOT SIGNED IN ERROR in getVoterSignInInfo no voterDeviceId in local storage");
+    data = {
+      success: false,
+      error: "NOVOTERID",
+    };
+    sendResponse({data: data});
   }
 }
 
@@ -95,7 +116,7 @@ function getPossiblePositions(possibilityId, sendResponse) {
   let voterDeviceId = localStorage['voterDeviceId'];
   if (voterDeviceId && voterDeviceId.length > 0) {
     const apiURL = `${rootApiURL}/voterGuidePossibilityPositionsRetrieve/?voter_device_id=${voterDeviceId}&voter_guide_possibility_id=${possibilityId}`;
-    console.log("STEVE getPossiblePositions: " + apiURL);
+    console.log("getPossiblePositions: " + apiURL);
     $.getJSON(apiURL, '', (res) => {
       console.log("get json from getPossiblePositions API SUCCESS", res);
 
