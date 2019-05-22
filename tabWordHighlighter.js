@@ -40,45 +40,38 @@ var debug = false;
 // https://projects.sfchronicle.com/2018/voter-guide/endorsements-list/
 
 $(() => {
-  if (window.location == window.parent.location) {
+  if (window.location === window.parent.location) {
     //only listen for messages in the main page, not in iframes
     chrome.runtime.onMessage.addListener(
       function (request, sender, sendResponse) {
         /* debug && */
         console.log("got a message", request);
-        if (request.command === "openWeDialog") {
-          displayWeVoteUI();
-        } else {
-          console.log("STEVE STEVE STEVE Received sender.id: ", sender.id + "   request.command: " + request.command);
 
-          if (sender.id === "pmpmiggdjnjhdlhgpfcafbkghhcjocai" ||
-              sender.id == "abcibokldhgkclhihipipbiaednfcpia" ||
-              sender.id == "fgmbnmjmbjenlhbefngfibmjkpbcljaj" ||
-              sender.id == "highlightthis@deboel.eu") {
+        if (sender.id === "pmpmiggdjnjhdlhgpfcafbkghhcjocai" ||
+            sender.id === "abcibokldhgkclhihipipbiaednfcpia" ||
+            sender.id === "fgmbnmjmbjenlhbefngfibmjkpbcljaj" ||
+            sender.id == "highlightthis@deboel.eu") {
 
-            if (request.command == "ScrollHighlight") {
-              jumpNext();
-              showMarkers();
-              return false
-            }
-            if (request.command == "getMarkers") {
-              sendResponse(highlightMarkers);
-              return true;
-            }
-            if (request.command == "ClearHighlights") {
-              highlightMarkers = {};
-              return false;
-
-            }
-            if (request.command == "ReHighlight") {
-              // let testWords = request.words["Default Group"].Words;
-              // testWords.push("Dianne")
-              reHighlight(request.words);
-              return false;
-            }
+          if (request.command === "openWeMenus") {
+            displayWeVoteUI(request.enabled);
+            return false;
+          } else if (request.command === "ScrollHighlight") {
+            jumpNext();
+            showMarkers();
+            return false
+          } else if (request.command === "getMarkers") {
+            sendResponse(highlightMarkers);
+            return true;
+          } else if (request.command == "ClearHighlights") {
+            highlightMarkers = {};
+            return false;
+          } else if (request.command == "ReHighlight") {
+            // let testWords = request.words["Default Group"].Words;
+            // testWords.push("Dianne")
+            reHighlight(request.words);
+            return false;
           }
         }
-        return true;
       }
     );
   } else {
@@ -87,7 +80,7 @@ $(() => {
 });
 
 function jumpNext() {
-  if (markerCurrentPosition == markerPositions.length - 1 || markerCurrentPosition > markerPositions.length - 1) {
+  if (markerCurrentPosition === markerPositions.length - 1 || markerCurrentPosition > markerPositions.length - 1) {
     markerCurrentPosition = -1;
   }
   markerCurrentPosition += 1;

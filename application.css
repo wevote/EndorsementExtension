@@ -1,10 +1,10 @@
 body
 {
   font-family:Arial;
-  width:450px;   
+  width:450px;
   font-size:12px;
   min-height:500px;
-  margin:0px;
+  margin:0;
 }
 
 #byline{    text-align: center;
@@ -16,14 +16,46 @@ body
 h2{
     text-align: center;
     color: #444;
-    -webkit-margin-after: 0px;
+    -webkit-margin-after: 0;
 }
 a {
     cursor: hand;
 }
 
 form table tr{
-vertical-align:top;
+    vertical-align:top;
+}
+
+.switchRow {
+    margin-top: 10px;
+    height: 30px;
+    display: flex;
+    padding: 0 10px 0 10px;
+}
+
+.switchTextLabel {
+    margin-top: 9px;
+}
+
+.onoffswitch {
+    position: relative;
+    width: 66px;
+    left: 30%;
+}
+
+#enabledURLs {
+    width: 95%;
+    border: 1px solid black;
+    margin: 5px;
+}
+
+#enabledURLs tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+#enabledURLs  td:nth-child(1) {
+    color: #005999;
+    padding: 0 4px 0 4px;
 }
 
 .wordListContainer {
@@ -69,8 +101,8 @@ table{font-size: 12px;}
   height:30px;
   width:100%;
   position:fixed;
-  bottom:0px;
-  left: 0px;
+  bottom:0;
+  left: 0;
   border-top: 1px solid lightgray;
 }
 
@@ -134,15 +166,7 @@ button#editWordsButton {
 .secondaryLink:hover{
     color: #0091EA;
 }
-.onoffswitch {
-    position: relative; width: 66px;
-    -webkit-user-select:none; -moz-user-select:none; -ms-user-select: none;
-    margin-right: 5px;
- /* margin-top: -33px;*/
-    margin-top: 2px;
-  position: relative;
-  float: right;
-}
+
 
 .onoffswitch-checkbox {
     display: none;
@@ -188,7 +212,7 @@ button#editWordsButton {
     border: 2px solid #fff; border-radius: 20px;
     position: absolute; top: 0; bottom: 0; right: 35px;
     -moz-transition: all 0.3s ease-in 0s; -webkit-transition: all 0.3s ease-in 0s;
-    -o-transition: all 0.3s ease-in 0s; transition: all 0.3s ease-in 0s; 
+    -o-transition: all 0.3s ease-in 0s; transition: all 0.3s ease-in 0s;
 }
 
 .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
@@ -207,7 +231,7 @@ button#editWordsButton {
 }
 /*.colorsList .color, .groupColor {
   float:left;
-  width:15px; 
+  width:15px;
   height:15px;
 }*/
 .color {
@@ -243,7 +267,7 @@ float: left;
 
 }
 .groupColor {
-    /*padding: 0px 2px 0px 2px;*/
+    /*padding: 0 2px 0 2px;*/
     margin-right:2px;
     margin-left:4px;
     font-size: 21px;
@@ -316,7 +340,7 @@ float: left;
     clear: both;
 }
 .wordlist{
-    margin-top: 0px;
+    margin-top: 0;
     line-height: initial;}
 
 #wordlistmenu {
@@ -424,7 +448,7 @@ input#group {
     height: 76px;
     background-image: url(images/wim.jpg);
     background-color: white;
-    box-shadow: rgba(2, 2, 2, 0.3) 0px 5px 12px 0px;
+    box-shadow: rgba(2, 2, 2, 0.3) 0 5px 12px 0;
     overflow: hidden;
     border-radius: 50%;
     background-position: center center;
@@ -493,5 +517,5 @@ input#group {
 
 .saveSettings {
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-    box-shadow: rgba(0, 0, 0, 0.2) 0px 1px 2px 0px;
+    box-shadow: rgba(0, 0, 0, 0.2) 0 1px 2px 0;
 }

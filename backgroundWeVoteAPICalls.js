@@ -43,12 +43,12 @@ function getOrganizationFound (locationHref, sendResponse) {
   $.getJSON(apiURL, '', (res) => {
     console.log("voterGuidePossibilityRetrieve API results", res);
     if (res && res.organization) {
-      const {
+      let {
         organization_email: email, organization_name: orgName, organization_twitter_handle: twitterHandle, organization_we_vote_id: weVoteId,
         organization_website: orgWebsite,
         we_vote_hosted_profile_image_url_medium: orgLogo
       } = res.organization;
-      const {voter_guide_possibility_edit: possibilityUrl, voter_guide_possibility_id: possibilityId} = res;
+      let {voter_guide_possibility_edit: possibilityUrl, voter_guide_possibility_id: possibilityId} = res;
 
       console.log("voter_guide_possibility_id:", possibilityId);
 
