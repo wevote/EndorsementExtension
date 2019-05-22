@@ -1,38 +1,45 @@
 const $ = window.$;
+let possibilityIdGlobal = "";
 
-function displayWeVoteUI () {  // eslint-disable-line no-unused-vars
+function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
   try {
-    // https://codepen.io/markconroy/pen/rZoNbm
-    let hr = window.location.href;
-    let topMenuHeight = 75;
-    let sideAreaWidth = 400;
-    let iFrameHeight = window.innerHeight - topMenuHeight;
-    let iFrameWidth = window.innerWidth - sideAreaWidth;
-    let bod = $('body');
-    $(bod).children().wrapAll("<div id='weTrash' >").hide();  // if you remove it, other js goes nuts
-    $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before weTrash
-    $('#weTrash').insertAfter('#weContainer');
+    if(enabled) {
+      // https://codepen.io/markconroy/pen/rZoNbm
+      let hr = window.location.href;
+      let topMenuHeight = 75;
+      let sideAreaWidth = 400;
+      let iFrameHeight = window.innerHeight - topMenuHeight;
+      let iFrameWidth = window.innerWidth - sideAreaWidth;
+      let bod = $('body');
+      $(bod).children().wrapAll("<div id='weTrash' >").hide();  // if you remove it, other js goes nuts
+      $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before weTrash
+      $('#weTrash').insertAfter('#weContainer');
 
-    let weContainer = $('#weContainer');
-    $(weContainer).append("" +
-      "<span id='topMenu'>" +
-      "</span>").append("<div id='weFlexGrid' ></div>");
+      let weContainer = $('#weContainer');
+      $(weContainer).append("" +
+        "<span id='topMenu'>" +
+        "</span>").append("<div id='weFlexGrid' ></div>");
 
-    let weFlexGrid = $('#weFlexGrid');
-    $(weFlexGrid).append('<aside id="frameDiv"><iframe id="frame" width=' + iFrameWidth + ' height=' + iFrameHeight + '></iframe></aside>');
-    $(weFlexGrid).append('<section id="sideArea"></section>');
+      let weFlexGrid = $('#weFlexGrid');
+      $(weFlexGrid).append('<aside id="frameDiv"><iframe id="frame" width=' + iFrameWidth + ' height=' + iFrameHeight + '></iframe></aside>');
+      $(weFlexGrid).append('<section id="sideArea"></section>');
 
-    $("#frame").attr("src", hr);
+      $("#frame").attr("src", hr);
 
-    topMenu();
-    updateTopMenu();
-    updatePositionsPanel();
-    signIn(false);
+      topMenu();
+      updateTopMenu();
+      signIn(false);
+    } else {
+      // Disable UI (reload the page)
+      console.log("Unload UI --------------------------------")
+      location.reload();
+    }
   } catch (err) {
     console.log("jQuery dialog in contentWeVoteUI threw: ", err);
   }
   return true;  // indicates that we call the response function asynchronously.  https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
 }
+
 
 /*
   May 16, 2019
@@ -121,6 +128,9 @@ function updateTopMenu() {
         $('#orgLogo').attr("src", orgLogo);
         $("#orgName").val(orgName);
         $("#email").val(email);
+        possibilityIdGlobal = possibilityId;
+        console.log("updateTopMenu possibilityIdGlobal: " + possibilityIdGlobal);
+        updatePositionsPanel();
       } else {
         console.log("ERROR: updateTopMenu received empty response");
       }
@@ -129,7 +139,7 @@ function updateTopMenu() {
 
 function updatePositionsPanel() {
   console.log("STEVE getPositions()");
-  chrome.runtime.sendMessage({ command: "getPositions", url: window.location.href },
+  chrome.runtime.sendMessage({ command: "getPositions", url: window.location.href, possibilityId: possibilityIdGlobal },
     function (response) {
       console.log("STEVE getPositions() response", response);
       const defaultImage = "https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png";
@@ -164,35 +174,42 @@ function updatePositionsPanel() {
 }
 
 function rightPositionPanes(i, candidate, selector) {
-  let markup = "" +
-    "<div class='candidate'>" +
+  let dupe = $(".candidateName:contains('" + candidate.name + "')").length;
+  console.log("rightPositionPanes checked for duplicate " + candidate.name + ": " + dupe);
+  if (!dupe) {
+    let markup = "" +
+      "<div class='candidate'>" +
       "<div class='unfurlable'>" +
-        "<span class='unfurlableTopMenu'>" +
-          "<img class='photo noStyleWe' alt='candidate' src=" + candidate.photo + " />" +
-          "<div class='nameBox  noStyleWe'>" +
-            "<div class='candidateName'>" + candidate.name + "</div>" +
-            "<div class='candidateParty'>" + candidate.party + "</div>" +
-            "<div class='officeTitle'>" + candidate.office + "</div>" +
-          "</div>" +
-        "</span>" +
+      "<span class='unfurlableTopMenu'>" +
+      "<img class='photo noStyleWe' alt='candidate' src=" + candidate.photo + " />" +
+      "<div class='nameBox  noStyleWe'>" +
+      "<div class='candidateName'>" + candidate.name + "</div>" +
+      "<div class='candidateParty'>" + candidate.party + "</div>" +
+      "<div class='officeTitle'>" + candidate.office + "</div>" +
+      "</div>" +
+      "</span>" +
       "</div>" +
       "<div class='furlable'>" +
-        "<span class='buttons'>" +
-          supportButton(i, 'endorse', candidate.stance ) +
-          supportButton(i, 'oppose', candidate.stance ) +
-          supportButton(i, 'info', candidate.stance ) +
-        "</span>" +
-        "<textarea rows='6' class='commentWe" + i + "' />" +
-        "<input type='text' class='sourceWe" + i + "' />" +
-        "<span class='bottomButton'>" +
-          "<button type='button' class='saveButton" + i + " weButton noStyleWe' >Save</button>" +
-        "</span>" +
+      "<span class='buttons'>" +
+      supportButton(i, 'endorse', candidate.stance) +
+      supportButton(i, 'oppose', candidate.stance) +
+      supportButton(i, 'info', candidate.stance) +
+      "</span>" +
+      "<textarea rows='6' class='commentWe" + i + "' />" +
+      "<input type='text' class='sourceWe" + i + "' />" +
+      "<span class='bottomButton'>" +
+      "<button type='button' class='saveButton" + i + " weButton noStyleWe' >Save</button>" +
+      "</span>" +
       "</div>" +
-    "</div>";
-  $(selector).append(markup);
-  $('.commentWe' + i).val(candidate.comment);
-  $('.sourceWe' + i).val(candidate.url);
-  $(selector).css({'height': $('#frameDiv').height() + 'px', 'overflow': 'scroll'});
+      "</div>";
+    $(selector).append(markup);
+    $('.commentWe' + i).val(candidate.comment);
+    $('.sourceWe' + i).val(candidate.url);
+    $(selector).css({
+      'height': $('#frameDiv').height() + 'px',
+      'overflow': 'scroll'
+    });
+  }
 }
 
 // SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg

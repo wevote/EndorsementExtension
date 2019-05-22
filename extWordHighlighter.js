@@ -13,7 +13,7 @@
  */
 
 let debug = false;
-let highlighterEnabled = true;  // Don't globally change var to let! see note above
+let highlighterEnabled = false;  // Don't globally change var to let! see note above
 let showFoundWords = false;
 let printHighlights = true;
 // var neverHighlightOn = [];
@@ -27,8 +27,8 @@ let uniqueNames = [];
 
 $(() => {
   console.log("extWordHighlighter constructor");
-  window.getNamesFromApiServer(initializeHighlightsData, '6000');
-
+  // test case election 1000081   https://twitter.com/RedCanarySong/status/1131102746537615360
+  window.getNamesFromApiServer(initializeHighlightsData, '6000%2c1000081');
 });
 
 function initializeHighlightsData(wordsFromServer) {
@@ -59,117 +59,117 @@ function initializeHighlightsData(wordsFromServer) {
   // neverHighlightOn = HighlightsData.neverHighlightOn;
 }
 
-function backup(inData, fromVersion){
-  let blob = new Blob([JSON.stringify(inData)], {type : "text/plain;charset=UTF-8"});
-  url = window.URL.createObjectURL(blob);
-  chrome.downloads.download({
-    url: url,
-    filename: "HighlightThis_BackupBeforeUpgradeFromV"+fromVersion+".txt"
-  })
+// function backup(inData, fromVersion){
+//   let blob = new Blob([JSON.stringify(inData)], {type : "text/plain;charset=UTF-8"});
+//   url = window.URL.createObjectURL(blob);
+//   chrome.downloads.download({
+//     url: url,
+//     filename: "HighlightThis_BackupBeforeUpgradeFromV"+fromVersion+".txt"
+//   })
+//
+// }
 
-}
-
-function upgradeSyncedVersion(syncedData){
-  //if(!syncedData.HightlightThis){}
-}
-function upgradeVersion(inData){
-  //var result={};
-  if(!inData.Version){
-    //upgrade from v1
-    inData={"Version":"6", "neverHighlightOn":[],"ShowFoundWords":true};
-    inData.Groups={"Default Group":{"Color":"#ff6", "Fcolor":"#000", "Modified":Date.now(),"Enabled": true,"FindWords":true, "ShowFoundWords":true, "PrintHighlights":true, "ShowOn":[], "DontShowOn":[], "Words":HighlightsData.Words,"Type": 'local'}};
-
-  }
-  else {
-    if (inData.Version === "2") {
-      backup(inData,"2");
-      //upgrade from v2
-      for (let highlightData in inData.Groups) {
-        inData.Groups[highlightData].Enabled=true;
-        inData.Groups[highlightData].FindWords=true;
-        inData.Groups[highlightData].Fcolor="#000";
-        inData.Groups[highlightData].ShowOn=[];
-        inData.Groups[highlightData].DontShowOn=[];
-      }
-      inData.ShowFoundWords=true;
-      inData.neverHighlightOn=[];
-      inData.Version="6";
-    }
-    if (inData.Version === "3") {
-      backup(inData,"3");
-      //upgrade from v3
-      for (let highlightData in inData.Groups) {
-        inData.Groups[highlightData].FindWords=true;
-        inData.Groups[highlightData].Fcolor="#000";
-        inData.Groups[highlightData].ShowOn=[];
-        inData.Groups[highlightData].DontShowOn=[];
-      }
-      inData.ShowFoundWords=true;
-      inData.neverHighlightOn=[];
-      inData.Version="6";
-    }
-    if (inData.Version === "4") {
-      backup(inData,"4");
-      //upgrade from v4
-      for (let highlightData in inData.Groups) {
-        inData.Groups[highlightData].Fcolor="#000";
-        inData.Groups[highlightData].ShowOn=[];
-        inData.Groups[highlightData].DontShowOn=[];
-      }
-      inData.ShowFoundWords=true;
-      inData.neverHighlightOn=[];
-      inData.Version="6";
-
-    }
-    if (inData.Version === "5") {
-      backup(inData,"5");
-      //upgrade from v4
-      for (let highlightData in inData.Groups) {
-        inData.Groups[highlightData].DontShowOn=[];
-      }
-      inData.neverHighlightOn=[];
-      inData.Version="6";
-    }
-    if (inData.Version === "6"){
-      backup(inData,"6");
-      //convert words to array
-      for (let highlightData in inData.Groups) {
-        let arr = Object.keys(inData.Groups[highlightData].Words).map(function(k) { return k});
-        inData.Groups[highlightData].Words=arr;
-        inData.Groups[highlightData].Modified=Date.now();
-      }
-      inData.Version="7";
-    }
-    if (inData.Version === "7"){
-      backup(inData,"7");
-      inData.PrintHighlights=true;
-      inData.Version="8";
-    }
-    if (inData.Version === "8"){
-      backup(inData,"8");
-      for (let highlightData in inData.Groups) {
-        inData.Groups[highlightData].Type='local';
-      }
-      inData.Version="9";
-    }
-    if (inData.Version === "9"||inData.Version === "10"){
-      backup(inData,inData.Version);
-      for (let highlightData in inData.Groups) {
-        inData.Groups[highlightData].ShowInEditableFields=false;
-      }
-      inData.Version="11";
-    }
-    if (inData.Version === "11"){
-      backup(inData,inData.Version);
-      let today=new Date();
-      inData.Donate=today;
-      inData.Version="12";
-    }
-
-
-  }
-  return inData;
-}
+// function upgradeSyncedVersion(syncedData){
+//   //if(!syncedData.HightlightThis){}
+// }
+// function upgradeVersion(inData){
+//   //var result={};
+//   if(!inData.Version){
+//     //upgrade from v1
+//     inData={"Version":"6", "neverHighlightOn":[],"ShowFoundWords":true};
+//     inData.Groups={"Default Group":{"Color":"#ff6", "Fcolor":"#000", "Modified":Date.now(),"Enabled": true,"FindWords":true, "ShowFoundWords":true, "PrintHighlights":true, "ShowOn":[], "DontShowOn":[], "Words":HighlightsData.Words,"Type": 'local'}};
+//
+//   }
+//   else {
+//     if (inData.Version === "2") {
+//       backup(inData,"2");
+//       //upgrade from v2
+//       for (let highlightData in inData.Groups) {
+//         inData.Groups[highlightData].Enabled=true;
+//         inData.Groups[highlightData].FindWords=true;
+//         inData.Groups[highlightData].Fcolor="#000";
+//         inData.Groups[highlightData].ShowOn=[];
+//         inData.Groups[highlightData].DontShowOn=[];
+//       }
+//       inData.ShowFoundWords=true;
+//       inData.neverHighlightOn=[];
+//       inData.Version="6";
+//     }
+//     if (inData.Version === "3") {
+//       backup(inData,"3");
+//       //upgrade from v3
+//       for (let highlightData in inData.Groups) {
+//         inData.Groups[highlightData].FindWords=true;
+//         inData.Groups[highlightData].Fcolor="#000";
+//         inData.Groups[highlightData].ShowOn=[];
+//         inData.Groups[highlightData].DontShowOn=[];
+//       }
+//       inData.ShowFoundWords=true;
+//       inData.neverHighlightOn=[];
+//       inData.Version="6";
+//     }
+//     if (inData.Version === "4") {
+//       backup(inData,"4");
+//       //upgrade from v4
+//       for (let highlightData in inData.Groups) {
+//         inData.Groups[highlightData].Fcolor="#000";
+//         inData.Groups[highlightData].ShowOn=[];
+//         inData.Groups[highlightData].DontShowOn=[];
+//       }
+//       inData.ShowFoundWords=true;
+//       inData.neverHighlightOn=[];
+//       inData.Version="6";
+//
+//     }
+//     if (inData.Version === "5") {
+//       backup(inData,"5");
+//       //upgrade from v4
+//       for (let highlightData in inData.Groups) {
+//         inData.Groups[highlightData].DontShowOn=[];
+//       }
+//       inData.neverHighlightOn=[];
+//       inData.Version="6";
+//     }
+//     if (inData.Version === "6"){
+//       backup(inData,"6");
+//       //convert words to array
+//       for (let highlightData in inData.Groups) {
+//         let arr = Object.keys(inData.Groups[highlightData].Words).map(function(k) { return k});
+//         inData.Groups[highlightData].Words=arr;
+//         inData.Groups[highlightData].Modified=Date.now();
+//       }
+//       inData.Version="7";
+//     }
+//     if (inData.Version === "7"){
+//       backup(inData,"7");
+//       inData.PrintHighlights=true;
+//       inData.Version="8";
+//     }
+//     if (inData.Version === "8"){
+//       backup(inData,"8");
+//       for (let highlightData in inData.Groups) {
+//         inData.Groups[highlightData].Type='local';
+//       }
+//       inData.Version="9";
+//     }
+//     if (inData.Version === "9"||inData.Version === "10"){
+//       backup(inData,inData.Version);
+//       for (let highlightData in inData.Groups) {
+//         inData.Groups[highlightData].ShowInEditableFields=false;
+//       }
+//       inData.Version="11";
+//     }
+//     if (inData.Version === "11"){
+//       backup(inData,inData.Version);
+//       let today=new Date();
+//       inData.Donate=today;
+//       inData.Version="12";
+//     }
+//
+//
+//   }
+//   return inData;
+// }
 
 
 function createSearchMenu(){
@@ -177,7 +177,7 @@ function createSearchMenu(){
   chrome.runtime.getPlatformInfo(
     function (i) {
       let shortcut;
-      if (i.os == "mac") {
+      if (i.os === "mac") {
         shortcut = "Shift+Cmd+Space";
       }
       else {
@@ -255,7 +255,7 @@ function updateContextMenu(inUrl){
 }
 
 function processUniqueNames(uniqueNamesFromPage) {
-  // This function will be called multiple times as the page loads (to catch previously unrendered names), for simple pages this will seem unnecesary
+  // This function will be called multiple times as the page loads (to catch previously unrendered names), for simple pages this will seem unnecessary
   // console.log("uniqueNamesFromPage: ", uniqueNamesFromPage);
   for (let i = 0; i < uniqueNamesFromPage.length; i++) {
     const name = uniqueNamesFromPage[0];
@@ -265,6 +265,19 @@ function processUniqueNames(uniqueNamesFromPage) {
     }
   }
 }
+
+// Clicked the browser bar icon
+chrome.browserAction.onClicked.addListener((tab) => {  //TODO: Needs to be tab specific, maybe it is?  Toggle works, but needs to do something
+  highlighterEnabled = !highlighterEnabled;
+  console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled);
+  chrome.tabs.sendMessage(tab.id, {
+    command: "openWeMenus",
+    enabled: highlighterEnabled
+  }, function(result) {
+    console.log( "on click icon, response received to openWeMenus ", result);
+  });
+});
+
 
 chrome.tabs.onActivated.addListener(function(tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
@@ -278,26 +291,26 @@ chrome.tabs.onUpdated.addListener(
   function(tabid, tab){
     debug&&console.log("in tabs onupdated", tabid, tab);
 
-    if(tab.url!=undefined){
+    if(tab.url !== undefined){
       updateContextMenu(tab.url);
     }
   }
 );
-chrome.tabs.onCreated.addListener(function(tab){if(tab.url!=undefined){updateContextMenu(tab.url);}});
+chrome.tabs.onCreated.addListener(function(tab){if(tab.url !== undefined){updateContextMenu(tab.url);}});
 
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
   console.log("Steve chrome.contextMenus.onClicked: ");
 
-  // There is no DOM to attach to here
-  // TODO: This is the wrong way to do this, the content script should send a message, and wait for a WeVote API response
-  chrome.tabs.sendMessage(tab.id, {
-    command: "openWeDialog",
-  }, function(result) {
-    console.log( "on click openWeDialog ", result);
-    // let p1= new Promise((resolve, reject) => {
-    //   updateSignedInVoter();
-    // });
-  });
+  // // There is no DOM to attach to here
+  // // TODO: This is the wrong way to do this, the content script should send a message, and wait for a WeVote API response
+  // chrome.tabs.sendMessage(tab.id, {
+  //   command: "openWeMenus",
+  // }, function(result) {
+  //   console.log( "on click openWeMenus ", result);
+  //   // let p1= new Promise((resolve, reject) => {
+  //   //   updateSignedInVoter();
+  //   // });
+  // });
 
 
   if (info.menuItemId.indexOf("AddTo_") > -1) {
@@ -342,16 +355,16 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
 
 
 
-chrome.runtime.onInstalled.addListener(function() {
-  console.log("Highlights plugin installed");
-  chrome.alarms.create("Data sync", {"periodInMinutes":30});
-});
-
-chrome.alarms.onAlarm.addListener(function(alarm){
-  if (alarm.name === "Data sync") {
-    syncData();
-  }
-});
+// chrome.runtime.onInstalled.addListener(function() {
+//   console.log("Highlights plugin installed");
+//   chrome.alarms.create("Data sync", {"periodInMinutes":30});
+// });
+//
+// chrome.alarms.onAlarm.addListener(function(alarm){
+//   if (alarm.name === "Data sync") {
+//     syncData();
+//   }
+// });
 
 
 chrome.commands.onCommand.addListener(function(command) {
@@ -369,11 +382,9 @@ chrome.runtime.onMessage.addListener(
     if (request.command === "getTopMenuData") {
       getOrganizationFound(request.url, sendResponse);
     } else if (request.command==="getPositions") {
-      getPossiblePositions( 65, sendResponse );// TODO: pass in possibilityID, not hard coded!  65 on production, 2 on local
-    } else if (request.command==="showWordsFound") {
-      sendResponse({success:showWordsFound(request.state)});
-    } else if(request.command==="setPrintHighlights") {
-      sendResponse({success:setPrintHighlights(request.state)});
+      getPossiblePositions( request.possibilityId, sendResponse );
+    } else if(request.command==="getVoterInfo") {
+      getVoterSignInInfo (sendResponse);
     } else if(request.command==="getWords") {
       if (request.id && request.id.length > 0) {
         localStorage['voterDeviceId'] = request.id;     // Incoming voterDeviceId if we are viewing a wevote domain page.
@@ -382,8 +393,10 @@ chrome.runtime.onMessage.addListener(
         words:getWords(request.url),
         storedDeviceId: localStorage['voterDeviceId'],  // Outgoing voterDeviceId for viewing all other pages
       });
-    } else if(request.command==="getVoterInfo") {
-      getVoterSignInInfo (sendResponse);
+    } else if (request.command==="showWordsFound") {
+      sendResponse({success:showWordsFound(request.state)});
+    } else if(request.command==="setPrintHighlights") {
+      sendResponse({success:setPrintHighlights(request.state)});
     } else if(request.command==="addGroup") {
       sendResponse({success:addGroup(request.group, request.color, request.fcolor, request.findwords, request.showon, request.dontshowon, request.words, request.groupType, request.remoteConfig, request.regex, request.showInEditableFields)});
     } else if(request.command==="deleteGroup") {
@@ -422,23 +435,24 @@ function requestReHighlight(){
     chrome.tabs.sendMessage(tabs[0].id, {command: "ReHighlight", words:getWords(tabs[0].url)});
   });
 }
-function importFile(contents){
-  //validation needed
-  let validated=true;
-  let temp=JSON.parse(contents);
-  if (temp.Version!=undefined){
-    if (temp.Groups==undefined){validated=false;}
-  }
-  else {
-    validated=false;
 
-  }
-  if (validated === true){
-    HighlightsData=upgradeVersion(temp);
-    localStorage["HighlightsData"] = JSON.stringify(HighlightsData);
-  }
-  return validated;
-}
+// function importFile(contents){
+//   //validation needed
+//   let validated=true;
+//   let temp=JSON.parse(contents);
+//   if (temp.Version!==undefined){
+//     if (temp.Groups===undefined){validated=false;}
+//   }
+//   else {
+//     validated=false;
+//   }
+//   if (validated === true){
+//     HighlightsData=upgradeVersion(temp);
+//     localStorage["HighlightsData"] = JSON.stringify(HighlightsData);
+//   }
+//   return validated;
+// }
+
 function getWords(inUrl){
   let result={};
   for(let neverShowOn in HighlightsData.neverHighlightOn){
@@ -480,15 +494,16 @@ function onPage(){
   });
 }
 
+// STEVE STEVE set badge color, icon overlay
 function showHighlights(label, tabId)
 {
   chrome.browserAction.setBadgeText({"text":label,"tabId":tabId});
-  chrome.browserAction.setBadgeBackgroundColor ({"color":"#0091EA"});
+  chrome.browserAction.setBadgeBackgroundColor ({"color": "limegreen"}); //"#0091EA"});
 }
 
-function getDataFromStorage(dataType) {
-  if(localStorage[dataType]) {return JSON.parse(localStorage[dataType]);} else {return {};}
-}
+// function getDataFromStorage(dataType) {
+//   if(localStorage[dataType]) {return JSON.parse(localStorage[dataType]);} else {return {};}
+// }
 
 /*function addWord(inWord) {
   HighlightsData.Words[inWord]="";
@@ -502,11 +517,10 @@ function showWordsFound(inState) {
   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 }
 
-function showDonate(){
-  let today=new Date();
-  if (HighlightsData.Donate<today){return true;}
-  return false;
-}
+// function showDonate(){
+//   let today=new Date();
+//   return HighlightsData.Donate < today;
+// }
 
 // function setDonate(state){
 //   let today=new Date();
@@ -556,28 +570,23 @@ function deleteGroup(inGroup) {
   return true;
 }
 function flipGroup(inGroup, inAction) {
-  if (inAction === "enable"){
-    HighlightsData.Groups[inGroup].Enabled=true;
-  }
-  else {
-    HighlightsData.Groups[inGroup].Enabled=false;
-  }
+  HighlightsData.Groups[inGroup].Enabled = inAction === "enable";
   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   requestReHighlight();
   return true;
 }
 
-function flipGroupWordFind(inGroup, inAction) {
-  if (inAction === "enable"){
-    HighlightsData.Groups[inGroup].FindWords=true;
-  }
-  else {
-    HighlightsData.Groups[inGroup].FindWords=false;
-  }
-  localStorage['HighlightsData']=JSON.stringify(HighlightsData);
-  requestReHighlight();
-  return true;
-}
+// function flipGroupWordFind(inGroup, inAction) {
+//   if (inAction === "enable"){
+//     HighlightsData.Groups[inGroup].FindWords=true;
+//   }
+//   else {
+//     HighlightsData.Groups[inGroup].FindWords=false;
+//   }
+//   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
+//   requestReHighlight();
+//   return true;
+// }
 /*function addWords(inWords) {
   //HighlightsData.Words[inWord]="";
 	//localStorage['HighlightsData']=JSON.stringify(HighlightsData);
@@ -637,20 +646,17 @@ function globStringToRegex(str) {
   return preg_quote(str).replace(/\*/g, '\\S*').replace(/\?/g, '.');
 }
 
+// function syncData() {
+//   debug && console.log(Date().toString() + " - start sync");
+//
+//   for (let highlightData in HighlightsData.Groups) {
+//
+//     if (HighlightsData.Groups[highlightData].Type === 'remote'){
+//       syncWordList(HighlightsData.Groups[highlightData], false,'');
+//     }
+//   }
+// }
 
-
-
-function syncData() {
-  debug && console.log(Date().toString() + " - start sync");
-
-  for (let highlightData in HighlightsData.Groups) {
-
-    if (HighlightsData.Groups[highlightData].Type === 'remote'){
-      syncWordList(HighlightsData.Groups[highlightData], false,'');
-    }
-  }
-
-}
 function syncWordList(list, notify, listname){
   debug && console.log('syncing ' + list);
   let xhr = new XMLHttpRequest();
@@ -691,35 +697,35 @@ function syncWordList(list, notify, listname){
   xhr.send();
 }
 
-// This works on all devices/browsers, and uses IndexedDBShim as a final fallback
-var indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB || window.shimIndexedDB;
-
-// Open (or create) the database
-var openStatsDB = indexedDB.open("Stats", 1);
-
-// Create the schema
-openStatsDB.onupgradeneeded = function(e) {
-  var db = e.target.result;
-  var store = db.createObjectStore("MyStats", {keyPath: "word"});
-  var index = store.createIndex("NameIndex", ["lastseen", "count"]);
-};
-
-openStatsDB.onsuccess = function() {
-  console.log("steve in openStatsDB.onsuccess");
-  // Start a new transaction
-  var db = openStatsDB.result;
-  var tx = db.transaction("MyStats", "readwrite");
-  var store = tx.objectStore("MyStats");
-  var index = store.index("NameIndex");
-
-  // Add some data
-  store.put({ word:'test' , count: 1});
-
-  // Close the db when the transaction is done
-  tx.oncomplete = function() {
-    db.close();
-  };
-};
+// // This works on all devices/browsers, and uses IndexedDBShim as a final fallback
+// var indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB || window.shimIndexedDB;
+//
+// // Open (or create) the database
+// var openStatsDB = indexedDB.open("Stats", 1);
+//
+// // Create the schema
+// openStatsDB.onupgradeneeded = function(e) {
+//   var db = e.target.result;
+//   var store = db.createObjectStore("MyStats", {keyPath: "word"});
+//   var index = store.createIndex("NameIndex", ["lastseen", "count"]);
+// };
+//
+// openStatsDB.onsuccess = function() {
+//   console.log("steve in openStatsDB.onsuccess");
+//   // Start a new transaction
+//   var db = openStatsDB.result;
+//   var tx = db.transaction("MyStats", "readwrite");
+//   var store = tx.objectStore("MyStats");
+//   var index = store.index("NameIndex");
+//
+//   // Add some data
+//   store.put({ word:'test' , count: 1});
+//
+//   // Close the db when the transaction is done
+//   tx.oncomplete = function() {
+//     db.close();
+//   };
+// };
 
 function preg_quote (str,delimiter) {
   // http://kevin.vanzonneveld.net
