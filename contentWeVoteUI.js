@@ -65,7 +65,8 @@ function signIn(showDialog) {
       };
 
       if (voterInfo.success) {
-        $('#signIn').replaceWith("<img id='signOut' class='photov voterPhoto noStyleWe' alt='candidate' src=" + voterInfo.photo + " />");
+        $('#signIn').replaceWith("<img id='signOut' class='voterPhoto noStyleWe' alt='candidate' src=" + voterInfo.photo +
+                                           " style='margin: 12px;' />");
         updatePositionsPanel();
         document.getElementById("signOut").addEventListener('click', function () {
           console.log("Sign Out pressed");
@@ -99,12 +100,17 @@ function signOut() {
 
 function topMenu() {
   let topMarkup = "" +
-    "<img id='orgLogo' src='https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png'>" +
-    "<b><span id='orgName'></span></b>" +
-    "<input type='text' id='email' name='email' placeholder='Email' >" +
-    "<input type='text' id='topComment' name='topComment' placeholder='Comment here...' >" +
-    "<button type='button' id='signIn' class='signInButton weButton noStyleWe'>SIGN IN</button>" +
-    "<span id='loginPopUp'></span>";
+    "<div style='margin-left:12px; margin-bottom:4px; align-content: center; width: 10%'>" +
+    "  <img id='orgLogo' src='https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png'>" +
+    "  <b><span id='orgName'></span></b>" +
+    "</div>" +
+    "  <input type='text' id='email' name='email' placeholder='Email' >" +
+    "  <input type='text' id='topComment' name='topComment' placeholder='Comment here... (for unauthenticated suggestions)' >" +
+    "  <div style='width: 100%; float: right'>" +
+    "    <button type='button' id='signIn' class='signInButton weButton noStyleWe'>SIGN IN</button>" +
+    "  </div>" +
+    "<span id='loginPopUp'>" +
+    "</span>";
   $('#topMenu').append(topMarkup);
 
   // console.log("BEFORE ADDING SIGN IN HANDLER");
@@ -126,10 +132,14 @@ function updateTopMenu() {
         const { email, orgName, twitterHandle, weVoteId, orgWebsite, orgLogo, possibilityUrl, possibilityId } = response.data;  // eslint-disable-line no-unused-vars
 
         $('#orgLogo').attr("src", orgLogo);
-        $("#orgName").val(orgName);
-        $("#email").val(email);
+        $("#orgName").text(orgName ? orgName : "An Organization has not been stored for this URL. ");
+        $("#email").css('background', 'lightgrey').attr("disabled", true);      // The purpose of this field is to allow cloudsourced comments from un-authenticated, and untrusted public voters
+        $("#topComment").css('background', 'lightgrey').attr("disabled", true); // Also for cloudsourced comments from un-authenticated, and untrusted public voters
         possibilityIdGlobal = possibilityId;
         console.log("updateTopMenu possibilityIdGlobal: " + possibilityIdGlobal);
+        if (orgName === undefined) {
+          rightNewGuideDialog();
+        }
         updatePositionsPanel();
       } else {
         console.log("ERROR: updateTopMenu received empty response");
@@ -211,6 +221,61 @@ function rightPositionPanes(i, candidate, selector) {
     });
   }
 }
+
+function rightNewGuideDialog() {
+  let selector = $("#sideArea");
+  let markup = "<div id='newGuide'>" +
+    "<h3>Store Organization Info<br>for this Guide</h3><br>" +
+    "Organization Name:<br>" +
+    "<input type='text' class='orgNameNew' name='orgName'><br>" +
+    "Organization Twitter Handle:<br>" +
+    "<input type='text' class='orgTwitterNew' name='orgTwitter'><br>" +
+    "State Code (two letters)(optional):<br>" +
+    "<input type='text' class='orgStateNew' name='orgState'><br>" +
+    "Comments:<br>" +
+    "<textarea  class='orgCommentsNew' name='orgComments'></textarea></textarea><br><br>" +
+    "<input type='button' id='saveToServer' class='weButton noStyleWe' value='Save to Server'>" +
+    "</div>";
+  $(selector).append(markup);
+  document.getElementById("saveToServer").addEventListener('click', function () {
+    console.log("Save to Server pressed");
+    saveOrgData();
+    return false;
+  });
+}
+
+function saveOrgData() {
+  console.log("STEVE saveOrgData() ");
+  let name = $('.orgNameNew').val();
+  let twitter = $('.orgTwitterNew').val();
+  let state = $('.orgStateNew').val();
+  let comments = $('.orgCommentsNew').val();
+  chrome.runtime.sendMessage(
+    { command: "updateVoterGuide", voterGuidePossibilityId: possibilityIdGlobal, orgName: name,
+      orgTwitter: twitter, orgState: state, comments: comments },
+    function (response) {
+      console.log("STEVE saveOrgData() response", response);
+
+      if (response && Object.entries(response).length > 0 ) {
+        const {orgName, comments } = response.data;  // eslint-disable-line no-unused-vars
+
+        // $('#orgLogo').attr("src", orgLogo);
+        $("#orgName").text(orgName);
+        $("#topComment").val(comments);
+        console.log("updateTopMenu orgName: " + orgName);
+        if (orgName === undefined) {
+          rightNewGuideDialog();
+        } else {
+          $('#newGuide').remove();
+          updatePositionsPanel();
+        }
+      } else {
+        console.log("ERROR: updateTopMenu received empty response");
+      }
+    });
+
+}
+
 
 // SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
 function supportButton(i, type, stance ) {

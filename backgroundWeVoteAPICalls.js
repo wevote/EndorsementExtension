@@ -9,8 +9,11 @@ let weVoteNameMap = new Map();
 
 function getNamesFromApiServer(initializeHighlightsData, election) {
   let wordsFromServer = [];
+  console.log("getNamesFromApiServer received election: " + election);
 
-  const apiURL = `${rootApiURL}/candidateListForUpcomingElectionsRetrieve/?google_civic_election_id_list[]=${election}`;
+  // TODO: Maybe make this election number sensitive, without a number it returns all upcoming elections
+  // const apiURL = `${rootApiURL}/candidateListForUpcomingElectionsRetrieve/?google_civic_election_id_list[]=${election}`;
+  const apiURL = `${rootApiURL}/candidateListForUpcomingElectionsRetrieve`;
   console.log("getNamesFromApiServer: " + apiURL);
   $.getJSON(apiURL, '', (res) => {
     console.log("candidateListForUpcomingElectionsRetrieve API SUCCESS", res);
@@ -42,7 +45,7 @@ function getOrganizationFound (locationHref, sendResponse) {
   console.log("voterGuidePossibilityRetrieve apiURL: " + apiURL);
   $.getJSON(apiURL, '', (res) => {
     console.log("voterGuidePossibilityRetrieve API results", res);
-    if (res && res.organization) {
+    if (res && res.voter_guide_possibility_edit) {
       let {
         organization_email: email, organization_name: orgName, organization_twitter_handle: twitterHandle, organization_we_vote_id: weVoteId,
         organization_website: orgWebsite,
@@ -124,6 +127,29 @@ function getPossiblePositions(possibilityId, sendResponse) {
 
       sendResponse({data: possiblePositions});
 
+    }).fail((err) => {
+      console.log('getPossiblePositions error', err);
+    });
+  }
+}
+
+function updatePossibleVoterGuide(voterGuidePossibilityId, orgName, orgTwitter, orgState, comments, sendResponse) {
+  let voterDeviceId = localStorage['voterDeviceId'];
+  console.log("updatePossibleVoterGuide voterGuidePossibilitySave voterGuidePossibilityId: " + voterGuidePossibilityId);
+  if (voterDeviceId && voterDeviceId.length > 0) {
+    const apiURL = `${rootApiURL}/voterGuidePossibilitySave/?voter_device_id=${voterDeviceId}&voter_guide_possibility_id=${voterGuidePossibilityId}` +
+      `&possible_organization_name=${encodeURIComponent(orgName ? orgName.trim() : '')}` +
+      `&possible_organization_twitter_handle=${encodeURIComponent(orgTwitter ? orgTwitter.trim() : '')}` +
+      `&contributor_comments=${encodeURIComponent(comments)}&limit_to_this_state_code=${orgState ? orgState.trim(): ''}`;
+    console.log("voterGuidePossibilitySave: " + apiURL);
+    $.getJSON(apiURL, '', (res) => {
+      console.log("get json from voterGuidePossibilitySave API SUCCESS", res);
+      const { possible_organization_name: orgName, contributor_comments: comments } = res;
+      data = {
+        orgName: orgName,
+        comments: comments,
+      };
+      sendResponse({data: data});
     }).fail((err) => {
       console.log('getPossiblePositions error', err);
     });
