@@ -81,10 +81,10 @@ function signIn(showDialog) {
             width: 500,
             position: { my: "right top", at: "left bottom", of: "#signIn" },
             open: function() {
-              const markup = "<div style='text-align: center;'><b>Authenticate this Chrome extension,</b><br>" +
+              const markup = "<div style='text-align: center;'><b>Authenticate this \"We Vote Endorsement Tool\" Chrome extension,</b><br>" +
                 " by logging into the We Vote WebApp (https://wevote.us) in another tab.<br><br>" +
-                "Once you have logged into the We Vote Web App " +
-                "navigate back to this tab and press the <b>SIGN IN</b> button again to authenticate the We Vote Chrome Extension.</div>";
+                "Once you have logged into the We Vote Web App, " +
+                "navigate back to this tab and press the <b>SIGN IN</b> button again to authenticate the \"We Vote Endorsement Tool\" Chrome Extension.</div>";
               $(this).html(markup);
             },
           });

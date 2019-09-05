@@ -151,7 +151,7 @@ function updatePossibleVoterGuide(voterGuidePossibilityId, orgName, orgTwitter, 
       };
       sendResponse({data: data});
     }).fail((err) => {
-      console.log('getPossiblePositions error', err);
+      console.log('updatePossibleVoterGuide error', err);
     });
   }
 }
