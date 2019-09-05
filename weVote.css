@@ -45,11 +45,14 @@
 
 .photo {
   height: 50px;
+  width: 50px;
   float: left;
 }
 
 .nameBox {
-  margin-left: 5px;
+  margin: 0 auto;
+  border: 2px;
+  width: 960px;
   overflow: hidden;  // Magics the div onto the same line as the image
 }
 
@@ -60,7 +63,8 @@
   font-variant: normal;
   font-weight: 700;
   line-height: 15.4px;
-  margin-top: -30px;
+  margin-top: 0;
+  margin-left: 2px;
   padding: 0 0 0 54px;
 }
 .candidateParty {
@@ -71,6 +75,8 @@
   font-weight: 500;
   line-height: 12px;
   padding: 3px 0 0 54px;
+  margin-left: 2px;
+
 }
 
 .officeTitle {
@@ -81,6 +87,7 @@
   font-weight: 500;
   line-height: 15.4px;
   padding: 3px 0 0 54px;
+  margin-left: 2px;
 
 }
 
@@ -183,12 +190,12 @@
 
 .signInButton {
   float: right;
-  margin: 12px 15px 12px 0;
+  margin: 48px 10px 0 0;
 }
 
 .voterPhoto {
   float: right;
-  margin: 3px 15px 1px 0;
+  margin: 48px 0 0 0;
   height: 35px;
   border-radius: 4px;
 }
@@ -212,19 +219,20 @@
 }
 
 #topMenu {
-vertical-align: middle;
-padding: 1rem
+  display: flex;
+  justify-content: left;
 }
 
 #orgLogo {
   height: 26px;
-  margin: 9px 10px 7px 10px;
+  margin: 0 0 5px 5px;
   vertical-align: middle
 }
 
 #email {
   height: 20px;
-  margin: 8px 20px;
+  margin: 44px 0 0 40px;
+  padding: unset;
   border-color: rgb(206,212,218);
   border-width: 1px;
   border-radius: 4px;
@@ -233,9 +241,37 @@ padding: 1rem
 
 #topComment {
   height: 20px;
+  margin: 44px 0 0 10px;
   border-color: rgb(206,212,218);
   border-width: 1px;
   border-radius: 4px;
-  width: 60%;
+  width: 50%;
+}
+
+#newGuide {
+  margin: 5px;
+  width: 100%;
+  border: grey solid 1px;
+  padding: 1rem;
+}
+
+.orgName {
+  width: 100%;
+  margin-left: 6px;
+}
+
+.orgState {
+  width: 10%;
+}
+
+.orgComments {
+  width: 100%;
+  height: 70px;
+}
+
+#saveToServer {
+  background-color: #29F7C8;
+  color: black;
+  padding: 2px 5px;
 }
 

@@ -28,7 +28,7 @@ let uniqueNames = [];
 $(() => {
   console.log("extWordHighlighter constructor");
   // test case election 1000081   https://twitter.com/RedCanarySong/status/1131102746537615360
-  window.getNamesFromApiServer(initializeHighlightsData, '6000%2c1000081');
+  window.getNamesFromApiServer(initializeHighlightsData, '6000'); // %2c1000081
 });
 
 function initializeHighlightsData(wordsFromServer) {
@@ -393,6 +393,8 @@ chrome.runtime.onMessage.addListener(
         words:getWords(request.url),
         storedDeviceId: localStorage['voterDeviceId'],  // Outgoing voterDeviceId for viewing all other pages
       });
+    } else if (request.command==="updateVoterGuide") {
+      updatePossibleVoterGuide(request.voterGuidePossibilityId, request.orgName, request.orgTwitter, request.orgState, request.comments, sendResponse);
     } else if (request.command==="showWordsFound") {
       sendResponse({success:showWordsFound(request.state)});
     } else if(request.command==="setPrintHighlights") {
