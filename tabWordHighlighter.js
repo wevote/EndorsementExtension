@@ -35,7 +35,7 @@ let voterInfo = {};
 let uniqueNameMatches = [];
 let voterDeviceId = '';
 
-var debug = false;
+var debug = true;
 
 // https://projects.sfchronicle.com/2018/voter-guide/endorsements-list/
 
@@ -89,7 +89,7 @@ function jumpNext() {
 }
 
 function showMarkers() {
-  console.log("Steve, background showMarkers");
+  debug&&console.log("Steve, background showMarkers");
   var element = document.getElementById('HighlightThisMarkers');
   if (element) {
     element.parentNode.removeChild(element);
@@ -116,9 +116,11 @@ function showMarkers() {
 }
 
 function reHighlight(words) {
+  debug&&console.log("function reHighlight(words)");
   for (group in words) {
     if (words[group].Enabled) {
       for (word in words[group].Words) {
+        debug&&console.log("reHighlight word = " + word);
         wordsArray.push( {
           word: words[group].Words[word].toLowerCase(),
           "regex": globStringToRegex(words[group].Words[word]),
@@ -162,6 +164,7 @@ chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
       for (group in response.words) {
         if (response.words[group].Enabled) {
           for (word in response.words[group].Words) {
+            debug&&console.log("getWords response, " + word + ", group: " + group + ", findWords: " + response.words[group].FindWords );
             wordsArray.push({
               word: response.words[group].Words[word].toLowerCase(),
               "regex": globStringToRegex(response.words[group].Words[word]),
@@ -203,7 +206,6 @@ function highlightLoop(){
 
 }
 
-
 function getSearchKeyword() {
   var searchKeyword = null;
   if (document.referrer) {
@@ -215,6 +217,7 @@ function getSearchKeyword() {
   }
   return searchKeyword;
 }
+
 function getSearchParameter(n) {
   var half = document.referrer.split(n + '=')[1];
   return half !== undefined ? decodeURIComponent(half.split('&')[0]) : null;
@@ -282,7 +285,8 @@ function findWords() {
       //}, HighligthCooldown);
     }, HighlightWarmup);
   }
-  debug&&console.log('finished finding words');
+  // This next log line floods the log, and slow things down
+  // debug&&console.log('finished finding words');
 
 }
 
