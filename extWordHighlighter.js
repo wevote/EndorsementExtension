@@ -7,12 +7,12 @@
 /* eslint no-ternary: 0 */
 /* eslint no-undef: 0 */
 /* eslint no-unused-vars: 0 */
+/* eslint complexity: 0 */
 
 /* April 25, 2019 Steve
    This code relies on the scoping behaviour for the 'var' keyword, changing them all to 'let' will break things.
  */
 
-let debug = false;
 let highlighterEnabled = false;  // Don't globally change var to let! see note above
 let showFoundWords = false;
 let printHighlights = true;
@@ -25,155 +25,101 @@ let noContextMenu = ["_generated_background_page.html"];
 // let voterEmail = '';
 let uniqueNames = [];
 
+const groupNames = {
+  POSSIBILITY_SUPPORT: 'POSSIBILITY_SUPPORT',
+  POSSIBILITY_OPPOSE: 'POSSIBILITY_OPPOSE',
+  POSSIBILITY_INFO: 'POSSIBILITY_INFO',
+  STORED_SUPPORT: 'STORED_SUPPORT',
+  STORED_OPPOSE: 'STORED_OPPOSE',
+  STORED_INFO: 'STORED_INFO',
+  DELETED: 'DELETED',
+  DEFAULT: 'DEFAULT'
+};
+
+
 $(() => {
   console.log("extWordHighlighter constructor");
-  // test case election 1000081   https://twitter.com/RedCanarySong/status/1131102746537615360
-  window.getNamesFromApiServer(initializeHighlightsData, '6000'); // %2c1000081
 });
 
-function initializeHighlightsData(wordsFromServer) {
+function getWordsInGroup(groupName, highlightsList) {
+  const display = groupName.split('_')[0];
+  let stance = groupName.split('_')[1] ? groupName.split('_')[1] : '';
+  if (stance === 'INFO') {
+    stance = 'INFO_ONLY';
+  }
+  let wordList = [];
+
+  for (let i = 0; i < highlightsList.length; i++) {
+    let highlight = highlightsList[i];
+    if (stance.length === 0) {
+      if (highlight.display === display) {
+        wordList.push(highlight.name);
+      }
+    } else {
+      if (highlight.display === display && highlight.stance === stance) {
+        wordList.push(highlight.name);
+      }
+    }
+  }
+  return wordList;
+}
+
+function initializeHighlightsData(highlightsList) {
   HighlightsData.Version = "12";
   // HighlightsData.neverHighlightOn = [];
   // HighlightsData.ShowFoundWords = true;
   HighlightsData.PrintHighlights = true;
   let today = new Date();
   HighlightsData.Donate = today.setDate(today.getDate() + 20);
-  HighlightsData.Groups = {
-    "Default Group": {
-      "Color": "#ff6",
-      "Fcolor": "#000",
+  HighlightsData.Groups = [];
+  for (groupName in groupNames) {
+    let group = {
+      "Fcolor": getColor(groupName, true),
+      "Color": getColor(groupName, false),
+
       "ShowInEditableFields": false,
       "Enabled": true,
       "FindWords": true,
       "ShowOn": [],
       "DontShowOn": [],
-      "Words": wordsFromServer, //['Bitter','Feinstein'],
+      "Words": getWordsInGroup(groupName, highlightsList),
       "Type": 'local',
       "Modified": Date.now()
-    }
-  };
+    };
+    debug&&console.log("groupName: " + groupName + ", group: " + group);
+    HighlightsData.Groups.push(groupName, group);
+  }
   localStorage["HighlightsData"] = JSON.stringify(HighlightsData);
 
   printHighlights = HighlightsData.PrintHighlights;
-  // showFoundWords = HighlightsData.ShowFoundWords;
-  // neverHighlightOn = HighlightsData.neverHighlightOn;
 }
 
-// function backup(inData, fromVersion){
-//   let blob = new Blob([JSON.stringify(inData)], {type : "text/plain;charset=UTF-8"});
-//   url = window.URL.createObjectURL(blob);
-//   chrome.downloads.download({
-//     url: url,
-//     filename: "HighlightThis_BackupBeforeUpgradeFromV"+fromVersion+".txt"
-//   })
-//
-// }
-
-// function upgradeSyncedVersion(syncedData){
-//   //if(!syncedData.HightlightThis){}
-// }
-// function upgradeVersion(inData){
-//   //var result={};
-//   if(!inData.Version){
-//     //upgrade from v1
-//     inData={"Version":"6", "neverHighlightOn":[],"ShowFoundWords":true};
-//     inData.Groups={"Default Group":{"Color":"#ff6", "Fcolor":"#000", "Modified":Date.now(),"Enabled": true,"FindWords":true, "ShowFoundWords":true, "PrintHighlights":true, "ShowOn":[], "DontShowOn":[], "Words":HighlightsData.Words,"Type": 'local'}};
-//
-//   }
-//   else {
-//     if (inData.Version === "2") {
-//       backup(inData,"2");
-//       //upgrade from v2
-//       for (let highlightData in inData.Groups) {
-//         inData.Groups[highlightData].Enabled=true;
-//         inData.Groups[highlightData].FindWords=true;
-//         inData.Groups[highlightData].Fcolor="#000";
-//         inData.Groups[highlightData].ShowOn=[];
-//         inData.Groups[highlightData].DontShowOn=[];
-//       }
-//       inData.ShowFoundWords=true;
-//       inData.neverHighlightOn=[];
-//       inData.Version="6";
-//     }
-//     if (inData.Version === "3") {
-//       backup(inData,"3");
-//       //upgrade from v3
-//       for (let highlightData in inData.Groups) {
-//         inData.Groups[highlightData].FindWords=true;
-//         inData.Groups[highlightData].Fcolor="#000";
-//         inData.Groups[highlightData].ShowOn=[];
-//         inData.Groups[highlightData].DontShowOn=[];
-//       }
-//       inData.ShowFoundWords=true;
-//       inData.neverHighlightOn=[];
-//       inData.Version="6";
-//     }
-//     if (inData.Version === "4") {
-//       backup(inData,"4");
-//       //upgrade from v4
-//       for (let highlightData in inData.Groups) {
-//         inData.Groups[highlightData].Fcolor="#000";
-//         inData.Groups[highlightData].ShowOn=[];
-//         inData.Groups[highlightData].DontShowOn=[];
-//       }
-//       inData.ShowFoundWords=true;
-//       inData.neverHighlightOn=[];
-//       inData.Version="6";
-//
-//     }
-//     if (inData.Version === "5") {
-//       backup(inData,"5");
-//       //upgrade from v4
-//       for (let highlightData in inData.Groups) {
-//         inData.Groups[highlightData].DontShowOn=[];
-//       }
-//       inData.neverHighlightOn=[];
-//       inData.Version="6";
-//     }
-//     if (inData.Version === "6"){
-//       backup(inData,"6");
-//       //convert words to array
-//       for (let highlightData in inData.Groups) {
-//         let arr = Object.keys(inData.Groups[highlightData].Words).map(function(k) { return k});
-//         inData.Groups[highlightData].Words=arr;
-//         inData.Groups[highlightData].Modified=Date.now();
-//       }
-//       inData.Version="7";
-//     }
-//     if (inData.Version === "7"){
-//       backup(inData,"7");
-//       inData.PrintHighlights=true;
-//       inData.Version="8";
-//     }
-//     if (inData.Version === "8"){
-//       backup(inData,"8");
-//       for (let highlightData in inData.Groups) {
-//         inData.Groups[highlightData].Type='local';
-//       }
-//       inData.Version="9";
-//     }
-//     if (inData.Version === "9"||inData.Version === "10"){
-//       backup(inData,inData.Version);
-//       for (let highlightData in inData.Groups) {
-//         inData.Groups[highlightData].ShowInEditableFields=false;
-//       }
-//       inData.Version="11";
-//     }
-//     if (inData.Version === "11"){
-//       backup(inData,inData.Version);
-//       let today=new Date();
-//       inData.Donate=today;
-//       inData.Version="12";
-//     }
-//
-//
-//   }
-//   return inData;
-// }
-
+/* eslint-disable indent */
+function getColor (typeStance, foreground) {
+  switch (typeStance) {
+    case 'POSSIBILITY_SUPPORT':
+      return foreground ? '#FFFFFF' : '#27af72';
+    case 'POSSIBILITY_OPPOSE':
+      return foreground ? '#FFFFFF' : '#fb6532';
+    case 'POSSIBILITY_INFO':
+      return foreground ? '#FFFFFF' : '#7c7b7c';
+    case 'STORED_SUPPORT':
+      return foreground ? '#28b074' : '#b4e7cd';
+    case 'STORED_OPPOSE':
+      return foreground ? '#f16936' : '#f7c9b8';
+    case 'STORED_INFO':
+      return foreground ? '#818082' : '#dad8da';
+    case 'DELETED':
+      return foreground ? '#aa0311' : '#f0c7c8';
+    case 'DEFAULT':
+    default:
+      return foreground ? '#000' : '#ff6';
+  }
+}
+/* eslint-enable indent */
 
 function createSearchMenu(){
-  console.log("steve in createSearchMenu");
+  console.log('steve in createSearchMenu');
   chrome.runtime.getPlatformInfo(
     function (i) {
       let shortcut;
@@ -204,7 +150,7 @@ function updateContextMenu(inUrl){
     let sortedByModified = [];
 
     for (let group in filteredGroups){
-      if(filteredGroups[group].Type!="remote"){
+      if(filteredGroups[group].Type !== "remote"){
         sortedByModified.push([group, filteredGroups[group].Modified])
       }
     }
@@ -256,7 +202,7 @@ function updateContextMenu(inUrl){
 
 function processUniqueNames(uniqueNamesFromPage) {
   // This function will be called multiple times as the page loads (to catch previously unrendered names), for simple pages this will seem unnecessary
-  // console.log("uniqueNamesFromPage: ", uniqueNamesFromPage);
+  debug&&console.log("uniqueNamesFromPage: ", uniqueNamesFromPage);
   for (let i = 0; i < uniqueNamesFromPage.length; i++) {
     const name = uniqueNamesFromPage[0];
     if ( $.inArray(name, uniqueNames) === -1 ) {
@@ -269,12 +215,12 @@ function processUniqueNames(uniqueNamesFromPage) {
 // Clicked the browser bar icon
 chrome.browserAction.onClicked.addListener((tab) => {  //TODO: Needs to be tab specific, maybe it is?  Toggle works, but needs to do something
   highlighterEnabled = !highlighterEnabled;
-  console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled);
+  debug&&console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled);
   chrome.tabs.sendMessage(tab.id, {
     command: "openWeMenus",
     enabled: highlighterEnabled
   }, function(result) {
-    console.log( "on click icon, response received to openWeMenus ", result);
+    debug&&console.log( "on click icon, response received to openWeMenus ", result);
   });
 });
 
@@ -299,19 +245,7 @@ chrome.tabs.onUpdated.addListener(
 chrome.tabs.onCreated.addListener(function(tab){if(tab.url !== undefined){updateContextMenu(tab.url);}});
 
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
-  console.log("Steve chrome.contextMenus.onClicked: ");
-
-  // // There is no DOM to attach to here
-  // // TODO: This is the wrong way to do this, the content script should send a message, and wait for a WeVote API response
-  // chrome.tabs.sendMessage(tab.id, {
-  //   command: "openWeMenus",
-  // }, function(result) {
-  //   console.log( "on click openWeMenus ", result);
-  //   // let p1= new Promise((resolve, reject) => {
-  //   //   updateSignedInVoter();
-  //   // });
-  // });
-
+  debug&&console.log("Steve chrome.contextMenus.onClicked: " + info.selectionText);
 
   if (info.menuItemId.indexOf("AddTo_") > -1) {
     groupName = info.menuItemId.replace("AddTo_", "");
@@ -381,6 +315,8 @@ chrome.runtime.onMessage.addListener(
     //request=JSON.parse(evt.data);
     if (request.command === "getTopMenuData") {
       getOrganizationFound(request.url, sendResponse);
+    } else if (request.command === "getHighlights") {
+      getHighlightsListFromApiServer(request.url, sendResponse, initializeHighlightsData, '6000');
     } else if (request.command==="getPositions") {
       getPossiblePositions( request.possibilityId, sendResponse );
     } else if(request.command==="getVoterInfo") {
@@ -433,6 +369,7 @@ chrome.runtime.onMessage.addListener(
 
 
 function requestReHighlight(){
+  console.log('requestReHighlight(){ called');
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     chrome.tabs.sendMessage(tabs[0].id, {command: "ReHighlight", words:getWords(tabs[0].url)});
   });
@@ -496,7 +433,7 @@ function onPage(){
   });
 }
 
-// STEVE STEVE set badge color, icon overlay
+// Set badge color, icon overlay
 function showHighlights(label, tabId)
 {
   chrome.browserAction.setBadgeText({"text":label,"tabId":tabId});
@@ -547,7 +484,7 @@ function setPrintHighlights(inState) {
 //   localStorage["HighlightsData"]=JSON.stringify(HighlightsData);
 // }
 
-function addGroup(inGroup, color, fcolor, findwords, showon, dontshowon, inWords,groupType, remoteConfig, regex, showInEditableFields) {
+function addGroup(inGroup, color, fcolor, findwords, showon, dontshowon, inWords, groupType, remoteConfig, regex, showInEditableFields) {
   for(word in inWords){
     inWords[word]=inWords[word].replace(/(\r\n|\n|\r)/gm,"");
   }
