@@ -1,10 +1,17 @@
 const $ = window.$;
 let possibilityIdGlobal = "";
+const debug = window.debug;
+const chrome = window.chrome;
 
+/**
+ *
+ * @param enabled
+ * @returns {boolean}
+ */
 function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
   try {
     if(enabled) {
-      // https://codepen.io/markconroy/pen/rZoNbm
+      console.log("Displaying WeVote UI --------------------------------" );
       let hr = window.location.href;
       let topMenuHeight = 75;
       let sideAreaWidth = 400;
@@ -30,9 +37,11 @@ function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
       topMenu();
       updateTopMenu();
       signIn(false);
+
+      greyAllPositionPanes(false);
     } else {
       // Disable UI (reload the page)
-      console.log("Unload UI --------------------------------")
+      console.log("Unloading WeVote UI --------------------------------");
       location.reload();
     }
   } catch (err) {
@@ -46,7 +55,11 @@ function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
   May 16, 2019
   TODO: For now if the API server is swapped local/production you will need to get a new device ID.
   With the extension running, go to the wevote.us or localhost:3000 page, and open the popup, and press the login button.
-  Then when you navigate to some endorsement page. the device id will be available in local storage.
+  Then when you navigate to some endorsement page. the device id will become available in local storage.
+  Sept 10, 2019, you may have to clear localStorage['voterDeviceId'].  You will have to be running a local webapp, which
+  is pointed to a local python server, so that they all share a voterDeviceId.  If you have had a valid voterDeviceId
+  in the past, you can get the most recent one form pgAdmin/voter_voterdevicelink and paste it into the value for
+  voterDeviceId in the chrome-extension's DevTools Application tab.
  */
 
 function signIn(showDialog) {
@@ -55,7 +68,7 @@ function signIn(showDialog) {
     function (response) {
       const { success, error, err, voterName, photoURL, voterWeVoteId, voterEmail } = response.data;
       console.log("STEVE signIn response: ", response);
-      voterInfo = {
+      let voterInfo = {
         success: success,
         error: error,
         err: err,
@@ -71,6 +84,7 @@ function signIn(showDialog) {
         updatePositionsPanel();
         document.getElementById("signOut").addEventListener('click', function () {
           console.log("Sign Out pressed");
+          $('#furlable-2').removeAttr('hidden');
           signOut();
           return false;
         });
@@ -102,7 +116,7 @@ function signOut() {
 function topMenu() {
   let topMarkup = "" +
     "<div style='margin-left:12px; margin-bottom:4px; align-content: center; width: 10%'>" +
-    "  <img id='orgLogo' src='https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png'>" +
+    "  <img id='orgLogo' src='https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png' alt=''>" +
     "  <b><span id='orgName'></span></b>" +
     "</div>" +
     "<input type='text' id='email' name='email' placeholder='Email' >" +
@@ -177,21 +191,33 @@ function updatePositionsPanel() {
           for (let i = 0; i < l; i++) {
             debug&&console.log("STEVE getPositions data: ", data[i]);
             let { ballot_item_name: name, position_stance_stored: stance, statement_text_stored: comment, more_info_url_stored: url,
-              political_party: party, office_name: officeName, ballot_item_image_url_https_large: imageURL,
+              political_party: party, office_name: officeName, ballot_item_image_url_https_large: imageURL, candidate_we_vote_id: candidateWeVoteId,
+              google_civic_election_id: googleCivicElectionId, office_we_vote_id: officeWeVoteId, organization_we_vote_id: organizationWeVoteId,
+              possibility_position_id: possibilityPositionId, possibility_position_number: possibilityPositionNumber, organization_name: organizationName,
+              voter_guide_possibility_id: voterGuidePossibilityId
             } = data[i];
 
             let position = {
-              name: name,
-              party: party,
+              name,
+              party,
               office: officeName ? officeName : "",
               photo: (imageURL && imageURL.length > 0 ) ? imageURL : defaultImage,
               comment: ( comment && comment.length ) ? comment : "",
-              stance: stance,
-              url: url ? url : ""
+              stance,
+              url: url ? url : "",
+              candidateWeVoteId,
+              googleCivicElectionId,
+              officeWeVoteId,
+              organizationWeVoteId,
+              organizationName,
+              possibilityPositionId,
+              possibilityPositionNumber,
+              voterGuidePossibilityId
             };
             rightPositionPanes(i, position, selector);
           }
         }
+        attachClickHandlers();
       } else {
         console.log("ERROR: updatePositionsPanel() getPositions returned an empty response or no data element.")
       }
@@ -202,40 +228,164 @@ function updatePositionsPanel() {
 function rightPositionPanes(i, candidate, selector) {
   let dupe = $(".candidateName:contains('" + candidate.name + "')").length;
   debug&&console.log("rightPositionPanes checked for duplicate " + candidate.name + ": " + dupe);
+  let furlNo = "furlable-" + i;
+  let candNo = "candidate-" + i;
   if (!dupe) {
     let markup = "" +
-      "<div class='candidate'>" +
-      "<div class='unfurlable'>" +
-      "<span class='unfurlableTopMenu'>" +
-      "<img class='photo noStyleWe' alt='candidate' src=" + candidate.photo + " />" +
-      "<div class='nameBox  noStyleWe'>" +
-      "<div class='candidateName'>" + candidate.name + "</div>" +
-      "<div class='candidateParty'>" + candidate.party + "</div>" +
-      "<div class='officeTitle'>" + candidate.office + "</div>" +
-      "</div>" +
-      "</span>" +
-      "</div>" +
-      "<div class='furlable'>" +
-      "<span class='buttons'>" +
-      supportButton(i, 'endorse', candidate.stance) +
-      supportButton(i, 'oppose', candidate.stance) +
-      supportButton(i, 'info', candidate.stance) +
-      "</span>" +
-      "<textarea rows='6' class='commentWe" + i + "' />" +
-      "<br>If a more detailed endorsement page exists, enter its URL here:" +
-      "<input type='text' class='sourceWe" + i + "' />" +
-      "<span class='bottomButton'>" +
-      "<button type='button' class='saveButton" + i + " weButton noStyleWe' >Save</button>" +
-      "</span>" +
-      "</div>" +
+      "<div class='candidate " + candNo + "'>" +
+      "  <div class='unfurlable'>" +
+      "    <span class='unfurlableTopMenu'>" +
+      "      <img class='photo noStyleWe' alt='candidate' src=" + candidate.photo + " />" +
+      "      <div class='nameBox  noStyleWe'>" +
+      "        <div class='candidateName'>" + candidate.name + "</div>" +
+      "        <div class='candidateParty'>" + candidate.party + "</div>" +
+      "        <div class='officeTitle'>" + candidate.office + "</div>" +
+      "      </div>" +
+      "    </span>" +
+      "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidate.candidateWeVoteId + "'>" +
+      "    <input type='hidden' id='voterGuidePossibilityId-" + i + "' value='" + candidate.voterGuidePossibilityId + "'>" +
+      "    <input type='hidden' id='possibilityPositionNumber-" + i + "' value='" + candidate.possibilityPositionNumber + "'>" +
+      "    <input type='hidden' id='possibilityPositionId-" + i + "' value='" + candidate.possibilityPositionId + "'>" +
+      "    <input type='hidden' id='organizationWeVoteId-" + i + "' value='" + candidate.organizationWeVoteId + "'>" +
+      "    <input type='hidden' id='organizationName-" + i + "' value='" + candidate.organizationName + "'>" +
+      "  </div>" +
+      "  <div id= " + furlNo + " class='furlable' hidden>" +
+      "    <span class='buttons'>" +
+             supportButton(i, 'endorse', candidate.stance) +
+             supportButton(i, 'oppose', candidate.stance) +
+             supportButton(i, 'info', candidate.stance) +
+      "    </span>" +
+      "    <textarea rows='6' class='endorseInput-" + i + "' />" +
+      "    <br>If a more detailed endorsement page exists, enter its URL here:" +
+      "    <input type='text' class='sourceURL-" + i + "' />" +
+      "    <span class='bottomButton'>" +
+      "      <button type='button' class='saveButton-" + i + " weButton noStyleWe' >Save</button>" +
+      "    </span>" +
+      "  </div>" +
       "</div>";
     $(selector).append(markup);
-    $('.commentWe' + i).val(candidate.comment);
-    $('.sourceWe' + i).val(candidate.url);
+    $('.endorseInput' + i).val(candidate.comment);
+    $('.sourceURL' + i).val(candidate.url);
     $(selector).css({
       'height': $('#frameDiv').height() + 'px',
       'overflow': 'scroll'
     });
+  }
+}
+
+function greyAllPositionPanes(booleanGreyIt) {
+  if (booleanGreyIt) {
+    $('div.candidate').css('opacity', '0.25');
+  } else {
+    $('div.candidate').css('opacity', '1');
+  }
+
+}
+
+function selectOneDeselectOthers(type, targetFurl) {
+  console.log("BBBBBBBBBBBBBBBB tri-button clicked: " + type);
+  let buttons = $(targetFurl).find(":button");
+  buttons.each((i, but) => {
+    const className = but.className;   // "infoButton-2 weButton noStyleWe deselected"
+    const off = className.indexOf('-') + 1;
+    const number = className.substring(off, off+1);
+    const iterationType = className.substring(0, className.indexOf('Button'));
+    /* eslint-disable indent */
+    switch (iterationType) {
+      case 'endorse':
+        $(but).replaceWith(supportButton(number, iterationType, className.startsWith(type) ? 'SUPPORT': ''));
+        break;
+      case 'oppose':
+        $(but).replaceWith(supportButton(number, iterationType, className.startsWith(type) ? 'OPPOSE': ''));
+        break;
+      case 'info':
+        $(but).replaceWith(supportButton(number, iterationType, className.startsWith(type) ? 'INFO_ONLY': ''));
+        break;
+    }
+    /* eslint-enable indent */
+  });
+}
+
+function saveUpdatedCandidateData(event) {
+  console.log("STEVE saveUpdatedCandidateData() ");
+  const targetCand = event.currentTarget.className; // div.candidate.candidate-4
+  const targetFurl = "#" + targetCand.replace('candidate candidate', 'furlable');
+  const off = targetFurl.indexOf('-') + 1;
+  const number = targetFurl.substring(off, off + 1);
+  const buttons = $(targetFurl).find(":button");
+  let stance = "DEFAULT";
+
+  buttons.each((i, but) => {
+    const className = but.className;   // "infoButton-2 weButton noStyleWe deselected"
+    if (className.match(/endorse.*?selectedEndorsed/)) {
+      stance = 'SUPPORT';
+    } else if (className.match(/oppose.*?selectedOpposed/)) {
+      stance = 'OPPOSED';
+    } else if (className.match(/info.*?selectedInfo/)) {
+      stance = 'INFO_ONLY';
+    }
+  });
+  const comment = $('.endorseInput-' + number).val();
+  const sourceURL = $('.sourceURL-' + number).val();
+  // const voterGuidePossibilityId = $('#possibilityPositionId-' + number).val();
+  // const possibilityPositionNumber = $('#possibilityPositionNumber-' + number).val();
+
+  // voterGuidePossibilityPositionSave
+
+
+
+  console.log("saveUpdatedCandidateData " + stance + ", " + number + ", '" + comment + "',  '" + sourceURL + "'");
+}
+
+
+function unfurlOnePositionPane(event) {
+  const targetCand = event.currentTarget.className; // div.candidate.candidate-4
+  const targetFurl = "#" + targetCand.replace('candidate candidate', 'furlable');
+  let buttons = $(targetFurl).find(":button");
+  console.log("unfurlOnePositionPane buttons: ", buttons);
+  buttons.each((i, but) => {
+    let className = but.className;
+    console.log("STEVE     STEVE className: " + className );
+    if (className.startsWith("endorse")) {
+      $(but).click(() => {
+        selectOneDeselectOthers("endorse", targetFurl)
+      });
+    }
+    if (className.startsWith("oppose")) {
+      $(but).click(() => {
+        selectOneDeselectOthers("oppose", targetFurl)
+      });
+    }
+    if (className.startsWith("info")) {
+      $(but).click(() => {
+        selectOneDeselectOthers("info", targetFurl)
+      });
+    }
+    // Sept 11, 2019 -- this is the correct place for this, but i just couldn't get the click listner to work
+    // if (className.startsWith("save")) {
+    //   console.log("STEV STEV STEV before but.click      " + className);
+    //   but.click( (event) => {
+    //     console.log("BBBBBB SAVE clicked", event);
+    //     saveUpdatedCandidateData(event);
+    //   });
+    // }
+  });
+  $(targetFurl).removeAttr('hidden');
+
+}
+
+function deactivateActivePositionPane() {
+  const visibleElements = $('.furlable:visible');
+  if (visibleElements.length > 0) {
+    // console.log('deactivateActivePositionPane() visibleElements: ',visibleElements);
+    let visibleElement = visibleElements[0];
+    let visibleElementId = visibleElement.id;
+    let buttons = $('#' + visibleElementId + ' :button');
+    buttons.unbind();
+    $('#' + visibleElementId).attr('hidden', true);
+    console.log('deactivateActivePositionPane() buttons: ', buttons);
+  } else {
+    console.log('deactivateActivePositionPane() -- No open panes');
   }
 }
 
@@ -256,25 +406,31 @@ function rightNewGuideDialog() {
   $(selector).append(markup);
   document.getElementById("saveToServer").addEventListener('click', function () {
     console.log("Save to Server pressed");
-    saveOrgData();
+    saveNewOrgData();
     return false;
   });
 }
 
-function saveOrgData() {
-  console.log("STEVE saveOrgData() ");
+function saveNewOrgData() {
+  console.log("STEVE saveNewOrgData() ");
   let name = $('.orgNameNew').val();
   let twitter = $('.orgTwitterNew').val();
   let state = $('.orgStateNew').val();
   let comments = $('.orgCommentsNew').val();
   chrome.runtime.sendMessage(
-    { command: "updateVoterGuide", voterGuidePossibilityId: possibilityIdGlobal, orgName: name,
-      orgTwitter: twitter, orgState: state, comments: comments },
+    {
+      command: "updateVoterGuide",
+      voterGuidePossibilityId: possibilityIdGlobal,
+      orgName: name,
+      orgTwitter: twitter,
+      orgState: state,
+      comments: comments
+    },
     function (response) {
-      console.log("STEVE saveOrgData() response", response);
+      console.log("STEVE saveNewOrgData() response", response);
 
-      if (response && Object.entries(response).length > 0 ) {
-        const {orgName, comments } = response.data;  // eslint-disable-line no-unused-vars
+      if (response && Object.entries(response).length > 0) {
+        const {orgName, comments} = response.data;  // eslint-disable-line no-unused-vars
 
         // $('#orgLogo').attr("src", orgLogo);
         $("#orgName").text(orgName);
@@ -290,9 +446,7 @@ function saveOrgData() {
         console.log("ERROR: updateTopMenu received empty response");
       }
     });
-
 }
-
 
 // SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
 function supportButton(i, type, stance ) {
@@ -332,7 +486,7 @@ function supportButton(i, type, stance ) {
     }
   }
 
-  let markup = "<button type='button' class='endorsedButton" + i + " weButton noStyleWe " + selectionStyle + "'>";
+  let markup = "<button type='button' class='" + type + "Button-" + i + " weButton noStyleWe " + selectionStyle + "'>";
 
   if (type === 'endorse' || type === 'oppose') {
     markup += "<svg class='supportButtonSVG' viewBox='0 0 24 24'>";
@@ -351,4 +505,42 @@ function supportButton(i, type, stance ) {
   markup += "<span class='" + textClass + "'>" + buttonText + "</span></button>";
 
   return markup;
+}
+
+function isParentFurlable (target) {
+  if (target.classname === 'furlable') {
+    return true;
+  }
+  let i = 0;
+  let scan = target;
+  while( scan && scan.id !== "sideArea" && scan.className !== 'furlable') {
+    scan = scan.parentElement;
+    if( i++ > 10 ) {
+      break;
+    }
+  }
+  return scan && (scan.className === 'furlable');
+}
+
+function attachClickHandlers () {
+  //console.log("attachClickHandlers", $('div.candidate').length);
+
+  $('div.candidate').click( (event) => {
+    console.log("DDDDDD isParentFurlable ", isParentFurlable(event.target));
+    if (!isParentFurlable(event.target)) {
+      console.log("DDDDDD Candidate clicked #1", event);
+      deactivateActivePositionPane();
+      unfurlOnePositionPane(event);
+      console.log("DDDDDD Candidate clicked #2", event);
+    } else {
+      // Sept 11, 2019 -- this is NOT the correct place for this, but i just couldn't get the click listner to work
+      const className = event.target.className;
+      if (className.startsWith("saveButton-")) {
+        console.log("DDDDDD SAVE clicked: " + className);
+        saveUpdatedCandidateData(event);
+      } else {
+        console.log("DDDDDD Candidate click IGNORED since target is in furlable area", event);
+      }
+    }
+  });
 }

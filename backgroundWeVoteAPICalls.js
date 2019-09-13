@@ -11,11 +11,11 @@ function getHighlightsListFromApiServer(locationHref, sendResponse, initializeHi
   console.log("getHighlightsListFromApiServer received election: " + election);
 
   const hrefEncoded = encodeURIComponent(locationHref); //'https://www.emilyslist.org/pages/entry/state-and-local-candidates');
-  const apiURL = `${rootApiURL}/voterGuideHighlightsRetrieve?voter_device_id=${localStorage['voterDeviceId']}&url_to_scan=${hrefEncoded}`;
+  const apiURL = `${rootApiURL}/voterGuidePossibilityHighlightsRetrieve?voter_device_id=${localStorage['voterDeviceId']}&url_to_scan=${hrefEncoded}`;
   debug&&console.log("getHighlightsListFromApiServer: " + apiURL);
   $.getJSON(apiURL, '', (res) => {
     debug&&console.log("voterGuideHighlightsRetrieve API SUCCESS", res);
-    let highlightsList = res['highlights'];
+    let highlightsList = res['highlight_list'];
     debug&&console.log("get json highlightsList: ", highlightsList);
     initializeHighlightsData(highlightsList);
   }).fail((err) => {
@@ -30,13 +30,13 @@ function getOrganizationFound (locationHref, sendResponse) {
   console.log("voterGuidePossibilityRetrieve apiURL: " + apiURL);
   $.getJSON(apiURL, '', (res) => {
     console.log("voterGuidePossibilityRetrieve API results", res);
-    if (res && res.voter_guide_possibility_edit) {
+    let {voter_guide_possibility_edit: possibilityUrl, voter_guide_possibility_id: possibilityId, voter_guide_possibility_edit: voterGuidePossibilityEdit, organization} = res;
+    if (voterGuidePossibilityEdit) {
       let {
         organization_email: email, organization_name: orgName, organization_twitter_handle: twitterHandle, organization_we_vote_id: weVoteId,
         organization_website: orgWebsite,
         we_vote_hosted_profile_image_url_medium: orgLogo
-      } = res.organization;
-      let {voter_guide_possibility_edit: possibilityUrl, voter_guide_possibility_id: possibilityId} = res;
+      } = organization;
 
       debug&&console.log("voter_guide_possibility_id:", possibilityId);
 
@@ -56,7 +56,7 @@ function getOrganizationFound (locationHref, sendResponse) {
     }
     sendResponse({data: data});
   }).fail( function(d, textStatus, error) {
-    console.error("getJSON voterGuidePossibilityRetrieve failed, status: " + textStatus + ", error: " + error);
+    console.error(`getJSON voterGuidePossibilityRetrieve failed, status: ${textStatus}, error: ${error}`);
   });
   return data;
 }
@@ -130,7 +130,7 @@ function updatePossibleVoterGuide(voterGuidePossibilityId, orgName, orgTwitter, 
     $.getJSON(apiURL, '', (res) => {
       debug&&console.log("get json from voterGuidePossibilitySave API SUCCESS", res);
       const { possible_organization_name: orgName, contributor_comments: comments } = res;
-      data = {
+      let data = {
         orgName: orgName,
         comments: comments,
       };

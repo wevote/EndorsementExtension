@@ -35,7 +35,7 @@ let voterInfo = {};
 let uniqueNameMatches = [];
 let voterDeviceId = '';
 
-var debug = true;
+var debug = false;
 
 // https://projects.sfchronicle.com/2018/voter-guide/endorsements-list/
 
@@ -155,7 +155,7 @@ chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
       url: location.href.replace(location.protocol + "//", ""),
       id: getVoterDeviceIdFromWeVoteDomainPage()  // is this nonsense?
     }, function (response) {
-      console.log('got words response: ', response);
+      debug&&console.log('got words response: ', response);
       const id = response.storedDeviceId ? response.storedDeviceId : '';
       if (response.storedDeviceId && response.storedDeviceId.length > 0) {
         voterDeviceId = id;

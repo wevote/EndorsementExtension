@@ -150,7 +150,7 @@ function updateContextMenu(inUrl){
     let sortedByModified = [];
 
     for (let group in filteredGroups){
-      if(filteredGroups[group].Type!="remote"){
+      if(filteredGroups[group].Type !== "remote"){
         sortedByModified.push([group, filteredGroups[group].Modified])
       }
     }

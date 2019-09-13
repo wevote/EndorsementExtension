@@ -110,7 +110,7 @@
   padding: 0 4px;
 }
 
-[class^="commentWe"], [class^="sourceWe"] {
+[class^="endorseInput"], [class^="sourceURL"] {
   width: 95%;
   margin: 5px 0 5px 0;
 }
@@ -174,7 +174,7 @@
 }
 
 .supportButtonText {
-  margin-left: 24px;
+  margin-left: 28px;
   font-size: 12px !important;
 }
 
