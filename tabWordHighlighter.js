@@ -48,9 +48,10 @@ $(() => {
         console.log("got a message", request);
 
         if (sender.id === "pmpmiggdjnjhdlhgpfcafbkghhcjocai" ||
+            sender.id === "eofojjpbgfdogalmibgljcgdipkhoclc" ||
             sender.id === "abcibokldhgkclhihipipbiaednfcpia" ||
             sender.id === "fgmbnmjmbjenlhbefngfibmjkpbcljaj" ||
-            sender.id == "highlightthis@deboel.eu") {
+            sender.id === "highlightthis@deboel.eu") {
 
           if (request.command === "openWeMenus") {
             displayWeVoteUI(request.enabled);
@@ -62,10 +63,10 @@ $(() => {
           } else if (request.command === "getMarkers") {
             sendResponse(highlightMarkers);
             return true;
-          } else if (request.command == "ClearHighlights") {
+          } else if (request.command === "ClearHighlights") {
             highlightMarkers = {};
             return false;
-          } else if (request.command == "ReHighlight") {
+          } else if (request.command === "ReHighlight") {
             // let testWords = request.words["Default Group"].Words;
             // testWords.push("Dianne")
             reHighlight(request.words);
@@ -117,7 +118,7 @@ function showMarkers() {
 
 function reHighlight(words) {
   debug&&console.log("function reHighlight(words)");
-  for (group in words) {
+  for (let group in words) {
     if (words[group].Enabled) {
       for (word in words[group].Words) {
         debug&&console.log("reHighlight word = " + word);
@@ -161,7 +162,7 @@ chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
         voterDeviceId = id;
       }
 
-      for (group in response.words) {
+      for (let group in response.words) {
         if (response.words[group].Enabled) {
           for (word in response.words[group].Words) {
             debug&&console.log("getWords response, " + word + ", group: " + group + ", findWords: " + response.words[group].FindWords );
@@ -209,7 +210,7 @@ function highlightLoop(){
 }
 
 function getSearchKeyword() {
-  var searchKeyword = null;
+  let searchKeyword = null;
   if (document.referrer) {
     for (searchEngine in searchEngines) {
       if (document.referrer.indexOf(searchEngine)) {
@@ -221,7 +222,7 @@ function getSearchKeyword() {
 }
 
 function getSearchParameter(n) {
-  var half = document.referrer.split(n + '=')[1];
+  const half = document.referrer.split(n + '=')[1];
   return half !== undefined ? decodeURIComponent(half.split('&')[0]) : null;
 }
 
