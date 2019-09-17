@@ -165,14 +165,16 @@ chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
         if (response.words[group].Enabled) {
           for (word in response.words[group].Words) {
             debug&&console.log("getWords response, " + word + ", group: " + group + ", findWords: " + response.words[group].FindWords );
-            wordsArray.push({
-              word: response.words[group].Words[word].toLowerCase(),
-              "regex": globStringToRegex(response.words[group].Words[word]),
-              "Color": response.words[group].Color,
-              "Fcolor": response.words[group].Fcolor,
-              "FindWords": response.words[group].FindWords,
-              "ShowInEditableFields": response.words[group].ShowInEditableFields
-            });
+            if (response.words[group].Words[word]) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
+              wordsArray.push({
+                word: response.words[group].Words[word].toLowerCase(),
+                "regex": globStringToRegex(response.words[group].Words[word]),
+                "Color": response.words[group].Color,
+                "Fcolor": response.words[group].Fcolor,
+                "FindWords": response.words[group].FindWords,
+                "ShowInEditableFields": response.words[group].ShowInEditableFields
+              });
+            }
           }
         }
       }

@@ -1,5 +1,5 @@
 const $ = window.$;
-const useProductionAPIs = false;
+const useProductionAPIs = true;
 const rootApiURL = useProductionAPIs ? 'https://api.wevoteusa.org/apis/v1' : 'http://127.0.0.1:8000/apis/v1';
 let debug = false;
 
@@ -30,7 +30,7 @@ function getOrganizationFound (locationHref, sendResponse) {
   console.log("voterGuidePossibilityRetrieve apiURL: " + apiURL);
   $.getJSON(apiURL, '', (res) => {
     console.log("voterGuidePossibilityRetrieve API results", res);
-    let {voter_guide_possibility_edit: possibilityUrl, voter_guide_possibility_id: possibilityId, voter_guide_possibility_edit: voterGuidePossibilityEdit, organization} = res;
+    let {voter_guide_possibility_edit: voterGuidePossibilityEdit, possibilityUrl, voter_guide_possibility_id: possibilityId, organization} = res;
     if (voterGuidePossibilityEdit) {
       let {
         organization_email: email, organization_name: orgName, organization_twitter_handle: twitterHandle, organization_we_vote_id: weVoteId,
@@ -41,14 +41,14 @@ function getOrganizationFound (locationHref, sendResponse) {
       debug&&console.log("voter_guide_possibility_id:", possibilityId);
 
       data = {
-        email: email,
-        orgName: orgName,
-        twitterHandle: twitterHandle,
-        weVoteId: weVoteId,
-        orgWebsite: orgWebsite,
-        orgLogo: orgLogo,
-        possibilityUrl: possibilityUrl,
-        possibilityId: possibilityId
+        email,
+        orgName,
+        twitterHandle,
+        weVoteId,
+        orgWebsite,
+        orgLogo,
+        possibilityUrl,
+        possibilityId
       };
     } else {
       console.log("ERROR: voterGuidePossibilityRetrieve returned with a undefined or null, res or res.organization");
@@ -137,6 +137,33 @@ function updatePossibleVoterGuide(voterGuidePossibilityId, orgName, orgTwitter, 
       sendResponse({data: data});
     }).fail((err) => {
       console.log('updatePossibleVoterGuide error', err);
+    });
+  }
+}
+
+function voterGuidePossibilityPositionSave(voterGuidePossibilityPositionId, stance, statementText, moreInfoURL, sendResponse) {
+  //  Dale: 9/16/19
+  //  Remove the voter_device_id and voter_guide_possibility_id
+  //  Enter the "possibility_position_id" into the "voter_guide_possibility_position_id" field in the try it now form
+  //  Do not send empty values on the url, since that might clear out good data on the Python side
+  //  Steve: voter_guide_possibility_position_id completely specifies the possibility and nothing else is needed for the search/match
+  let voterDeviceId = localStorage['voterDeviceId'];
+  debug&&console.log("voterGuidePossibilityPositionSave voterGuidePossibilityPositionId: " + voterGuidePossibilityPositionId);
+  if (voterDeviceId && voterDeviceId.length > 0) {
+    let apiURL = `${rootApiURL}/voterGuidePossibilityPositionSave/?voter_device_id=${voterDeviceId}` +
+      `&voter_guide_possibility_position_id=${voterGuidePossibilityPositionId}&position_stance=${stance}`;
+    if (statementText.length > 0) {
+      apiURL += `&statement_text=${statementText}`;
+    }
+    if (moreInfoURL.length > 0) {
+      apiURL += `&more_info_url=${encodeURIComponent(moreInfoURL)}`;
+    }
+    debug&&console.log("voterGuidePossibilityPositionSave: " + apiURL);
+    $.getJSON(apiURL, '', (res) => {
+      debug&&console.log("get json from voterGuidePossibilityPositionSave API SUCCESS", res);
+      sendResponse({res});
+    }).fail((err) => {
+      console.log('voterGuidePossibilityPositionSave error', err);
     });
   }
 }

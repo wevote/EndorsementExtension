@@ -110,7 +110,7 @@
   padding: 0 4px;
 }
 
-[class^="endorseInput"], [class^="sourceURL"] {
+[class^="statementText"], [class^="moreInfoURL"] {
   width: 95%;
   margin: 5px 0 5px 0;
 }

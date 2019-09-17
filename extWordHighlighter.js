@@ -72,7 +72,7 @@ function initializeHighlightsData(highlightsList) {
   let today = new Date();
   HighlightsData.Donate = today.setDate(today.getDate() + 20);
   HighlightsData.Groups = [];
-  for (groupName in groupNames) {
+  for (let groupName in groupNames) {
     let group = {
       "Fcolor": getColor(groupName, true),
       "Color": getColor(groupName, false),
@@ -129,7 +129,7 @@ function createSearchMenu(){
       else {
         shortcut = "Shift+Ctrl+Space";
       }
-      let highLight = chrome.contextMenus.create({
+      chrome.contextMenus.create({
         "title": "Jump to word (" + shortcut + ")",
         "id": "Highlight"
       });
@@ -319,6 +319,14 @@ chrome.runtime.onMessage.addListener(
       getHighlightsListFromApiServer(request.url, sendResponse, initializeHighlightsData, '6000');
     } else if (request.command==="getPositions") {
       getPossiblePositions( request.possibilityId, sendResponse );
+    } else if (request.command==="savePosition") {
+      voterGuidePossibilityPositionSave(
+        request.voterGuidePossibilityPositionId,
+        request.stance,
+        request.statementText,
+        request.moreInfoURL.trim(),
+        sendResponse
+      );
     } else if(request.command==="getVoterInfo") {
       getVoterSignInInfo (sendResponse);
     } else if(request.command==="getWords") {
@@ -330,13 +338,15 @@ chrome.runtime.onMessage.addListener(
         storedDeviceId: localStorage['voterDeviceId'],  // Outgoing voterDeviceId for viewing all other pages
       });
     } else if (request.command==="updateVoterGuide") {
-      updatePossibleVoterGuide(request.voterGuidePossibilityId, request.orgName, request.orgTwitter, request.orgState, request.comments, sendResponse);
+      updatePossibleVoterGuide(request.voterGuidePossibilityId, request.orgName, request.orgTwitter, request.orgState,
+        request.comments, request.sendResponse);
     } else if (request.command==="showWordsFound") {
       sendResponse({success:showWordsFound(request.state)});
     } else if(request.command==="setPrintHighlights") {
       sendResponse({success:setPrintHighlights(request.state)});
     } else if(request.command==="addGroup") {
-      sendResponse({success:addGroup(request.group, request.color, request.fcolor, request.findwords, request.showon, request.dontshowon, request.words, request.groupType, request.remoteConfig, request.regex, request.showInEditableFields)});
+      sendResponse({success:addGroup(request.group, request.color, request.fcolor, request.findwords, request.showon,
+        request.dontshowon, request.words, request.groupType, request.remoteConfig, request.regex, request.showInEditableFields)});
     } else if(request.command==="deleteGroup") {
       sendResponse({success:deleteGroup(request.group)});
     } else if(request.command==="addWord") {
@@ -346,7 +356,8 @@ chrome.runtime.onMessage.addListener(
     } else if(request.command==="syncList") {
       sendResponse({success:syncWordList(HighlightsData.Groups[request.group], true,request.group)});
     } else if(request.command==="setWords") {
-      sendResponse({success:setWords(request.words, request.group, request.color, request.fcolor, request.findwords, request.showon, request.dontshowon,  request.newname, request.groupType, request.remoteConfig,request.regex, request.showInEditableFields)});
+      sendResponse({success:setWords(request.words, request.group, request.color, request.fcolor, request.findwords,
+        request.showon, request.dontshowon,  request.newname, request.groupType, request.remoteConfig,request.regex, request.showInEditableFields)});
     } else if(request.command==="removeWord") {
       sendResponse({success:removeWord(request.word)});
     } else if(request.command==="showHighlights") {
