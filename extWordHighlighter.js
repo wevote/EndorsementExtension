@@ -13,10 +13,10 @@
    This code relies on the scoping behaviour for the 'var' keyword, changing them all to 'let' will break things.
  */
 
+const debugE = false;
 let highlighterEnabled = false;  // Don't globally change var to let! see note above
 let showFoundWords = false;
 let printHighlights = true;
-// var neverHighlightOn = [];
 let HighlightsData = {};
 let noContextMenu = ["_generated_background_page.html"];
 // let voterName = '';
@@ -64,9 +64,11 @@ function getWordsInGroup(groupName, highlightsList) {
   return wordList;
 }
 
-function initializeHighlightsData(highlightsList) {
+function initializeHighlightsData(highlightsList, neverHighLightOn) {
+  // console.log("START START START initializeHighlightsData");
   HighlightsData.Version = "12";
-  // HighlightsData.neverHighlightOn = [];
+  HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOn);
+  console.log("neverHighLightOn:", neverHighLightOn);
   // HighlightsData.ShowFoundWords = true;
   HighlightsData.PrintHighlights = true;
   let today = new Date();
@@ -86,12 +88,25 @@ function initializeHighlightsData(highlightsList) {
       "Type": 'local',
       "Modified": Date.now()
     };
-    debug&&console.log("groupName: " + groupName + ", group: " + group);
+    debugE&&console.log("groupName: " + groupName + ", group: " + group);
     HighlightsData.Groups.push(groupName, group);
   }
   localStorage["HighlightsData"] = JSON.stringify(HighlightsData);
 
   printHighlights = HighlightsData.PrintHighlights;
+  // console.log("END END END initializeHighlightsData");
+}
+
+function preProcessNeverList ( neverList ) {
+  let outList = [];
+  for(let i = 0; i < neverList.length; i++) {
+    const entry = neverList[i];
+    if (entry.startsWith('*.')) {
+      outList.push(entry.substring(2));
+    }
+    outList.push(entry);
+  }
+  return outList;
 }
 
 /* eslint-disable indent */
@@ -140,7 +155,7 @@ function createSearchMenu(){
 //let id = chrome.contextMenus.create({"title": "something", "id":"something", "contexts": ["selection"]});
 
 function updateContextMenu(inUrl){
-  debug&&console.log('updating context menu', inUrl);
+  debugE&&console.log('updating context menu', inUrl);
   if(inUrl&&noContextMenu.indexOf(inUrl) === -1){
     chrome.contextMenus.removeAll();
     createSearchMenu();
@@ -159,36 +174,44 @@ function updateContextMenu(inUrl){
         return b[1] - a[1]
       }
     );
-    let numItems=0;
-    for (let i = 0; i < contexts.length; i++) {
-      let context = contexts[i];
-      /*let sortedarr = [];
-      for (group in filteredGroups) {
-          sortedarr.push(group)
+    let showGroupsInRightClickMenu = false;  // Sept 17, 2019 Disable the display of groups (adding to groups) in the right click menu
+
+    if (showGroupsInRightClickMenu) {
+      let numItems = 0;
+      for (let i = 0; i < contexts.length; i++) {
+        let context = contexts[i];
+        /*let sortedarr = [];
+        for (group in filteredGroups) {
+            sortedarr.push(group)
+        }
+        sortedarr.sort();*/
+        sortedByModified.forEach(function (group) {
+          if (numItems === 10) {
+            //create a parent menu
+            let parentid = chrome.contextMenus.create({
+              "title": "More",
+              "contexts": [context],
+              "id": "more"
+            });
+          }
+          let title = "+ " + group[0];
+          if (numItems > 9) {
+            let id = chrome.contextMenus.create({
+              "title": title,
+              "contexts": [context],
+              "id": "AddTo_" + group[0],
+              "parentId": "more"
+            });
+          } else {
+            let id = chrome.contextMenus.create({
+              "title": title,
+              "contexts": [context],
+              "id": "AddTo_" + group[0]
+            });
+          }
+          numItems += 1;
+        });
       }
-      sortedarr.sort();*/
-      sortedByModified.forEach(function (group) {
-        if (numItems === 10){
-          //create a parent menu
-          let parentid = chrome.contextMenus.create({
-            "title": "More", "contexts": [context],
-            "id": "more"
-          });
-        }
-        let title = "+ " + group[0];
-        if (numItems>9){
-          let id = chrome.contextMenus.create({
-            "title": title, "contexts": [context],
-            "id": "AddTo_" + group[0], "parentId":"more"
-          });
-        } else {
-          let id = chrome.contextMenus.create({
-            "title": title, "contexts": [context],
-            "id": "AddTo_" + group[0]
-          });
-        }
-        numItems+=1;
-      });
     }
 
     // TODO: STEVE, not the way to do it!
@@ -202,7 +225,7 @@ function updateContextMenu(inUrl){
 
 function processUniqueNames(uniqueNamesFromPage) {
   // This function will be called multiple times as the page loads (to catch previously unrendered names), for simple pages this will seem unnecessary
-  debug&&console.log("uniqueNamesFromPage: ", uniqueNamesFromPage);
+  debugE&&console.log("uniqueNamesFromPage: ", uniqueNamesFromPage);
   for (let i = 0; i < uniqueNamesFromPage.length; i++) {
     const name = uniqueNamesFromPage[0];
     if ( $.inArray(name, uniqueNames) === -1 ) {
@@ -215,19 +238,19 @@ function processUniqueNames(uniqueNamesFromPage) {
 // Clicked the browser bar icon
 chrome.browserAction.onClicked.addListener((tab) => {  //TODO: Needs to be tab specific, maybe it is?  Toggle works, but needs to do something
   highlighterEnabled = !highlighterEnabled;
-  debug&&console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled);
+  debugE&&console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled);
   chrome.tabs.sendMessage(tab.id, {
     command: "openWeMenus",
     enabled: highlighterEnabled
   }, function(result) {
-    debug&&console.log( "on click icon, response received to openWeMenus ", result);
+    debugE&&console.log( "on click icon, response received to openWeMenus ", result);
   });
 });
 
 
 chrome.tabs.onActivated.addListener(function(tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    debug&&console.log("in tabs onactivated", tabid, tabs);
+    debugE&&console.log("in tabs onactivated", tabid, tabs);
 
     updateContextMenu(tabs[0].url);
   });
@@ -235,7 +258,7 @@ chrome.tabs.onActivated.addListener(function(tabid){
 
 chrome.tabs.onUpdated.addListener(
   function(tabid, tab){
-    debug&&console.log("in tabs onupdated", tabid, tab);
+    debugE&&console.log("in tabs onupdated", tabid, tab);
 
     if(tab.url !== undefined){
       updateContextMenu(tab.url);
@@ -245,7 +268,7 @@ chrome.tabs.onUpdated.addListener(
 chrome.tabs.onCreated.addListener(function(tab){if(tab.url !== undefined){updateContextMenu(tab.url);}});
 
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
-  debug&&console.log("Steve chrome.contextMenus.onClicked: " + info.selectionText);
+  debugE&&console.log("Steve chrome.contextMenus.onClicked: " + info.selectionText);
 
   if (info.menuItemId.indexOf("AddTo_") > -1) {
     groupName = info.menuItemId.replace("AddTo_", "");
@@ -311,12 +334,12 @@ chrome.commands.onCommand.addListener(function(command) {
 
 chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {    // eslint-disable-line complexity
-    debug && console.log("message received", request, sender);
+    debugE && console.log("message received", request, sender);
     //request=JSON.parse(evt.data);
     if (request.command === "getTopMenuData") {
       getOrganizationFound(request.url, sendResponse);
     } else if (request.command === "getHighlights") {
-      getHighlightsListFromApiServer(request.url, sendResponse, initializeHighlightsData, '6000');
+      getHighlightsListFromApiServer(request.url, sendResponse, '6000');
     } else if (request.command==="getPositions") {
       getPossiblePositions( request.possibilityId, sendResponse );
     } else if (request.command==="savePosition") {
@@ -325,7 +348,7 @@ chrome.runtime.onMessage.addListener(
         request.stance,
         request.statementText,
         request.moreInfoURL.trim(),
-        sendResponse
+        () => {console.log("embedded send response for voterGuidePossibilityPositionSave");}
       );
     } else if(request.command==="getVoterInfo") {
       getVoterSignInInfo (sendResponse);
@@ -405,6 +428,7 @@ function requestReHighlight(){
 
 function getWords(inUrl){
   let result={};
+  // console.log("getWords inURL: " + inUrl);
   for(let neverShowOn in HighlightsData.neverHighlightOn){
     if (inUrl.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))){
       return result;
@@ -597,7 +621,7 @@ function globStringToRegex(str) {
 }
 
 // function syncData() {
-//   debug && console.log(Date().toString() + " - start sync");
+//   debugE && console.log(Date().toString() + " - start sync");
 //
 //   for (let highlightData in HighlightsData.Groups) {
 //
@@ -608,7 +632,7 @@ function globStringToRegex(str) {
 // }
 
 function syncWordList(list, notify, listname){
-  debug && console.log('syncing ' + list);
+  debugE && console.log('syncing ' + list);
   let xhr = new XMLHttpRequest();
   switch(list.RemoteConfig.type) {
   case 'pastebin':

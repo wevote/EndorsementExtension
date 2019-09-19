@@ -10,33 +10,7 @@ function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
   try {
     if(enabled) {
       console.log("Displaying WeVote UI --------------------------------" );
-      let hr = window.location.href;
-      let topMenuHeight = 75;
-      let sideAreaWidth = 400;
-      let iFrameHeight = window.innerHeight - topMenuHeight;
-      let iFrameWidth = window.innerWidth - sideAreaWidth;
-      let bod = $('body');
-      $(bod).children().wrapAll("<div id='weTrash' >").hide();  // if you remove it, other js goes nuts
-      $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before weTrash
-      $('#weTrash').insertAfter('#weContainer');
-
-      let weContainer = $('#weContainer');
-      $(weContainer).append("" +
-        "<span id='topMenu'>" +
-        "</span>").append("<div id='weFlexGrid' ></div>");
-
-      let weFlexGrid = $('#weFlexGrid');
-      $(weFlexGrid).append('<aside id="frameDiv"><iframe id="frame" width=' + iFrameWidth + ' height=' + iFrameHeight + '></iframe></aside>');
-      $(weFlexGrid).append('<section id="sideArea"></section>');
-
-      $("#frame").attr("src", hr);
-
-      getHighlights();
-      topMenu();
-      updateTopMenu();
-      signIn(false);
-
-      greyAllPositionPanes(false);
+      getHighlights();   // Calls BuildUI when the API query completes
     } else {
       // Disable UI (reload the page)
       console.log("Unloading WeVote UI --------------------------------");
@@ -46,6 +20,36 @@ function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
     console.log("jQuery dialog in contentWeVoteUI threw: ", err);
   }
   return true;  // indicates that we call the response function asynchronously.  https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
+}
+
+function buildUI () {
+  console.log("Building WeVote UI --------------------------------" );
+  let hr = window.location.href;
+  let topMenuHeight = 75;
+  let sideAreaWidth = 400;
+  let iFrameHeight = window.innerHeight - topMenuHeight;
+  let iFrameWidth = window.innerWidth - sideAreaWidth;
+  let bod = $('body');
+  $(bod).children().wrapAll("<div id='weTrash' >").hide();  // if you remove it, other js goes nuts
+  $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before weTrash
+  $('#weTrash').insertAfter('#weContainer');
+
+  let weContainer = $('#weContainer');
+  $(weContainer).append("" +
+    "<span id='topMenu'>" +
+    "</span>").append("<div id='weFlexGrid' ></div>");
+
+  let weFlexGrid = $('#weFlexGrid');
+  $(weFlexGrid).append('<aside id="frameDiv"><iframe id="frame" width=' + iFrameWidth + ' height=' + iFrameHeight + '></iframe></aside>');
+  $(weFlexGrid).append('<section id="sideArea"></section>');
+
+  $("#frame").attr("src", hr);
+
+  topMenu();
+  updateTopMenu();
+  signIn(false);
+
+  greyAllPositionPanes(false);
 }
 
 function debugLog(...args) {
@@ -155,9 +159,10 @@ function getHighlights() {
       debugLog("getHighlights() response", response);
 
       if (response ) {
-        debugLog("SUCCESS: getHighlights received a response");
+        debugLog("SUCCESS: getHighlights received a response", response);
+        buildUI();
       } else {
-        debugLog("ERROR: getHighlights received empty response");
+        console.log("ERROR: getHighlights received empty response");
       }
     });
 }
@@ -393,7 +398,7 @@ function unfurlOnePositionPane(event, forceNumber) {
     number = targetFurl.substring(targetFurl.indexOf('-') + 1);
   }
   const element = document.getElementById('unfurlable-' + number);
-  element.scrollIntoView(true); // alignTioTop
+  element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }); // alignTioTop
   $(targetFurl)[0].scrollIntoView();
   let buttons = $(targetFurl).find(":button");
   buttons.each((i, but) => {
