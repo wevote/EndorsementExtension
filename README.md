@@ -25,3 +25,24 @@ runtime errors.  It can be useful, but not as useful as the "background page" de
 
 
 <!-- https://docs.google.com/drawings/d/1C32qtyMrsqAZXxN7TEG3lryZXn56owVHnZhwxoAAOLo/edit?usp=sharing -->
+
+# Publishing an Update
+
+[See the Chrome doc](https://developer.chrome.com/webstore/publish)
+
+[Create a new zip file](https://developer.chrome.com/apps/hosting)
+
+In MacOS, in finder, just select your working directory (something like `/Users/stevepodell/WebstormProjects/EndorsementExtension
+`) right click on it, and choose `Compress "Endorsement Extension"` which creates an `EndorsementExtension.zip` file.
+
+Get the login credentials for chrome@wevoteeducation.org from Dale.
+
+Login to the chrome developer console [https://chrome.google.com/webstore/developer/edit/eofojjpbgfdogalmibgljcgdipkhoclc?authuser=3](https://chrome.google.com/webstore/developer/edit/eofojjpbgfdogalmibgljcgdipkhoclc?authuser=3)
+
+![ScreenShot](images/ChromeWebStoreUpload.png)
+
+And at the very bottom of the page, press the `Publish changes` button.  And press `Ok` on the confirm dialog.  The you
+will see a dialog that says something like "Your item is in the process of being published and may take up to 60 minutes to appear in the Chrome Web Store." -- Then you are done.
+
+
+   
