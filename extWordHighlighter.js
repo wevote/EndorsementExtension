@@ -78,7 +78,6 @@ function initializeHighlightsData(highlightsList, neverHighLightOn) {
     let group = {
       "Fcolor": getColor(groupName, true),
       "Color": getColor(groupName, false),
-
       "ShowInEditableFields": false,
       "Enabled": true,
       "FindWords": true,
@@ -97,6 +96,7 @@ function initializeHighlightsData(highlightsList, neverHighLightOn) {
   // console.log("END END END initializeHighlightsData");
 }
 
+// globStringToRegex doesn't handle '*.wevote.us' well, that pattern will not match 'wevote.us', so this fixup is needed
 function preProcessNeverList ( neverList ) {
   let outList = [];
   for(let i = 0; i < neverList.length; i++) {
@@ -134,7 +134,8 @@ function getColor (typeStance, foreground) {
 /* eslint-enable indent */
 
 function createSearchMenu(){
-  console.log('steve in createSearchMenu');
+  /* debugE&& */
+  console.log('createSearchMenu has been called');
   chrome.runtime.getPlatformInfo(
     function (i) {
       let shortcut;
@@ -146,7 +147,7 @@ function createSearchMenu(){
       }
       chrome.contextMenus.create({
         "title": "Jump to word (" + shortcut + ")",
-        "id": "Highlight"
+        "id": "Highlight"  // Is this causing?:  Unchecked runtime.lastError: Cannot create item with duplicate id Highlight
       });
     }
   );
@@ -237,8 +238,22 @@ function processUniqueNames(uniqueNamesFromPage) {
 
 // Clicked the browser bar icon
 chrome.browserAction.onClicked.addListener((tab) => {  //TODO: Needs to be tab specific, maybe it is?  Toggle works, but needs to do something
+  // Ignore if on a 'neverHighlightOn' page, but unfortunately this doesn't work well unless the Highlights data has already been received
+  if (HighlightsData.neverHighlightOn === undefined) {
+    HighlightsData.neverHighlightOn = ["*.wevote.us", "api.wevoteusa.org","localhost"];
+  }
+  for(let neverShowOn in HighlightsData.neverHighlightOn){
+    if (tab.url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))){
+      showHighlights('x', 'red', tab.id);
+      setTimeout(function() {
+        showHighlights('', 'white', tab.id);
+      }, 500);
+      return;
+    }
+  }
+
   highlighterEnabled = !highlighterEnabled;
-  debugE&&console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled);
+  console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
   chrome.tabs.sendMessage(tab.id, {
     command: "openWeMenus",
     enabled: highlighterEnabled
@@ -250,7 +265,7 @@ chrome.browserAction.onClicked.addListener((tab) => {  //TODO: Needs to be tab s
 
 chrome.tabs.onActivated.addListener(function(tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    debugE&&console.log("in tabs onactivated", tabid, tabs);
+    console.log("chrome.tabs.query({active: true, currentWindow: true} in tabs onactivated", tabid, tabs);
 
     updateContextMenu(tabs[0].url);
   });
@@ -384,8 +399,10 @@ chrome.runtime.onMessage.addListener(
     } else if(request.command==="removeWord") {
       sendResponse({success:removeWord(request.word)});
     } else if(request.command==="showHighlights") {
-      showHighlights(request.label,sender.tab.id);
-      processUniqueNames(request.uniqueNames);
+      showHighlights(request.label, request.altColor, sender.tab.id);
+      if (request.altColor.length === 0) {
+        processUniqueNames(request.uniqueNames);
+      }
       sendResponse({success: 'ok'});
     } else if(request.command==="beep") {
       document.body.innerHTML += '<audio src="beep.wav" autoplay="autoplay"/>';
@@ -469,10 +486,11 @@ function onPage(){
 }
 
 // Set badge color, icon overlay
-function showHighlights(label, tabId)
+function showHighlights(label, altColor, tabId)
 {
   chrome.browserAction.setBadgeText({"text":label,"tabId":tabId});
-  chrome.browserAction.setBadgeBackgroundColor ({"color": "limegreen"}); //"#0091EA"});
+  let color = altColor.length === 0 ? "limegreen" : altColor;
+  chrome.browserAction.setBadgeBackgroundColor ({"color": color}); //"#0091EA"});
 }
 
 // function getDataFromStorage(dataType) {

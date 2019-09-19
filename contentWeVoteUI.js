@@ -82,6 +82,10 @@ function signIn(showDialog) {
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: "getVoterInfo",},
     function (response) {
+      let lastError = chrome.runtime.lastError;
+      if (lastError) {
+        console.warn(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
+      }
       const { success, error, err, voterName, photoURL, voterWeVoteId, voterEmail } = response.data;
       debugLog("STEVE signIn response: ", response);
       let voterInfo = {
@@ -156,6 +160,10 @@ function getHighlights() {
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: "getHighlights", url: window.location.href },
     function (response) {
+      let lastError = chrome.runtime.lastError;
+      if (lastError) {
+        console.warn(' chrome.runtime.sendMessage("getHighlights")', lastError.message);
+      }
       debugLog("getHighlights() response", response);
 
       if (response ) {
@@ -174,6 +182,10 @@ function updateTopMenu() {
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: "getTopMenuData", url: window.location.href },
     function (response) {
+      let lastError = chrome.runtime.lastError;
+      if (lastError) {
+        console.warn(' chrome.runtime.sendMessage("getTopMenuData")', lastError.message);
+      }
       debugLog("updateTopMenu() response", response);
 
       if (response && Object.entries(response).length > 0 ) {
@@ -200,6 +212,10 @@ function updatePositionsPanel() {
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: "getPositions", url: window.location.href, possibilityId: possibilityIdGlobal },
     function (response) {
+      let lastError = chrome.runtime.lastError;
+      if (lastError) {
+        console.warn(' chrome.runtime.sendMessage("getPositions")', lastError.message);
+      }
       debugLog("updatePositionsPanel() response", response);
       const defaultImage = "https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png";
       if ((response && Object.entries(response).length > 0) && (response.data !== undefined) && (response.data.length > 0)) {
@@ -367,6 +383,10 @@ function saveUpdatedCandidatePossiblePosition(event) {
     moreInfoURL,
   },
   function (response) {
+    let lastError = chrome.runtime.lastError;
+    if (lastError) {
+      console.warn(' chrome.runtime.sendMessage("savePosition")', lastError.message);
+    }
     debugLog("saveUpdatedCandidatePossiblePosition() response", response);
   });
 
@@ -498,6 +518,10 @@ function saveNewOrgData() {
       comments: comments
     },
     function (response) {
+      let lastError = chrome.runtime.lastError;
+      if (lastError) {
+        console.warn(' chrome.runtime.sendMessage("updateVoterGuide")', lastError.message);
+      }
       console.log("STEVE saveNewOrgData() response", response);
 
       if (response && Object.entries(response).length > 0) {
