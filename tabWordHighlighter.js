@@ -147,6 +147,11 @@ function getVoterDeviceIdFromWeVoteDomainPage() {
 
 
 chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
+  let lastError = chrome.runtime.lastError;
+  if (lastError) {
+    console.warn('chrome.runtime.sendMessage("getStatus")',lastError.message);
+    return;
+  }
   debug&&console.log('reponse from getStatus',window.location);
   highlighterEnabled = response.status;
   printHighlights = response.printHighlights;
@@ -158,6 +163,11 @@ chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
       url: location.href.replace(location.protocol + "//", ""),
       id: getVoterDeviceIdFromWeVoteDomainPage()  // is this nonsense?
     }, function (response) {
+      let lastError = chrome.runtime.lastError;
+      if (lastError) {
+        console.warn('chrome.runtime.sendMessage("getWords")',lastError.message);
+        return;
+      }
       debug&&console.log('got words response: ', response);
       const id = response.storedDeviceId ? response.storedDeviceId : '';
       if (response.storedDeviceId && response.storedDeviceId.length > 0) {
@@ -282,7 +292,12 @@ function findWords() {
           command: "showHighlights",
           label: highlights.numberOfHighlights.toString(),
           uniqueNames: uniqueNameMatches,
+          altColor: '',
         }, function (response) {
+          let lastError = chrome.runtime.lastError;
+          if (lastError) {
+            console.warn(' chrome.runtime.sendMessage("showHighlights")',lastError.message);
+          }
         });
       }
       //setTimeout(function () {
