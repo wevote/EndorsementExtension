@@ -7,7 +7,7 @@ let debug = false;
 /* eslint-disable no-unused-vars */
 /* eslint no-undef: 0 */
 
-function getHighlightsListFromApiServer(locationHref, sendResponse, initializeHighlightsData, election) {
+function getHighlightsListFromApiServer(locationHref, sendResponse, election) {
   console.log("getHighlightsListFromApiServer received election: " + election);
 
   const hrefEncoded = encodeURIComponent(locationHref); //'https://www.emilyslist.org/pages/entry/state-and-local-candidates');
@@ -16,8 +16,13 @@ function getHighlightsListFromApiServer(locationHref, sendResponse, initializeHi
   $.getJSON(apiURL, '', (res) => {
     debug&&console.log("voterGuideHighlightsRetrieve API SUCCESS", res);
     let highlightsList = res['highlight_list'];
+    let neverHighLightOn = res['never_highlight_on'];
     debug&&console.log("get json highlightsList: ", highlightsList);
-    initializeHighlightsData(highlightsList);
+    initializeHighlightsData(highlightsList, neverHighLightOn);
+    sendResponse({
+      success: res.success,
+      highlights: highlightsList.length,
+    });
   }).fail((err) => {
     console.log('voterGuideHighlightsRetrieve API error', err);
   });

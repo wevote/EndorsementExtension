@@ -40,6 +40,8 @@ var debug = false;
 // https://projects.sfchronicle.com/2018/voter-guide/endorsements-list/
 
 $(() => {
+  // console.log("tabWordHighlighter constructor");
+
   if (window.location === window.parent.location) {
     //only listen for messages in the main page, not in iframes
     chrome.runtime.onMessage.addListener(
