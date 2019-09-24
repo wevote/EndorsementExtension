@@ -61,10 +61,9 @@ Possibilities"
 
 You can use <table> tag to create tables without header.
 
-<table><tr><td>
 ![ScreenShot](docs/images/PythonVoterGuideReview.png)   
 Then search for the organization's endorsement page.  
-</td></tr></table>
+
 
 ![ScreenShot](docs/images/PythonVoterGuidePossibilities.png)   
 
