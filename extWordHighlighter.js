@@ -1,3 +1,5 @@
+const { chrome: { runtime: { getPlatformInfo}, contextMenus: { create, removeAll } } } = window;
+
 /* eslint init-declarations: 0 */
 /* eslint multiline-ternary: 0 */
 /* eslint no-empty-function: 0 */
@@ -18,7 +20,7 @@ let highlighterEnabled = false;  // Don't globally change var to let! see note a
 let showFoundWords = false;
 let printHighlights = true;
 let HighlightsData = {};
-let noContextMenu = ["_generated_background_page.html"];
+let noContextMenu = ['_generated_background_page.html'];
 // let voterName = '';
 // let voterPhotoURL = '';
 // let voterWeVoteId = '';
@@ -28,24 +30,24 @@ let uniqueNames = [];
 const groupNames = {
   POSSIBILITY_SUPPORT: 'POSSIBILITY_SUPPORT',
   POSSIBILITY_OPPOSE: 'POSSIBILITY_OPPOSE',
-  POSSIBILITY_INFO: 'POSSIBILITY_INFO',
+  POSSIBILITY_INFO: 'POSSIBILITY_INFO',       // INFO_ONLY IS A DEPRECATED STATE, COMES THROUGH API AS NO_STANCE
   STORED_SUPPORT: 'STORED_SUPPORT',
   STORED_OPPOSE: 'STORED_OPPOSE',
-  STORED_INFO: 'STORED_INFO',
+  STORED_INFO: 'STORED_INFO',                 // INFO_ONLY IS A DEPRECATED STATE, COMES THROUGH API AS NO_STANCE
   DELETED: 'DELETED',
   DEFAULT: 'DEFAULT'
 };
 
 
 $(() => {
-  console.log("extWordHighlighter constructor");
+  console.log('extWordHighlighter constructor');
 });
 
-function getWordsInGroup(groupName, highlightsList) {
+function getWordsInGroup (groupName, highlightsList) {
   const display = groupName.split('_')[0];
   let stance = groupName.split('_')[1] ? groupName.split('_')[1] : '';
   if (stance === 'INFO') {
-    stance = 'INFO_ONLY';
+    stance = 'NO_STANCE';
   }
   let wordList = [];
 
@@ -64,11 +66,11 @@ function getWordsInGroup(groupName, highlightsList) {
   return wordList;
 }
 
-function initializeHighlightsData(highlightsList, neverHighLightOn) {
+function initializeHighlightsData (highlightsList, neverHighLightOn) {
   // console.log("START START START initializeHighlightsData");
-  HighlightsData.Version = "12";
+  HighlightsData.Version = '12';
   HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOn);
-  console.log("neverHighLightOn:", neverHighLightOn);
+  console.log('neverHighLightOn:', neverHighLightOn);
   // HighlightsData.ShowFoundWords = true;
   HighlightsData.PrintHighlights = true;
   let today = new Date();
@@ -76,28 +78,28 @@ function initializeHighlightsData(highlightsList, neverHighLightOn) {
   HighlightsData.Groups = [];
   for (let groupName in groupNames) {
     let group = {
-      "Fcolor": getColor(groupName, true),
-      "Color": getColor(groupName, false),
-      "ShowInEditableFields": false,
-      "Enabled": true,
-      "FindWords": true,
-      "ShowOn": [],
-      "DontShowOn": [],
-      "Words": getWordsInGroup(groupName, highlightsList),
-      "Type": 'local',
-      "Modified": Date.now()
+      'Fcolor': getColor(groupName, true),
+      'Color': getColor(groupName, false),
+      'ShowInEditableFields': false,
+      'Enabled': true,
+      'FindWords': true,
+      'ShowOn': [],
+      'DontShowOn': [],
+      'Words': getWordsInGroup(groupName, highlightsList),
+      'Type': 'local',
+      'Modified': Date.now()
     };
-    debugE&&console.log("groupName: " + groupName + ", group: " + group);
+    debugE&&console.log('groupName: ' + groupName + ', group: ' + group);
     HighlightsData.Groups.push(groupName, group);
   }
-  localStorage["HighlightsData"] = JSON.stringify(HighlightsData);
+  localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
 
   printHighlights = HighlightsData.PrintHighlights;
   // console.log("END END END initializeHighlightsData");
 }
 
 // globStringToRegex doesn't handle '*.wevote.us' well, that pattern will not match 'wevote.us', so this fixup is needed
-function preProcessNeverList ( neverList ) {
+function preProcessNeverList (neverList) {
   let outList = [];
   for(let i = 0; i < neverList.length; i++) {
     const entry = neverList[i];
@@ -133,21 +135,21 @@ function getColor (typeStance, foreground) {
 }
 /* eslint-enable indent */
 
-function createSearchMenu(){
+function createSearchMenu (){
   /* debugE&& */
   console.log('createSearchMenu has been called');
-  chrome.runtime.getPlatformInfo(
+  getPlatformInfo(
     function (i) {
       let shortcut;
-      if (i.os === "mac") {
-        shortcut = "Shift+Cmd+Space";
+      if (i.os === 'mac') {
+        shortcut = 'Shift+Cmd+Space';
       }
       else {
-        shortcut = "Shift+Ctrl+Space";
+        shortcut = 'Shift+Ctrl+Space';
       }
-      chrome.contextMenus.create({
-        "title": "Jump to word (" + shortcut + ")",
-        "id": "Highlight"  // Is this causing?:  Unchecked runtime.lastError: Cannot create item with duplicate id Highlight
+      create({
+        'title': 'Jump to word (' + shortcut + ')',
+        'id': 'Highlight'  // Is this causing?:  Unchecked runtime.lastError: Cannot create item with duplicate id Highlight
       });
     }
   );
@@ -155,23 +157,23 @@ function createSearchMenu(){
 
 //let id = chrome.contextMenus.create({"title": "something", "id":"something", "contexts": ["selection"]});
 
-function updateContextMenu(inUrl){
+function updateContextMenu (inUrl){
   debugE&&console.log('updating context menu', inUrl);
   if(inUrl&&noContextMenu.indexOf(inUrl) === -1){
-    chrome.contextMenus.removeAll();
+    removeAll();
     createSearchMenu();
-    let contexts = ["selection"];
+    let contexts = ['selection'];
     let filteredGroups=getWords(inUrl);  // Don't show highlights on pages that have been excluded
 
     let sortedByModified = [];
 
     for (let group in filteredGroups){
-      if(filteredGroups[group].Type !== "remote"){
+      if(filteredGroups[group].Type !== 'remote'){
         sortedByModified.push([group, filteredGroups[group].Modified])
       }
     }
     sortedByModified.sort(
-      function(a, b) {
+      function (a, b) {
         return b[1] - a[1]
       }
     );
@@ -189,25 +191,25 @@ function updateContextMenu(inUrl){
         sortedByModified.forEach(function (group) {
           if (numItems === 10) {
             //create a parent menu
-            let parentid = chrome.contextMenus.create({
-              "title": "More",
-              "contexts": [context],
-              "id": "more"
+            let parentid = create({
+              'title': 'More',
+              'contexts': [context],
+              'id': 'more'
             });
           }
-          let title = "+ " + group[0];
+          let title = '+ ' + group[0];
           if (numItems > 9) {
-            let id = chrome.contextMenus.create({
-              "title": title,
-              "contexts": [context],
-              "id": "AddTo_" + group[0],
-              "parentId": "more"
+            let id = create({
+              'title': title,
+              'contexts': [context],
+              'id': 'AddTo_' + group[0],
+              'parentId': 'more'
             });
           } else {
-            let id = chrome.contextMenus.create({
-              "title": title,
-              "contexts": [context],
-              "id": "AddTo_" + group[0]
+            let id = create({
+              'title': title,
+              'contexts': [context],
+              'id': 'AddTo_' + group[0]
             });
           }
           numItems += 1;
@@ -216,20 +218,21 @@ function updateContextMenu(inUrl){
     }
 
     // TODO: STEVE, not the way to do it!
-    let idwe = chrome.contextMenus.create({
-      "title": "Create We Vote Endorsement",
-      "contexts": [contexts[0]],
-      "id": "idwe"
+    let idwe = create({
+      'title': 'Create We Vote Endorsement',
+      'contexts': [contexts[0]],
+      'id': 'idwe'
     });
   }
 }
 
-function processUniqueNames(uniqueNamesFromPage) {
+function processUniqueNames (uniqueNamesFromPage) {
   // This function will be called multiple times as the page loads (to catch previously unrendered names), for simple pages this will seem unnecessary
-  debugE&&console.log("uniqueNamesFromPage: ", uniqueNamesFromPage);
+  debugE&&console.log('uniqueNamesFromPage: ', uniqueNamesFromPage);
   for (let i = 0; i < uniqueNamesFromPage.length; i++) {
+    // eslint-disable-next-line prefer-destructuring
     const name = uniqueNamesFromPage[0];
-    if ( $.inArray(name, uniqueNames) === -1 ) {
+    if ($.inArray(name, uniqueNames) === -1) {
       uniqueNames.push(name);
       // TODO: add a json fetch of some information
     }
@@ -240,13 +243,13 @@ function processUniqueNames(uniqueNamesFromPage) {
 chrome.browserAction.onClicked.addListener((tab) => {  //TODO: Needs to be tab specific, maybe it is?  Toggle works, but needs to do something
   // Ignore if on a 'neverHighlightOn' page, but unfortunately this doesn't work well unless the Highlights data has already been received
   if (HighlightsData.neverHighlightOn === undefined) {
-    HighlightsData.neverHighlightOn = ["*.wevote.us", "api.wevoteusa.org","localhost"];
+    HighlightsData.neverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org','localhost'];
   }
   for(let neverShowOn in HighlightsData.neverHighlightOn){
     if (tab.url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))){
-      showHighlights('x', 'red', tab.id);
-      setTimeout(function() {
-        showHighlights('', 'white', tab.id);
+      showHighlightsCount('x', 'red', tab.id);
+      setTimeout(function () {
+        showHighlightsCount('', 'white', tab.id);
       }, 500);
       return;
     }
@@ -255,74 +258,87 @@ chrome.browserAction.onClicked.addListener((tab) => {  //TODO: Needs to be tab s
   highlighterEnabled = !highlighterEnabled;
   console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
   chrome.tabs.sendMessage(tab.id, {
-    command: "openWeMenus",
+    command: 'openWeMenus',
     enabled: highlighterEnabled
-  }, function(result) {
-    debugE&&console.log( "on click icon, response received to openWeMenus ", result);
+  }, function (result) {
+    debugE&&console.log('on click icon, response received to openWeMenus ', result);
   });
 });
 
 
-chrome.tabs.onActivated.addListener(function(tabid){
+chrome.tabs.onActivated.addListener(function (tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    console.log("chrome.tabs.query({active: true, currentWindow: true} in tabs onactivated", tabid, tabs);
+    console.log('chrome.tabs.query({active: true, currentWindow: true} in tabs onactivated', tabid, tabs);
 
     updateContextMenu(tabs[0].url);
   });
 });
 
 chrome.tabs.onUpdated.addListener(
-  function(tabid, tab){
-    debugE&&console.log("in tabs onupdated", tabid, tab);
+  function (tabid, tab){
+    debugE&&console.log('in tabs onupdated', tabid, tab);
 
     if(tab.url !== undefined){
       updateContextMenu(tab.url);
     }
   }
 );
-chrome.tabs.onCreated.addListener(function(tab){if(tab.url !== undefined){updateContextMenu(tab.url);}});
+chrome.tabs.onCreated.addListener(function (tab){if(tab.url !== undefined){updateContextMenu(tab.url);}});
 
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
-  debugE&&console.log("Steve chrome.contextMenus.onClicked: " + info.selectionText);
+  debugE&&console.log('Steve chrome.contextMenus.onClicked: ' + info.selectionText);
 
-  if (info.menuItemId.indexOf("AddTo_") > -1) {
-    groupName = info.menuItemId.replace("AddTo_", "");
-    let wordAlreadyAdded = false;
-
-    if (HighlightsData.Groups[groupName].Words.indexOf(info.selectionText)>-1) {
-      wordAlreadyAdded = true;
-    }
-    if (wordAlreadyAdded) {
-      chrome.notifications.create("1", {
-        "type": "basic",
-        "iconUrl": "Plugin96.png",
-        //"requireInteraction": false,
-        "title": "Highlight This",
-        "message": info.selectionText + " was already assigned to the word list"
-      });
-      //window.alert(info.selectionText + " was already assigned to the word list");
-    }
-    else {
-      HighlightsData.Groups[groupName].Words.push(info.selectionText);
-      HighlightsData.Groups[groupName].Modified = Date.now();
-      localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
-      chrome.notifications.create("1", {
-        "type": "basic",
-        "iconUrl": "Plugin96.png",
-        // "requireInteraction": false,
-        "title": "Added new word",
-        "message": info.selectionText + " has been added to " + groupName + ".\nRefresh the page to see new highlights."
-      });
-
-      updateContextMenu(tab.url);
-    }
-  }
-  if (info.menuItemId === "Highlight") {
-    chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-      chrome.tabs.sendMessage(tabs[0].id, {command: "ScrollHighlight"});
+  if (info.menuItemId.indexOf('idwe') > -1) {
+    console.log('Steve chrome.contextMenus.onClicked info: ', info);
+    console.log('Steve chrome.contextMenus.onClicked tab: ', tab);
+    chrome.tabs.sendMessage(tab.id, {
+      command: 'createEndorsement',
+      selection: info.selectionText,
+      pageURL: info.pageUrl,
+      tabId: tab.id,
+    }, function (result) {
+      debugE&&console.log('contextMenus on click, response received to openWeMenus ', result);
     });
+  } else {
+    if (info.menuItemId.indexOf('AddTo_') > -1) {
+      groupName = info.menuItemId.replace('AddTo_', '');
+      let wordAlreadyAdded = false;
+
+      if (HighlightsData.Groups[groupName].Words.indexOf(info.selectionText)>-1) {
+        wordAlreadyAdded = true;
+      }
+      if (wordAlreadyAdded) {
+        chrome.notifications.create('1', {
+          'type': 'basic',
+          'iconUrl': 'Plugin96.png',
+          //"requireInteraction": false,
+          'title': 'Highlight This',
+          'message': info.selectionText + ' was already assigned to the word list'
+        });
+        //window.alert(info.selectionText + " was already assigned to the word list");
+      }
+      else {
+        HighlightsData.Groups[groupName].Words.push(info.selectionText);
+        HighlightsData.Groups[groupName].Modified = Date.now();
+        localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
+        chrome.notifications.create('1', {
+          'type': 'basic',
+          'iconUrl': 'Plugin96.png',
+          // "requireInteraction": false,
+          'title': 'Added new word',
+          'message': info.selectionText + ' has been added to ' + groupName + '.\nRefresh the page to see new highlights.'
+        });
+
+        updateContextMenu(tab.url);
+      }
+      if (info.menuItemId === 'Highlight') {
+        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+          chrome.tabs.sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
+        });
+      }
+      requestReHighlight();
+    }
   }
-  requestReHighlight();
 });
 
 
@@ -339,35 +355,37 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
 // });
 
 
-chrome.commands.onCommand.addListener(function(command) {
-  if (command === "ScrollHighlight") {
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-      chrome.tabs.sendMessage(tabs[0].id, {command: "ScrollHighlight"});
+chrome.commands.onCommand.addListener(function (command) {
+  if (command === 'ScrollHighlight') {
+    chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+      chrome.tabs.sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
     });
   }
 });
 
 chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {    // eslint-disable-line complexity
-    debugE && console.log("message received", request, sender);
+    debugE && console.log('message received', request, sender);
     //request=JSON.parse(evt.data);
-    if (request.command === "getTopMenuData") {
+    if (request.command === 'getTopMenuData') {
       getOrganizationFound(request.url, sendResponse);
-    } else if (request.command === "getHighlights") {
+    } else if (request.command === 'getHighlights') {
       getHighlightsListFromApiServer(request.url, sendResponse, '6000');
-    } else if (request.command==="getPositions") {
-      getPossiblePositions( request.possibilityId, sendResponse );
-    } else if (request.command==="savePosition") {
+    } else if (request.command==='getPositions') {
+      getPossiblePositions(request.possibilityId, sendResponse);
+    } else if (request.command==='savePosition') {
       voterGuidePossibilityPositionSave(
+        request.itemName,
+        request.voterGuidePossibilityId,
         request.voterGuidePossibilityPositionId,
         request.stance,
         request.statementText,
         request.moreInfoURL.trim(),
-        () => {console.log("embedded send response for voterGuidePossibilityPositionSave");}
+        () => {console.log('embedded send response for voterGuidePossibilityPositionSave');}
       );
-    } else if(request.command==="getVoterInfo") {
+    } else if(request.command==='getVoterInfo') {
       getVoterSignInInfo (sendResponse);
-    } else if(request.command==="getWords") {
+    } else if(request.command==='getWords') {
       if (request.id && request.id.length > 0) {
         localStorage['voterDeviceId'] = request.id;     // Incoming voterDeviceId if we are viewing a wevote domain page.
       }
@@ -375,43 +393,43 @@ chrome.runtime.onMessage.addListener(
         words:getWords(request.url),
         storedDeviceId: localStorage['voterDeviceId'],  // Outgoing voterDeviceId for viewing all other pages
       });
-    } else if (request.command==="updateVoterGuide") {
+    } else if (request.command==='updateVoterGuide') {
       updatePossibleVoterGuide(request.voterGuidePossibilityId, request.orgName, request.orgTwitter, request.orgState,
         request.comments, request.sendResponse);
-    } else if (request.command==="showWordsFound") {
+    } else if (request.command==='showWordsFound') {
       sendResponse({success:showWordsFound(request.state)});
-    } else if(request.command==="setPrintHighlights") {
+    } else if(request.command==='setPrintHighlights') {
       sendResponse({success:setPrintHighlights(request.state)});
-    } else if(request.command==="addGroup") {
+    } else if(request.command==='addGroup') {
       sendResponse({success:addGroup(request.group, request.color, request.fcolor, request.findwords, request.showon,
         request.dontshowon, request.words, request.groupType, request.remoteConfig, request.regex, request.showInEditableFields)});
-    } else if(request.command==="deleteGroup") {
+    } else if(request.command==='deleteGroup') {
       sendResponse({success:deleteGroup(request.group)});
-    } else if(request.command==="addWord") {
+    } else if(request.command==='addWord') {
       sendResponse({success:addWord(request.word)});
-    } else if(request.command==="addWords") {
+    } else if(request.command==='addWords') {
       sendResponse({success:addWords(request.words)});
-    } else if(request.command==="syncList") {
+    } else if(request.command==='syncList') {
       sendResponse({success:syncWordList(HighlightsData.Groups[request.group], true,request.group)});
-    } else if(request.command==="setWords") {
+    } else if(request.command==='setWords') {
       sendResponse({success:setWords(request.words, request.group, request.color, request.fcolor, request.findwords,
         request.showon, request.dontshowon,  request.newname, request.groupType, request.remoteConfig,request.regex, request.showInEditableFields)});
-    } else if(request.command==="removeWord") {
+    } else if(request.command==='removeWord') {
       sendResponse({success:removeWord(request.word)});
-    } else if(request.command==="showHighlights") {
-      showHighlights(request.label, request.altColor, sender.tab.id);
+    } else if(request.command==='showHighlightsCount') {
+      showHighlightsCount(request.label, request.altColor, sender.tab.id);
       if (request.altColor.length === 0) {
         processUniqueNames(request.uniqueNames);
       }
       sendResponse({success: 'ok'});
-    } else if(request.command==="beep") {
+    } else if(request.command==='beep') {
       document.body.innerHTML += '<audio src="beep.wav" autoplay="autoplay"/>';
-    } else if(request.command==="getStatus") {
+    } else if(request.command==='getStatus') {
       sendResponse({status:highlighterEnabled, printHighlights: printHighlights});
-    } else if(request.command==="updateContextMenu"){
+    } else if(request.command==='updateContextMenu'){
       updateContextMenu(request.url);
       sendResponse({success: 'ok'});
-    } else if(request.command==="flipGroup") {
+    } else if(request.command==='flipGroup') {
       sendResponse({success: flipGroup(request.group, request.action)});
     }
 
@@ -419,10 +437,10 @@ chrome.runtime.onMessage.addListener(
   });
 
 
-function requestReHighlight(){
+function requestReHighlight (){
   console.log('requestReHighlight(){ called');
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    chrome.tabs.sendMessage(tabs[0].id, {command: "ReHighlight", words:getWords(tabs[0].url)});
+    chrome.tabs.sendMessage(tabs[0].id, {command: 'ReHighlight', words:getWords(tabs[0].url)});
   });
 }
 
@@ -443,7 +461,7 @@ function requestReHighlight(){
 //   return validated;
 // }
 
-function getWords(inUrl){
+function getWords (inUrl){
   let result={};
   // console.log("getWords inURL: " + inUrl);
   for(let neverShowOn in HighlightsData.neverHighlightOn){
@@ -475,9 +493,9 @@ function getWords(inUrl){
   return result;
 }
 
-function onPage(){
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    chrome.tabs.sendMessage(tabs[0].id, {command: "getMarkers"}, function(result){
+function onPage (){
+  chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+    chrome.tabs.sendMessage(tabs[0].id, {command: 'getMarkers'}, function (result){
       if(result){
         return(result);
       }
@@ -486,11 +504,11 @@ function onPage(){
 }
 
 // Set badge color, icon overlay
-function showHighlights(label, altColor, tabId)
+function showHighlightsCount (label, altColor, tabId)
 {
-  chrome.browserAction.setBadgeText({"text":label,"tabId":tabId});
-  let color = altColor.length === 0 ? "limegreen" : altColor;
-  chrome.browserAction.setBadgeBackgroundColor ({"color": color}); //"#0091EA"});
+  chrome.browserAction.setBadgeText({'text':label,'tabId':tabId});
+  let color = altColor.length === 0 ? 'limegreen' : altColor;
+  chrome.browserAction.setBadgeBackgroundColor ({'color': color}); //"#0091EA"});
 }
 
 // function getDataFromStorage(dataType) {
@@ -503,7 +521,7 @@ function showHighlights(label, altColor, tabId)
   return true;
 }*/
 
-function showWordsFound(inState) {
+function showWordsFound (inState) {
   HighlightsData.ShowFoundWords=inState;
   showFoundWords=inState;
   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
@@ -525,7 +543,7 @@ function showWordsFound(inState) {
 //   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 // }
 
-function setPrintHighlights(inState) {
+function setPrintHighlights (inState) {
   HighlightsData.PrintHighlights=inState;
   printHighlights=inState;
   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
@@ -537,11 +555,11 @@ function setPrintHighlights(inState) {
 //   localStorage["HighlightsData"]=JSON.stringify(HighlightsData);
 // }
 
-function addGroup(inGroup, color, fcolor, findwords, showon, dontshowon, inWords, groupType, remoteConfig, regex, showInEditableFields) {
+function addGroup (inGroup, color, fcolor, findwords, showon, dontshowon, inWords, groupType, remoteConfig, regex, showInEditableFields) {
   for(word in inWords){
-    inWords[word]=inWords[word].replace(/(\r\n|\n|\r)/gm,"");
+    inWords[word]=inWords[word].replace(/(\r\n|\n|\r)/gm,'');
   }
-  HighlightsData.Groups[inGroup]={"Color":color, "Fcolor":fcolor, "Enabled":true, "ShowOn": showon, "DontShowOn":dontshowon, "FindWords":findwords, "Type":groupType, "ShowInEditableFields":showInEditableFields};
+  HighlightsData.Groups[inGroup]={'Color':color, 'Fcolor':fcolor, 'Enabled':true, 'ShowOn': showon, 'DontShowOn':dontshowon, 'FindWords':findwords, 'Type':groupType, 'ShowInEditableFields':showInEditableFields};
   if (groupType === 'remote'){
     HighlightsData.Groups[inGroup].RemoteConfig=remoteConfig;
   }
@@ -555,14 +573,14 @@ function addGroup(inGroup, color, fcolor, findwords, showon, dontshowon, inWords
   return true;
 }
 
-function deleteGroup(inGroup) {
+function deleteGroup (inGroup) {
   delete HighlightsData.Groups[inGroup];
   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   requestReHighlight();
   return true;
 }
-function flipGroup(inGroup, inAction) {
-  HighlightsData.Groups[inGroup].Enabled = inAction === "enable";
+function flipGroup (inGroup, inAction) {
+  HighlightsData.Groups[inGroup].Enabled = inAction === 'enable';
   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   requestReHighlight();
   return true;
@@ -591,10 +609,10 @@ function flipGroup(inGroup, inAction) {
   return true;
 }*/
 
-function setWords(inWords, inGroup, inColor, inFcolor, findwords, showon, dontshowon, newname, groupType, remoteConfig, regex, showInEditableFields) {
+function setWords (inWords, inGroup, inColor, inFcolor, findwords, showon, dontshowon, newname, groupType, remoteConfig, regex, showInEditableFields) {
 
   for(word in inWords){
-    inWords[word]=inWords[word].replace(/(\r\n|\n|\r)/gm,"");
+    inWords[word]=inWords[word].replace(/(\r\n|\n|\r)/gm,'');
   }
 
   HighlightsData.Groups[inGroup].Words = inWords;
@@ -634,7 +652,7 @@ function setWords(inWords, inGroup, inColor, inFcolor, findwords, showon, dontsh
   return true;
 }
 
-function globStringToRegex(str) {
+function globStringToRegex (str) {
   return preg_quote(str).replace(/\*/g, '\\S*').replace(/\?/g, '.');
 }
 
@@ -649,7 +667,7 @@ function globStringToRegex(str) {
 //   }
 // }
 
-function syncWordList(list, notify, listname){
+function syncWordList (list, notify, listname){
   debugE && console.log('syncing ' + list);
   let xhr = new XMLHttpRequest();
   switch(list.RemoteConfig.type) {
@@ -660,26 +678,26 @@ function syncWordList(list, notify, listname){
     getSitesUrl=list.RemoteConfig.url;
     break;
   }
-  xhr.open("GET", getSitesUrl, true);
-  xhr.onreadystatechange = function() {
+  xhr.open('GET', getSitesUrl, true);
+  xhr.onreadystatechange = function () {
     if (xhr.readyState === 4 && xhr.status === 200) {
       let resp = sanitizeHtml(xhr.responseText,{allowedTags: [], allowedAttributes: []});
-      wordsToAdd = resp.split("\n").filter(function (e) {
+      wordsToAdd = resp.split('\n').filter(function (e) {
         return e;
       });
       for(word in wordsToAdd){
-        wordsToAdd[word]=wordsToAdd[word].replace(/(\r\n|\n|\r)/gm,"");
+        wordsToAdd[word]=wordsToAdd[word].replace(/(\r\n|\n|\r)/gm,'');
       }
       list.Words=wordsToAdd;
       list.RemoteConfig.lastUpdated=Date.now();
       localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
       if(notify){
-        chrome.notifications.create("1", {
-          "type": "basic",
-          "iconUrl": "Plugin96.png",
+        chrome.notifications.create('1', {
+          'type': 'basic',
+          'iconUrl': 'Plugin96.png',
           //"requireInteraction": false,
-          "title": "List sync-ed",
-          "message": "'"+listname+"' has been updated"
+          'title': 'List sync-ed',
+          'message': "'"+listname+"' has been updated"
         });
 
 

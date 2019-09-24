@@ -47,42 +47,45 @@ $(() => {
     chrome.runtime.onMessage.addListener(
       function (request, sender, sendResponse) {
         /* debug && */
-        console.log("got a message", request);
+        console.log('got a message', request);
 
-        if (sender.id === "pmpmiggdjnjhdlhgpfcafbkghhcjocai" ||
-            sender.id === "eofojjpbgfdogalmibgljcgdipkhoclc" ||
-            sender.id === "abcibokldhgkclhihipipbiaednfcpia" ||
-            sender.id === "fgmbnmjmbjenlhbefngfibmjkpbcljaj" ||
-            sender.id === "highlightthis@deboel.eu") {
+        if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
+            sender.id === 'eofojjpbgfdogalmibgljcgdipkhoclc' ||
+            sender.id === 'abcibokldhgkclhihipipbiaednfcpia' ||
+            sender.id === 'fgmbnmjmbjenlhbefngfibmjkpbcljaj' ||
+            sender.id === 'highlightthis@deboel.eu') {
 
-          if (request.command === "openWeMenus") {
+          if (request.command === 'openWeMenus') {
             displayWeVoteUI(request.enabled);
             return false;
-          } else if (request.command === "ScrollHighlight") {
+          } else if (request.command === 'ScrollHighlight') {
             jumpNext();
             showMarkers();
             return false
-          } else if (request.command === "getMarkers") {
+          } else if (request.command === 'getMarkers') {
             sendResponse(highlightMarkers);
             return true;
-          } else if (request.command === "ClearHighlights") {
+          } else if (request.command === 'ClearHighlights') {
             highlightMarkers = {};
             return false;
-          } else if (request.command === "ReHighlight") {
+          } else if (request.command === 'ReHighlight') {
             // let testWords = request.words["Default Group"].Words;
             // testWords.push("Dianne")
             reHighlight(request.words);
+            return false;
+          } else if (request.command === 'createEndorsement') {
+            openSuggestionPopUp(request.selection, request.pageURL, request.tabId);
             return false;
           }
         }
       }
     );
   } else {
-    debug && console.log("not in main page", window.location)
+    debug && console.log('not in main page', window.location)
   }
 });
 
-function jumpNext() {
+function jumpNext () {
   if (markerCurrentPosition === markerPositions.length - 1 || markerCurrentPosition > markerPositions.length - 1) {
     markerCurrentPosition = -1;
   }
@@ -91,46 +94,46 @@ function jumpNext() {
   //document.body.scrollTop=markerPositions[markerCurrentPosition]-(window.innerHeight/2);
 }
 
-function showMarkers() {
-  debug&&console.log("Steve, background showMarkers");
+function showMarkers () {
+  debug&&console.log('Steve, background showMarkers');
   var element = document.getElementById('HighlightThisMarkers');
   if (element) {
     element.parentNode.removeChild(element);
   }
 
-  var containerElement = document.createElement("DIV");
-  containerElement.id = "HighlightThisMarkers";
+  var containerElement = document.createElement('DIV');
+  containerElement.id = 'HighlightThisMarkers';
 
   for (marker in highlightMarkers) {
-    var span = document.createElement("SPAN");
-    span.className = "highlightThisMarker";
+    var span = document.createElement('SPAN');
+    span.className = 'highlightThisMarker';
     span.style.backgroundColor = highlightMarkers[marker].color;
     var markerposition = document.body.scrollTop + (highlightMarkers[marker].offset / document.body.clientHeight) * window.innerHeight;
-    span.style.top = markerposition + "px";
+    span.style.top = markerposition + 'px';
     containerElement.appendChild(span);
   }
   document.body.appendChild(containerElement);
   if (!markerScroll) {
-    document.addEventListener("scroll", function () {
+    document.addEventListener('scroll', function () {
       showMarkers();
     });
     markerScroll = true;
   }
 }
 
-function reHighlight(words) {
-  debug&&console.log("function reHighlight(words)");
+function reHighlight (words) {
+  debug&&console.log('function reHighlight(words)');
   for (let group in words) {
     if (words[group].Enabled) {
       for (word in words[group].Words) {
-        debug&&console.log("reHighlight word = " + word);
-        wordsArray.push( {
+        debug&&console.log('reHighlight word = ' + word);
+        wordsArray.push({
           word: words[group].Words[word].toLowerCase(),
-          "regex": globStringToRegex(words[group].Words[word]),
-          "Color": words[group].Color,
-          "Fcolor": words[group].Fcolor,
-          "FindWords": words[group].FindWords,
-          "ShowInEditableFields": words[group].ShowInEditableFields
+          'regex': globStringToRegex(words[group].Words[word]),
+          'Color': words[group].Color,
+          'Fcolor': words[group].Fcolor,
+          'FindWords': words[group].FindWords,
+          'ShowInEditableFields': words[group].ShowInEditableFields
         });
       }
     }
@@ -138,18 +141,18 @@ function reHighlight(words) {
   findWords();
 }
 
-function getVoterDeviceIdFromWeVoteDomainPage() {
+function getVoterDeviceIdFromWeVoteDomainPage () {
   // Capture the voter_device_id if we are on a wevote page
   const tag = 'voter_device_id';
   let b = document.cookie.match('(^|[^;]+)\\s*' + tag + '\\s*=\\s*([^;]+)');
   return b ? b.pop() : '';
 }
 
-
-chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
+// this is just inline, so it gets executed on startup
+chrome.runtime.sendMessage({command: 'getStatus'}, function (response) {
   let lastError = chrome.runtime.lastError;
   if (lastError) {
-    console.warn('chrome.runtime.sendMessage("getStatus")',lastError.message);
+    console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
     return;
   }
   debug&&console.log('reponse from getStatus',window.location);
@@ -158,60 +161,108 @@ chrome.runtime.sendMessage({command: "getStatus"}, function (response) {
   if (highlighterEnabled) {
     debug&&console.log('about to get words',window.location);
 
-    chrome.runtime.sendMessage({
-      command: "getWords",
-      url: location.href.replace(location.protocol + "//", ""),
-      id: getVoterDeviceIdFromWeVoteDomainPage()  // is this nonsense?
-    }, function (response) {
-      let lastError = chrome.runtime.lastError;
-      if (lastError) {
-        console.warn('chrome.runtime.sendMessage("getWords")',lastError.message);
-        return;
-      }
-      debug&&console.log('got words response: ', response);
-      const id = response.storedDeviceId ? response.storedDeviceId : '';
-      if (response.storedDeviceId && response.storedDeviceId.length > 0) {
-        voterDeviceId = id;
-      }
+    getWordsThenStartHighlighting();
+    // chrome.runtime.sendMessage({
+    //   command: 'getWords',
+    //   url: location.href.replace(location.protocol + '//', ''),
+    //   id: getVoterDeviceIdFromWeVoteDomainPage()  // is this nonsense?
+    // }, function (response) {
+    //   let lastError = chrome.runtime.lastError;
+    //   if (lastError) {
+    //     console.warn('chrome runtime sendMessage("getWords")',lastError.message);
+    //     return;
+    //   }
+    //   debug&&console.log('got words response: ', response);
+    //   const id = response.storedDeviceId ? response.storedDeviceId : '';
+    //   if (response.storedDeviceId && response.storedDeviceId.length > 0) {
+    //     voterDeviceId = id;
+    //   }
+    //
+    //   for (let group in response.words) {
+    //     if (response.words[group].Enabled) {
+    //       for (word in response.words[group].Words) {
+    //         debug&&console.log('getWords response, ' + word + ', group: ' + group + ', findWords: ' + response.words[group].FindWords);
+    //         let wordText = response.words[group].Words[word];
+    //         if (wordText) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
+    //           wordsArray.push({
+    //             word: response.words[group].Words[word].toLowerCase(),
+    //             'regex': globStringToRegex(response.words[group].Words[word]),
+    //             'Color': response.words[group].Color,
+    //             'Fcolor': response.words[group].Fcolor,
+    //             'FindWords': response.words[group].FindWords,
+    //             'ShowInEditableFields': response.words[group].ShowInEditableFields
+    //           });
+    //         }
+    //       }
+    //     }
+    //   }
+    //   debug&&console.log('processed words');
+    //   wordsReceived = true;
+    //
+    //   //start the highlight loop
+    //   highlightLoop();
+    // });
+  }
+});
 
-      for (let group in response.words) {
-        if (response.words[group].Enabled) {
-          for (word in response.words[group].Words) {
-            debug&&console.log("getWords response, " + word + ", group: " + group + ", findWords: " + response.words[group].FindWords );
-            if (response.words[group].Words[word]) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
-              wordsArray.push({
-                word: response.words[group].Words[word].toLowerCase(),
-                "regex": globStringToRegex(response.words[group].Words[word]),
-                "Color": response.words[group].Color,
-                "Fcolor": response.words[group].Fcolor,
-                "FindWords": response.words[group].FindWords,
-                "ShowInEditableFields": response.words[group].ShowInEditableFields
-              });
-            }
+function getWordsThenStartHighlighting () {
+  console.log('Called getWordsThenStartHighlighting()');
+  chrome.runtime.sendMessage({
+    command: 'getWords',
+    url: location.href.replace(location.protocol + '//', ''),
+    id: getVoterDeviceIdFromWeVoteDomainPage()  // is this nonsense?
+  }, function (response) {
+    console.log('Received response in getWordsThenStartHighlighting');
+
+    let lastError = chrome.runtime.lastError;
+    if (lastError) {
+      console.warn('chrome runtime sendMessage("getWords")',lastError.message);
+      return;
+    }
+    debug&&console.log('got words response: ', response);
+    const id = response.storedDeviceId ? response.storedDeviceId : '';
+    if (response.storedDeviceId && response.storedDeviceId.length > 0) {
+      voterDeviceId = id;
+    }
+
+    for (let group in response.words) {
+      if (response.words[group].Enabled) {
+        for (word in response.words[group].Words) {
+          debug&&console.log('getWords response, ' + word + ', group: ' + group + ', findWords: ' + response.words[group].FindWords);
+          let wordText = response.words[group].Words[word];
+          if (wordText) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
+            wordsArray.push({
+              word: response.words[group].Words[word].toLowerCase(),
+              'regex': globStringToRegex(response.words[group].Words[word]),
+              'Color': response.words[group].Color,
+              'Fcolor': response.words[group].Fcolor,
+              'FindWords': response.words[group].FindWords,
+              'ShowInEditableFields': response.words[group].ShowInEditableFields
+            });
           }
         }
       }
-      debug&&console.log('processed words');
-      wordsReceived = true;
+    }
+    debug&&console.log('processed words');
+    wordsReceived = true;
 
-      //start the highlight loop
-      highlightLoop();
-    });
-  }
-});
+    //start the highlight loop
+    highlightLoop();
+  });
+}
 
 $(document).ready(function () {
   Highlight=true;
 
   debug && console.log('setup binding of dom sub tree modification');
-  $("body").bind("DOMSubtreeModified", function () {
+  $('body').bind('DOMSubtreeModified', function () {
     //debug && console.log("dom sub tree modified");
     Highlight=true;
   });
 });
 
 
-function highlightLoop(){
+function highlightLoop (){
 
   ReadyToFindWords = true;
 
@@ -221,7 +272,7 @@ function highlightLoop(){
 
 }
 
-function getSearchKeyword() {
+function getSearchKeyword () {
   let searchKeyword = null;
   if (document.referrer) {
     for (searchEngine in searchEngines) {
@@ -233,7 +284,7 @@ function getSearchKeyword() {
   return searchKeyword;
 }
 
-function getSearchParameter(n) {
+function getSearchParameter (n) {
   const half = document.referrer.split(n + '=')[1];
   return half !== undefined ? decodeURIComponent(half.split('&')[0]) : null;
 }
@@ -257,7 +308,7 @@ function getSearchParameter(n) {
 }*/
 
 
-function findWords() {
+function findWords () {
   if (Object.keys(wordsArray).length > 0) {
     Highlight=false;
 
@@ -281,7 +332,7 @@ function findWords() {
         markerPositions.sort();
 
         let len = Object.keys(highlightMarkers).length;
-        for ( let i = 0; i < len; i++) {
+        for (let i = 0; i < len; i++) {
           let word = highlightMarkers[i].word;
           if (!uniqueNameMatches.includes(word)) {
             uniqueNameMatches.push(word);
@@ -289,14 +340,14 @@ function findWords() {
         }
 
         chrome.runtime.sendMessage({
-          command: "showHighlights",
+          command: 'showHighlightsCount',
           label: highlights.numberOfHighlights.toString(),
           uniqueNames: uniqueNameMatches,
           altColor: '',
         }, function (response) {
           let lastError = chrome.runtime.lastError;
           if (lastError) {
-            console.warn(' chrome.runtime.sendMessage("showHighlights")',lastError.message);
+            console.warn(' chrome.runtime.sendMessage("showHighlightsCount")',lastError.message);
           }
         });
       }
@@ -311,7 +362,7 @@ function findWords() {
 }
 
 
-function globStringToRegex(str) {
+function globStringToRegex (str) {
   return preg_quote(str).replace(/\\\*/g, '\\S*').replace(/\\\?/g, '.');
 }
 

@@ -1,5 +1,8 @@
-const $ = window.$;
-let possibilityIdGlobal = "";
+const { $, chrome: { runtime } } = window;
+let voterGuidePossibilityIdGlobal = '';
+let organizationWeVoteIdGlobal = '';
+let unfurledCandidateNameGlobal = '';
+const defaultImage = 'https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png';
 
 /**
  * Display (or remove) the we vote extension UI
@@ -9,21 +12,21 @@ let possibilityIdGlobal = "";
 function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
   try {
     if(enabled) {
-      console.log("Displaying WeVote UI --------------------------------" );
-      getHighlights();   // Calls BuildUI when the API query completes
+      console.log('Displaying WeVote UI --------------------------------');
+      getHighlights(true);   // Calls BuildUI when the API query completes
     } else {
       // Disable UI (reload the page)
-      console.log("Unloading WeVote UI --------------------------------");
+      console.log('Unloading WeVote UI --------------------------------');
       location.reload();
     }
   } catch (err) {
-    console.log("jQuery dialog in contentWeVoteUI threw: ", err);
+    console.log('jQuery dialog in contentWeVoteUI threw: ', err);
   }
   return true;  // indicates that we call the response function asynchronously.  https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
 }
 
 function buildUI () {
-  console.log("Building WeVote UI --------------------------------" );
+  console.log('Building WeVote UI --------------------------------');
   let hr = window.location.href;
   let topMenuHeight = 75;
   let sideAreaWidth = 400;
@@ -35,15 +38,15 @@ function buildUI () {
   $('#weTrash').insertAfter('#weContainer');
 
   let weContainer = $('#weContainer');
-  $(weContainer).append("" +
+  $(weContainer).append('' +
     "<span id='topMenu'>" +
-    "</span>").append("<div id='weFlexGrid' ></div>");
+    '</span>').append("<div id='weFlexGrid' ></div>");
 
   let weFlexGrid = $('#weFlexGrid');
   $(weFlexGrid).append('<aside id="frameDiv"><iframe id="frame" width=' + iFrameWidth + ' height=' + iFrameHeight + '></iframe></aside>');
   $(weFlexGrid).append('<section id="sideArea"></section>');
 
-  $("#frame").attr("src", hr);
+  $('#frame').attr('src', hr);
 
   topMenu();
   updateTopMenu();
@@ -52,14 +55,14 @@ function buildUI () {
   greyAllPositionPanes(false);
 }
 
-function debugLog(...args) {
+function debugLog (...args) {
   const {debugLocal} = window;
   if (debugLocal) {
     console.log(...args);
   }
 }
 
-function debugWarn(...args) {
+function debugWarn (...args) {
   const {debugLocal} = window;
   if (debugLocal) {
     console.log(...args);
@@ -77,17 +80,17 @@ function debugWarn(...args) {
   voterDeviceId in the chrome-extension's DevTools Application tab.
  */
 
-function signIn(showDialog) {
-  debugLog("new signIn");
+function signIn (showDialog) {
+  debugLog('new signIn');
   const { chrome: { runtime: { sendMessage } } } = window;
-  sendMessage({ command: "getVoterInfo",},
+  sendMessage({ command: 'getVoterInfo',},
     function (response) {
-      let lastError = chrome.runtime.lastError;
+      let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
       const { success, error, err, voterName, photoURL, voterWeVoteId, voterEmail } = response.data;
-      debugLog("STEVE signIn response: ", response);
+      debugLog('STEVE signIn response: ', response);
       let voterInfo = {
         success: success,
         error: error,
@@ -102,24 +105,24 @@ function signIn(showDialog) {
         $('#signIn').replaceWith(
           "<img id='signOut' class='voterPhoto noStyleWe' alt='candidate' width='35' height='35' src='" + voterInfo.photo + "' style='margin: 12px;'  />");
         updatePositionsPanel();
-        document.getElementById("signOut").addEventListener('click', function () {
-          debugLog("Sign Out pressed");
+        document.getElementById('signOut').addEventListener('click', function () {
+          debugLog('Sign Out pressed');
           $('#furlable-2').removeAttr('hidden');
           signOut();
           return false;
         });
       } else {
-        console.error("signIn() getVoterInfo returned error: " + voterInfo.error + ", err: " + voterInfo.err);
+        console.error('signIn() getVoterInfo returned error: ' + voterInfo.error + ', err: ' + voterInfo.err);
         if (showDialog) {
           $('#loginPopUp').dialog({
-            dialogClass: "no-close",
+            dialogClass: 'no-close',
             width: 500,
-            position: { my: "right top", at: "left bottom", of: "#signIn" },
-            open: function() {
+            position: { my: 'right top', at: 'left bottom', of: '#signIn' },
+            open: function () {
               const markup = "<div style='text-align: center;'><b>Authenticate this \"We Vote Endorsement Tool\" Chrome extension,</b><br>" +
-                " by logging into the We Vote WebApp (https://wevote.us) in another tab.<br><br>" +
-                "Once you have logged into the We Vote Web App, " +
-                "navigate back to this tab and press the <b>SIGN IN</b> button again to authenticate the \"We Vote Endorsement Tool\" Chrome Extension.</div>";
+                ' by logging into the We Vote WebApp (https://wevote.us) in another tab.<br><br>' +
+                'Once you have logged into the We Vote Web App, ' +
+                'navigate back to this tab and press the <b>SIGN IN</b> button again to authenticate the "We Vote Endorsement Tool" Chrome Extension.</div>';
               $(this).html(markup);
             },
           });
@@ -129,102 +132,108 @@ function signIn(showDialog) {
   return false;
 }
 
-function signOut() {
-  console.log("signOut has not been implemented.");
+function signOut () {
+  console.log('signOut has not been implemented.');
 }
 
-function topMenu() {
-  let topMarkup = "" +
+function topMenu () {
+  let topMarkup = '' +
     "<div style='margin-left:12px; margin-bottom:4px; align-content: center; width: 10%'>" +
     "  <img id='orgLogo' src='https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png' alt=''>" +
     "  <b><span id='orgName'></span></b>" +
-    "</div>" +
+    '</div>' +
     "<input type='text' id='email' name='email' placeholder='Email' >" +
     "<input type='text' id='topComment' name='topComment' placeholder='Comment here... (for unauthenticated suggestions)' >" +
     "<div style='width: 100%; float: right'>" +
     "  <button type='button' id='signIn' class='signInButton weButton noStyleWe'>SIGN IN</button>" +
-    "</div>" +
+    '</div>' +
     "<span id='loginPopUp'></span>";
   $('#topMenu').append(topMarkup);
 
-  document.getElementById("signIn").addEventListener('click', function () {
-    debugLog("Sign in pressed");
+  document.getElementById('signIn').addEventListener('click', function () {
+    debugLog('Sign in pressed');
     signIn(true);
     return false;
   });
 }
 
 // Get the href into the extension
-function getHighlights() {
-  debugLog("getHighlights() called");
+function getHighlights (doBuildUI) {
+  debugLog('getHighlights() called');
   const { chrome: { runtime: { sendMessage } } } = window;
-  sendMessage({ command: "getHighlights", url: window.location.href },
+  sendMessage({ command: 'getHighlights', url: window.location.href },
     function (response) {
-      let lastError = chrome.runtime.lastError;
+      let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getHighlights")', lastError.message);
       }
-      debugLog("getHighlights() response", response);
+      debugLog('getHighlights() response', response);
 
-      if (response ) {
-        debugLog("SUCCESS: getHighlights received a response", response);
-        buildUI();
+      if (response) {
+        debugLog('SUCCESS: getHighlights received a response', response);
+        if (doBuildUI) {
+          buildUI();
+        } else {
+          requestReHighlight();
+        }
+        // else {
+        //   findWords();
+        // }
       } else {
-        console.log("ERROR: getHighlights received empty response");
+        console.log('ERROR: getHighlights received empty response');
       }
     });
 }
 
 
 // Call into the background script to do a voterGuidePossibilityRetrieve() api call, and return the data, then update the top menu
-function updateTopMenu() {
-  debugLog("updateTopMenu()");
+function updateTopMenu () {
+  debugLog('updateTopMenu()');
   const { chrome: { runtime: { sendMessage } } } = window;
-  sendMessage({ command: "getTopMenuData", url: window.location.href },
+  sendMessage({ command: 'getTopMenuData', url: window.location.href },
     function (response) {
-      let lastError = chrome.runtime.lastError;
+      let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getTopMenuData")', lastError.message);
       }
-      debugLog("updateTopMenu() response", response);
+      debugLog('updateTopMenu() response', response);
 
-      if (response && Object.entries(response).length > 0 ) {
+      if (response && Object.entries(response).length > 0) {
         const { orgName, orgLogo, possibilityId } = response.data;  // eslint-disable-line no-unused-vars
 
-        $('#orgLogo').attr("src", orgLogo);
-        $("#orgName").text(orgName ? orgName : "An Organization has not been stored for this URL. ");
-        $("#email").css('background', 'lightgrey').attr("disabled", true);      // The purpose of this field is to allow cloudsourced comments from un-authenticated, and untrusted public voters
-        $("#topComment").css('background', 'lightgrey').attr("disabled", true); // Also for cloudsourced comments from un-authenticated, and untrusted public voters
-        possibilityIdGlobal = possibilityId;
-        debugLog("updateTopMenu possibilityIdGlobal: " + possibilityIdGlobal);
+        $('#orgLogo').attr('src', orgLogo);
+        $('#orgName').text(orgName ? orgName : 'An Organization has not been stored for this URL. ');
+        $('#email').css('background', 'lightgrey').attr('disabled', true);      // The purpose of this field is to allow cloudsourced comments from un-authenticated, and untrusted public voters
+        $('#topComment').css('background', 'lightgrey').attr('disabled', true); // Also for cloudsourced comments from un-authenticated, and untrusted public voters
+        voterGuidePossibilityIdGlobal = possibilityId;
+        debugLog('updateTopMenu voterGuidePossibilityIdGlobal: ' + voterGuidePossibilityIdGlobal);
         if (orgName === undefined) {
           rightNewGuideDialog();
         }
         updatePositionsPanel();
       } else {
-        console.error("ERROR: updateTopMenu received empty response");
+        console.error('ERROR: updateTopMenu received empty response');
       }
     });
 }
 
-function updatePositionsPanel() {
-  debugLog("updatePositionsPanel() getPositions");
+function updatePositionsPanel () {
+  debugLog('updatePositionsPanel() getPositions');
   const { chrome: { runtime: { sendMessage } } } = window;
-  sendMessage({ command: "getPositions", url: window.location.href, possibilityId: possibilityIdGlobal },
+  sendMessage({ command: 'getPositions', url: window.location.href, possibilityId: voterGuidePossibilityIdGlobal },
     function (response) {
-      let lastError = chrome.runtime.lastError;
+      let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getPositions")', lastError.message);
       }
-      debugLog("updatePositionsPanel() response", response);
-      const defaultImage = "https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png";
+      debugLog('updatePositionsPanel() response', response);
       if ((response && Object.entries(response).length > 0) && (response.data !== undefined) && (response.data.length > 0)) {
-        let data = response.data;
+        let {data} = response;
         let l = data.length;
-        let selector = $("#sideArea");
+        let selector = $('#sideArea');
         if (l > 0) {
           for (let i = 0; i < l; i++) {
-            debugLog("updatePositionsPanel data: ", data[i]);
+            debugLog('updatePositionsPanel data: ', data[i]);
             // be sure not to use position_stance_stored, statement_text_stored, or more_info_url_stored -- we want the possibilities, not the live data
             let { ballot_item_name: name, position_stance: stance, statement_text: comment, more_info_url: url,
               political_party: party, office_name: officeName, ballot_item_image_url_https_large: imageURL, candidate_we_vote_id: candidateWeVoteId,
@@ -232,15 +241,16 @@ function updatePositionsPanel() {
               possibility_position_id: possibilityPositionId, possibility_position_number: possibilityPositionNumber, organization_name: organizationName,
               voter_guide_possibility_id: voterGuidePossibilityId
             } = data[i];
+            organizationWeVoteIdGlobal = organizationWeVoteId;
 
             let position = {
               name,
               party,
-              office: officeName ? officeName : "",
-              photo: (imageURL && imageURL.length > 0 ) ? imageURL : defaultImage,
-              comment: ( comment && comment.length ) ? comment : "",
+              office: officeName ? officeName : '',
+              photo: (imageURL && imageURL.length > 0) ? imageURL : defaultImage,
+              comment: (comment && comment.length) ? comment : '',
               stance,
-              url: url ? url : "",
+              url: url ? url : '',
               candidateWeVoteId,
               googleCivicElectionId,
               officeWeVoteId,
@@ -255,71 +265,86 @@ function updatePositionsPanel() {
         }
         attachClickHandlers();
       } else {
-        console.error("ERROR: updatePositionsPanel() getPositions returned an empty response or no data element.")
+        console.error('ERROR: updatePositionsPanel() getPositions returned an empty response or no data element.')
       }
     }
   );
 }
 
-function rightPositionPanes(i, candidate, selector) {
+function rightPositionPanes (i, candidate, selector) {
   let dupe = $(".candidateName:contains('" + candidate.name + "')").length;
-  debugLog("rightPositionPanes checked for duplicate " + candidate.name + ": " + dupe);
-  let furlNo = "furlable-" + i;
-  let candNo = "candidate-" + i;
-  if (candidate.name === null || candidate.name.length === 0 || candidate.candidateWeVoteId.length === 0) {
-    debugWarn("rightPositionPane rejected index: " + i + ", possibilityPositionNumber: " + candidate.possibilityPositionNumber +
-      ", poss bilityPositionNumber: " + candidate.possibilityPositionNumber);
+  debugLog('rightPositionPanes checked for duplicate ' + candidate.name + ': ' + dupe);
+  let furlNo = 'furlable-' + i;
+  let candNo = 'candidate-' + i;
+  if (candidate.name === null || candidate.name.length === 0) {
+    debugWarn('rightPositionPane rejected index: ' + i + ', possibilityPositionNumber: ' + candidate.possibilityPositionNumber +
+      ', possibilityPositionNumber: ' + candidate.possibilityPositionNumber);
     return;
   }
   if (!dupe) {
-    let markup = "" +
-      "<div class='candidate " + candNo + "'>" +
-      "  <div id='unfurlable-" + i + "' class='unfurlable' >" +
-      "    <span class='unfurlableTopMenu'>" +
-      "      <img class='photo noStyl'eWe' alt='candidate' src=" + candidate.photo + " />" +
-      "      <div class='nameBox  noStyleWe'>" +
-      "        <div class='candidateName'>" + candidate.name + "</div>" +
-      "        <div class='candidateParty'>" + candidate.party + "</div>" +
-      "        <div class='officeTitle'>" + candidate.office + "</div>" +
-      "      </div>" +
-      "    </span>" +
-      "    <input type='hidden' id='candidateName-" + i + "' value='" + candidate.name + "'>" +
-      "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidate.candidateWeVoteId + "'>" +
-      "    <input type='hidden' id='voterGuidePossibilityId-" + i + "' value='" + candidate.voterGuidePossibilityId + "'>" +
-      "    <input type='hidden' id='possibilityPositionNumber-" + i + "' value='" + candidate.possibilityPositionNumber + "'>" +
-      "    <input type='hidden' id='possibilityPositionId-" + i + "' value='" + candidate.possibilityPositionId + "'>" +
-      "    <input type='hidden' id='organizationWeVoteId-" + i + "' value='" + candidate.organizationWeVoteId + "'>" +
-      "    <input type='hidden' id='organizationName-" + i + "' value='" + candidate.organizationName + "'>" +
-      "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidate.candidateWeVoteId + "'>" +
-      "    <input type='hidden' id='googleCivicElectionId-" + i + "' value='" + candidate.googleCivicElectionId + "'>" +
-      "  </div>" +
-      "  <div id= " + furlNo + " class='furlable' hidden>" +
-      "    <span class='buttons'>" +
-             supportButton(i, 'endorse', candidate.stance) +
-             supportButton(i, 'oppose', candidate.stance) +
-             supportButton(i, 'info', candidate.stance) +
-      "    </span>" +
-      "    <textarea rows='6' class='statementText-" + i + "' />" +
-      "    <br>If a more detailed endorsement page exists, enter its URL here:" +
-      "    <input type='text' class='moreInfoURL-" + i + "' />" +
-      "    <span class='buttons'>" +
-      "      <button type='button bottomButtons' class='openInAdminApp-" + i + " weButton ui-button ui-widget ui-corner-all noStyleWe' >Admin App</button>" +
-      "      <button type='button bottomButtons' class='openInWebApp-" + i + " weButton ui-button ui-widget ui-corner-allnoStyleWe' >Web App</button>" +
-      "      <button type='button bottomButtons' class='saveButton-" + i + " weButton ui-button ui-widget ui-corner-allnoStyleWe' >Save</button>" +
-      "    </span>" +
-      "  </div>" +
-      "</div>";
-    $(selector).append(markup);
+    $(selector).append(candidatePaneMarkup(candNo, furlNo, i, candidate, false));
     $('.statementText-' + i).val(candidate.comment);
     $('.moreInfoURL-' + i).val(candidate.url);
     $(selector).css({
       'height': $('#frameDiv').height() + 'px',
       'overflow': 'scroll'
     });
+
   }
 }
 
-function greyAllPositionPanes(booleanGreyIt) {
+function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
+  let {party} = candidate;
+  if (party === undefined) {
+    party = (detachedDialog) ? 'Party: Not specified' :'No match for any current WeVote candidate.';
+  }
+
+  let markup =
+    "<div class='candidate " + candNo + "'>" +
+    "  <div id='unfurlable-" + i + "' class='unfurlable' >" +
+    "    <span class='unfurlableTopMenu'>" +
+    "      <img class='photo noStyleWe' alt='candidate' src=" + candidate.photo + ' />' +
+    "      <div class='nameBox  noStyleWe'>" +
+             (!detachedDialog ? ("<div class='candidateName'>" + candidate.name + '</div>') : ("<input type='text' class='candidateNameInput-" + i + "' />")) +
+    "        <div class='candidateParty'>" + party + '</div>' +
+    "        <div class='officeTitle'>" + candidate.office + '</div>' +
+    '      </div>' +
+    '    </span>' +
+    "    <input type='hidden' id='candidateName-" + i + "' value='" + candidate.name + "'>" +
+    "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidate.candidateWeVoteId + "'>" +
+    "    <input type='hidden' id='voterGuidePossibilityId-" + i + "' value='" + candidate.voterGuidePossibilityId + "'>" +
+    "    <input type='hidden' id='possibilityPositionNumber-" + i + "' value='" + candidate.possibilityPositionNumber + "'>" +
+    "    <input type='hidden' id='possibilityPositionId-" + i + "' value='" + candidate.possibilityPositionId + "'>" +
+    "    <input type='hidden' id='organizationWeVoteId-" + i + "' value='" + candidate.organizationWeVoteId + "'>" +
+    "    <input type='hidden' id='organizationName-" + i + "' value='" + candidate.organizationName + "'>" +
+    "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidate.candidateWeVoteId + "'>" +
+    "    <input type='hidden' id='googleCivicElectionId-" + i + "' value='" + candidate.googleCivicElectionId + "'>" +
+    '  </div>' +
+    '  <div id= ' + furlNo + " class='furlable' " + (detachedDialog ? '' : 'hidden') + '>' +
+    "    <span class='buttons'>" +
+           supportButton(i, 'endorse', candidate.stance) +
+           supportButton(i, 'oppose', candidate.stance) +
+           supportButton(i, 'info', candidate.stance) +
+    '    </span>' +
+    "    <textarea rows='6' class='statementText-" + i + "' />" +
+    '    <br>If a more detailed endorsement page exists, enter its URL here:' +
+    "    <input type='text' class='moreInfoURL-" + i + "' />" +
+    "    <span class='buttons'>";
+  if (!detachedDialog) {
+    markup += " <button type='button bottomButtons' class='revealLeft-" + i + " weButton ui-button ui-widget ui-corner-all noStyleWe'>Reveal</button>";
+  }
+  markup += "   <button type='button bottomButtons' class='openInAdminApp-" + i + " weButton ui-button ui-widget ui-corner-all noStyleWe'>Admin App</button>";
+  if (candidate.party !== undefined) {
+    markup += " <button type='button bottomButtons' class='openInWebApp-" + i + " weButton ui-button ui-widget ui-corner-all noStyleWe'>Web App</button>";
+  }
+  markup += "   <button type='button bottomButtons' class='saveButton-" + i + " weButton ui-button ui-widget ui-corner-all noStyleWe'>Save</button>" +
+    '    </span>' +
+    '  </div>' +
+    '</div>';
+  return markup;
+}
+
+function greyAllPositionPanes (booleanGreyIt) {
   if (booleanGreyIt) {
     $('div.candidate').css('opacity', '0.25');
   } else {
@@ -328,23 +353,24 @@ function greyAllPositionPanes(booleanGreyIt) {
 
 }
 
-function selectOneDeselectOthers(type, targetFurl) {
-  let buttons = $(targetFurl).find(":button");
+function selectOneDeselectOthers (type, targetFurl) {
+  let buttons = $(targetFurl).find(':button');
   buttons.each((i, but) => {
     const { className } = but; // "infoButton-2 weButton noStyleWe deselected"
+    // eslint-disable-next-line prefer-destructuring
     const number = className.match(/-(\d*)\s/)[1];
 
     const iterationType = className.substring(0, className.indexOf('Button'));
     /* eslint-disable indent */
     switch (iterationType) {
       case 'endorse':
-        $(but).replaceWith(supportButton(number, iterationType, className.startsWith(type) ? 'SUPPORT': ''));
+        toggleSupportButton($(but), number, iterationType, className.startsWith(type) ? 'SUPPORT': '');
         break;
       case 'oppose':
-        $(but).replaceWith(supportButton(number, iterationType, className.startsWith(type) ? 'OPPOSE': ''));
+        toggleSupportButton($(but), number, iterationType, className.startsWith(type) ? 'OPPOSE': '');
         break;
       case 'info':
-        $(but).replaceWith(supportButton(number, iterationType, className.startsWith(type) ? 'INFO_ONLY': ''));
+        toggleSupportButton($(but), number, iterationType, className.startsWith(type) ? 'INFO_ONLY': '');
         break;
     }
     /* eslint-enable indent */
@@ -352,15 +378,17 @@ function selectOneDeselectOthers(type, targetFurl) {
 }
 
 // As of Sept 2019, we are only updating possiblilities here, we are not changing the "stored" live presentation data
-function saveUpdatedCandidatePossiblePosition(event) {
+function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
   const targetCand = event.currentTarget.className; // div.candidate.candidate-4
-  const targetFurl = "#" + targetCand.replace('candidate candidate', 'furlable');
+  const targetFurl = '#' + targetCand.replace('candidate candidate', 'furlable');
+  // eslint-disable-next-line prefer-destructuring
   const number = targetFurl.match(/-(\d*)\s/)[1];
-  const buttons = $('#furlable-' + number).find(":button");
-  let stance = "NO_STANCE";
+  const buttonContainerId = detachedDialog ? '#1000' : '#furlable-' + number;
+  const buttons = $(buttonContainerId).find(':button');
+  let stance = 'NO_STANCE';
 
   buttons.each((i, but) => {
-    const { className } = but;   // "infoButton-2 weButton noStyleWe deselected"
+    const {className} = but;   // "infoButton-2 weButton noStyleWe deselected"
     if (className.match(/endorse.*?selectedEndorsed/)) {
       stance = 'SUPPORT';
     } else if (className.match(/oppose.*?selectedOpposed/)) {
@@ -371,72 +399,104 @@ function saveUpdatedCandidatePossiblePosition(event) {
     }
   });
 
-  const voterGuidePossibilityPositionId = $('#possibilityPositionId-' + number).val();
+  const itemName = detachedDialog ? $('.candidateNameInput-1000').val() : '';
+  const voterGuidePossibilityPositionId = detachedDialog ? 0 : $('#possibilityPositionId-' + number).val();
   const statementText = $('.statementText-' + number).val();
-  let moreInfoURL = $('.moreInfoURL-' + number).val().trim();
-  const { chrome: { runtime: { sendMessage } } } = window;
+  const moreInfoURL = $('.moreInfoURL-' + number).val().trim();
+  const {chrome: {runtime: {sendMessage}}} = window;
   sendMessage({
-    command: "savePosition",
+    command: 'savePosition',
+    itemName,
+    voterGuidePossibilityId: voterGuidePossibilityIdGlobal,
     voterGuidePossibilityPositionId,
     stance,
     statementText,
     moreInfoURL,
   },
   function (response) {
-    let lastError = chrome.runtime.lastError;
+    let {lastError} = runtime;
     if (lastError) {
       console.warn(' chrome.runtime.sendMessage("savePosition")', lastError.message);
     }
-    debugLog("saveUpdatedCandidatePossiblePosition() response", response);
+    debugLog('saveUpdatedCandidatePossiblePosition() response', response);
   });
 
-  const furlables = $('.furlable');
-  const thisDiv = $('#furlable-' + number);
-  const lastDiv = furlables[furlables.length-1];
-  let forceNumber = Number(number);
-  forceNumber = (thisDiv[0] === lastDiv) ? 0 : forceNumber + 1;
-  for (let i = 0; i < 10; i++) {
-    if ($('#furlable-' + forceNumber).length === 0 ) {
-      forceNumber++;      // skip any missing elements
-    } else {
-      break;
+  if (detachedDialog) {
+    // This should really occur on the response, not on the end of the processing of the click
+    $('div.ui-dialog').remove();
+    // getHighlights(false);
+    //TODO: Maybe, Sept23, 2019
+//              getWordsThenStartHighlighting();
+  } else {
+    const furlables = $('.furlable');
+    const thisDiv = $('#furlable-' + number);
+    const lastDiv = furlables[furlables.length - 1];
+    let forceNumber = Number(number);
+    forceNumber = (thisDiv[0] === lastDiv) ? 0 : forceNumber + 1;
+    for (let i = 0; i < 10; i++) {
+      if ($('#furlable-' + forceNumber).length === 0) {
+        forceNumber++;      // skip any missing elements
+      } else {
+        break;
+      }
     }
+    deactivateActivePositionPane();
+    unfurlOnePositionPane(null, forceNumber);
+    getHighlights(false);  // Refresh the highlights
+//    getWordsThenStartHighlighting();
   }
-  deactivateActivePositionPane();
-  unfurlOnePositionPane(null, forceNumber);
 }
 
-function unfurlOnePositionPane(event, forceNumber) {
+function unfurlOnePositionPane (event, forceNumber) {
   let targetFurl ='';
   let number = -1;
   if (forceNumber > -1) {
-    targetFurl = "#furlable-" + forceNumber;
+    targetFurl = '#furlable-' + forceNumber;
     number = forceNumber;
   } else {
     const targetCand = event.currentTarget.className; // div.candidate.candidate-4
-    targetFurl = "#" + targetCand.replace('candidate candidate', 'furlable');
+    targetFurl = '#' + targetCand.replace('candidate candidate', 'furlable');
     number = targetFurl.substring(targetFurl.indexOf('-') + 1);
+    let selectorForName = '#' + event.currentTarget.classList[1].replace('candidate', 'candidateName');
+    unfurledCandidateNameGlobal = $(selectorForName).val();
   }
   const element = document.getElementById('unfurlable-' + number);
   element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }); // alignTioTop
   $(targetFurl)[0].scrollIntoView();
-  let buttons = $(targetFurl).find(":button");
+  addHandlersForCandidatePaneButtons(targetFurl, number, false);
+  $(targetFurl).removeAttr('hidden');
+}
+
+function addHandlersForCandidatePaneButtons (targetDiv, number, detachedDialog) {
+  let buttons = $(targetDiv).find(':button');
   buttons.each((i, but) => {
     const { className } = but;
-    if (className.startsWith("endorse")) {
+    if (className.startsWith('endorse')) {
       $(but).click(() => {
-        selectOneDeselectOthers("endorse", targetFurl)
+        selectOneDeselectOthers('endorse', targetDiv)
       });
-    } else if (className.startsWith("oppose")) {
+    } else if (className.startsWith('oppose')) {
       $(but).click(() => {
-        selectOneDeselectOthers("oppose", targetFurl)
+        selectOneDeselectOthers('oppose', targetDiv)
       });
-    } else if (className.startsWith("info")) {
+    } else if (className.startsWith('info')) {
       $(but).click(() => {
-        selectOneDeselectOthers("info", targetFurl)
+        selectOneDeselectOthers('info', targetDiv)
       });
-    } else if (className.startsWith("openInAdminApp-")) {
-      $(but).click( (event) => {
+    } else if (className.startsWith('revealLeft')) {
+      $(but).click((event) => {
+        event.stopPropagation();
+        const emphasizedElement = $('#frame:first').contents().find(':contains(' + unfurledCandidateNameGlobal + '):last');
+        if (emphasizedElement.length) {
+          $(emphasizedElement)[0].scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'start'
+          });
+        }
+      });
+    } else if (className.startsWith('openInAdminApp-')) {
+      $(but).click((event) => {
         event.stopPropagation();
         const googleCivicElectionId = $('#googleCivicElectionId-' + number).val();
         let candidateName = $('#candidateName-' + number).val();
@@ -446,28 +506,29 @@ function unfurlOnePositionPane(event, forceNumber) {
         window.open(URL, '_blank');
 
       });
-    } else if (className.startsWith("openInWebApp-")) {
-      $(but).click( (event) => {
+    } else if (className.startsWith('openInWebApp-')) {
+      $(but).click((event) => {
         event.stopPropagation();
         const candidateWeVoteId = $('#candidateWeVoteId-' + number).val();
-        let URL = 'https://wevote.us/candidate/' + candidateWeVoteId + '/b/btdo/';
-        window.open(URL, '_blank');
+        if (candidateWeVoteId.length) {
+          let URL = 'https://wevote.us/candidate/' + candidateWeVoteId + '/b/btdo/';
+          window.open(URL, '_blank');
+        }
       });
-    } else if (className.startsWith("save")) {
-      $(but).click( (event) => {
+    } else if (className.startsWith('save')) {
+      $(but).click((event) => {
         event.stopPropagation();
-        saveUpdatedCandidatePossiblePosition(event);
+        saveUpdatedCandidatePossiblePosition(event, detachedDialog);
       });
     }
   });
-  $(targetFurl).removeAttr('hidden');
-
 }
 
-function deactivateActivePositionPane() {
+function deactivateActivePositionPane () {
   const visibleElements = $('.furlable:visible');
   if (visibleElements.length > 0) {
     // console.log('deactivateActivePositionPane() visibleElements: ',visibleElements);
+    // eslint-disable-next-line prefer-destructuring
     let visibleElement = visibleElements[0];
     let visibleElementId = visibleElement.id;
     let buttons = $('#' + visibleElementId + ' :button');
@@ -479,30 +540,30 @@ function deactivateActivePositionPane() {
   }
 }
 
-function rightNewGuideDialog() {
-  let selector = $("#sideArea");
+function rightNewGuideDialog () {
+  let selector = $('#sideArea');
   let markup = "<div id='newGuide'>" +
-    "<h3>Store Organization Info<br>for this Guide</h3><br>" +
-    "Organization Name:<br>" +
+    '<h3>Store Organization Info<br>for this Guide</h3><br>' +
+    'Organization Name:<br>' +
     "<input type='text' class='orgNameNew' name='orgName'><br>" +
-    "Organization Twitter Handle:<br>" +
+    'Organization Twitter Handle:<br>' +
     "<input type='text' class='orgTwitterNew' name='orgTwitter'><br>" +
-    "State Code (two letters)(optional):<br>" +
+    'State Code (two letters)(optional):<br>' +
     "<input type='text' class='orgStateNew' name='orgState'><br>" +
-    "Comments:<br>" +
+    'Comments:<br>' +
     "<textarea  class='orgCommentsNew' name='orgComments'></textarea></textarea><br><br>" +
     "<input type='button' id='saveToServer' class='weButton noStyleWe' value='Save to Server'>" +
-    "</div>";
+    '</div>';
   $(selector).append(markup);
-  document.getElementById("saveToServer").addEventListener('click', function () {
-    debugLog("Save to Server pressed");
+  document.getElementById('saveToServer').addEventListener('click', function () {
+    debugLog('Save to Server pressed');
     saveNewOrgData();
     return false;
   });
 }
 
-function saveNewOrgData() {
-  console.log("STEVE saveNewOrgData() ");
+function saveNewOrgData () {
+  console.log('saveNewOrgData() ');
   let name = $('.orgNameNew').val();
   let twitter = $('.orgTwitterNew').val();
   let state = $('.orgStateNew').val();
@@ -510,27 +571,27 @@ function saveNewOrgData() {
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage(
     {
-      command: "updateVoterGuide",
-      voterGuidePossibilityId: possibilityIdGlobal,
+      command: 'updateVoterGuide',
+      voterGuidePossibilityId: voterGuidePossibilityIdGlobal,
       orgName: name,
       orgTwitter: twitter,
       orgState: state,
       comments: comments
     },
     function (response) {
-      let lastError = chrome.runtime.lastError;
+      let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("updateVoterGuide")', lastError.message);
       }
-      console.log("STEVE saveNewOrgData() response", response);
+      console.log('saveNewOrgData() response', response);
 
       if (response && Object.entries(response).length > 0) {
         const {orgName, comments} = response.data;  // eslint-disable-line no-unused-vars
 
         // $('#orgLogo').attr("src", orgLogo);
-        $("#orgName").text(orgName);
-        $("#topComment").val(comments);
-        debugLog("updateTopMenu orgName: " + orgName);
+        $('#orgName').text(orgName);
+        $('#topComment').val(comments);
+        debugLog('updateTopMenu orgName: ' + orgName);
         if (orgName === undefined) {
           rightNewGuideDialog();
         } else {
@@ -538,13 +599,54 @@ function saveNewOrgData() {
           updatePositionsPanel();
         }
       } else {
-        console.error("ERROR: updateTopMenu received empty response");
+        console.error('ERROR: updateTopMenu received empty response');
       }
     });
 }
+// The text they select, will need to be the full name that we send to the API, although they will have a chance to edit it before sending
+// eslint-disable-next-line no-unused-vars
+function openSuggestionPopUp (selection, pageURL, tabId) {
+  const i = 1000;
+  if (selection.length > 0) {
+    let candidate = {
+      name: selection,
+      office: '',
+      party:  undefined,
+      photo: defaultImage,
+      comment: '',
+      url: window.location.href,
+      stance: 'SUPPORT',
+    };
+    $(candidatePaneMarkup(i, i, i, candidate, true)).dialog({
+      title: 'Create a We Vote endorsement',
+      show: true,
+      width: 340,
+      resizable: false,
+      fixedDimensions: true
+    });
+    $("button[title='Close']").css('float', 'right');
+    $('.ui-dialog-titlebar').css('height', '22px');
+    $('.ui-resizable-handle').css('display', 'none');
+    $('.ui-dialog-title').css('margin-left', '6px');
+    $('#unfurlable-' + i).css('height', '66px');
+    const can = '.candidate.1000';
+    $(can).css({'background-color': '#FFFFF6', 'padding': '8px 0 8px 8px'});
+    $('#1000').removeClass();
+    $('.candidateNameInput-1000').css({width: '80%', height: '24px'}).val(selection);
+    $('.statementText-' + i).val(candidate.comment);
+    $('.moreInfoURL-' + i).val(candidate.url);
+    $('#voterGuidePossibilityId-' + i).val(voterGuidePossibilityIdGlobal);
+    $('#organizationWeVoteId-' + i).val(organizationWeVoteIdGlobal);
+    $('.openInWebApp-' + i).stop(); // Stop animations, on the webapp button, since we don't have the twitter id necessary for the url
+    $('div.ui-dialog').on('dialogclose', () => {
+      $('div.ui-dialog').remove();
+    });
+    addHandlersForCandidatePaneButtons('#1000', '1000', true);
+  }
+}
 
 // SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
-function supportButton(i, type, stance ) {
+function supportButton (i, type, stance) {
   let buttonText = '';
   let fillColor = '';
   let selectionStyle = '';
@@ -552,7 +654,7 @@ function supportButton(i, type, stance ) {
   if (type === 'endorse') {
     buttonText = 'ENDORSED';
     textClass = 'supportButtonText';
-    if (stance === "SUPPORT") {
+    if (stance === 'SUPPORT') {
       fillColor = 'white';
       selectionStyle = 'selectedEndorsed';
     } else {
@@ -562,7 +664,7 @@ function supportButton(i, type, stance ) {
   } else if (type === 'oppose') {
     buttonText = 'OPPOSED';
     textClass = 'supportButtonText';
-    if (stance === "OPPOSE") {
+    if (stance === 'OPPOSE') {
       fillColor = 'white';
       selectionStyle = 'selectedOpposed';
     } else {
@@ -572,7 +674,7 @@ function supportButton(i, type, stance ) {
   } else {
     buttonText = 'INFO ONLY';
     textClass = 'supportButtonTextNoIcon';
-    if (stance === "INFO_ONLY" || stance === "NO_STANCE") {
+    if (stance === 'INFO_ONLY' || stance === 'NO_STANCE') {
       fillColor = 'white';
       selectionStyle = 'selectedInfo';
     } else {
@@ -581,7 +683,7 @@ function supportButton(i, type, stance ) {
     }
   }
 
-  let markup = "<button type='button' class='" + type + "Button-" + i + " weButton noStyleWe " + selectionStyle + "'>";
+  let markup = "<button type='button' class='" + type + 'Button-' + i + ' weButton noStyleWe ' + selectionStyle + "'>";
 
   if (type === 'endorse' || type === 'oppose') {
     markup += "<svg class='supportButtonSVG' style='margin-top:3px'>";
@@ -594,12 +696,37 @@ function supportButton(i, type, stance ) {
         "<path d='M0 0h24v24H0z' fill='none'/>";
     }
 
-    markup += "</svg>";
+    markup += '</svg>';
   }
 
-  markup += "<span class='" + textClass + "'>" + buttonText + "</span></button>";
+  markup += "<span class='" + textClass + "'>" + buttonText + '</span></button>';
 
   return markup;
+}
+
+function toggleSupportButton (button, i, type, stance) {
+  const svg = $(button.find('path')[0]);
+  if (type === 'endorse') {
+    if (stance === 'SUPPORT') {
+      button.removeClass('deselected').addClass('selectedEndorsed');
+      svg.attr('fill', '#FFFFFF');  // Modify the SVG thumb color to be white
+    } else {
+      button.removeClass('selectedEndorsed').addClass('deselected');
+      svg.attr('fill', '#235470');
+    }
+  } else if (type === 'oppose') {
+    if (stance === 'OPPOSE') {
+      button.removeClass('deselected').addClass('selectedOpposed');
+      svg.attr('fill', '#FFFFFF');  // Modify the SVG thumb color to be white
+    } else {
+      button.removeClass('selectedOpposed').addClass('deselected');
+      svg.attr('fill', '#235470');
+    }
+  } else if (stance === 'INFO_ONLY' || stance === 'NO_STANCE') {
+    button.removeClass('deselected').addClass('selectedInfo');
+  } else {
+    button.removeClass('selectedInfo').addClass('deselected');
+  }
 }
 
 function isParentFurlable (target) {
@@ -609,9 +736,9 @@ function isParentFurlable (target) {
   }
   let i = 0;
   let scan = target;
-  while( scan && scan.id !== "sideArea" && scan.className !== 'furlable') {
+  while(scan && scan.id !== 'sideArea' && scan.className !== 'furlable') {
     scan = scan.parentElement;
-    if( i++ > 10 ) {
+    if(i++ > 10) {
       break;
     }
   }
@@ -621,12 +748,12 @@ function isParentFurlable (target) {
 function attachClickHandlers () {
   //console.log("attachClickHandlers", $('div.candidate').length);
 
-  $('div.candidate').click( (event) => {
+  $('div.candidate').click((event) => {
     if (!isParentFurlable(event.target)) {
       deactivateActivePositionPane();
       unfurlOnePositionPane(event, -1);
     } else {
-      debugWarn("Candidate click IGNORED since target is in furlable area", event);
+      debugWarn('Candidate click IGNORED since target is in furlable area', event);
     }
   });
 }
