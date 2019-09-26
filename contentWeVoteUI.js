@@ -193,6 +193,9 @@ function getRefreshedHighlights () {
 
       if (response) {
         debugLog('SUCCESS: getRefreshedHighlights received a response', response);
+        console.log('getRefreshedHighlights reloading iframe[0]');
+        let frame = $('iframe')[0];
+        frame.contentWindow.location.reload();
       } else {
         console.log('ERROR: getRefreshedHighlights received empty response');
       }
@@ -460,7 +463,11 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
     // to /voterGuidePossibilityHighlightsRetrieve?, upon return from the API call, it will call initializeHighlightsData() (in backgroundWeVoteApiCalls)
     // to sort and process the raw highlights data, and then with doReHighlight true, will call requestReHighlight() which will then
     // send a message back to here (contentWeVoteU which is on the left side) with the processed data to do the re-highlighting.
-    removeAllHighlights();
+
+    // 9/26/19:  The messaging all works, but the dom in the iframe is inaccessible at this point, will go with the
+    // iframe reload (within getRefreshedHighlights) as a work around for now.
+    // removeAllHighlights();
+
     getRefreshedHighlights();
   });
 }
