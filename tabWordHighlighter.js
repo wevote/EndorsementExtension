@@ -276,6 +276,11 @@ function getSearchParameter (n) {
 //             "color: rgb(255, 255, 255); font-style: inherit;">Kate Gallego</em>
 // </td>
 function removeAllHighlights () {
+  // For some reason when we get here, the dom for the iframe is inaccessible, even though it should be in the same
+  // domain.
+  // 9/26/19:  Will go with a iframe reload for now
+
+
   // let bod = $('body');
   // let ems = $(bod).children().find('em.Highlight');
   var arr = document.getElementsByTagName("EM");
