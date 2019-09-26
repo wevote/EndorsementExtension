@@ -465,7 +465,7 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
     // send a message back to here (contentWeVoteU which is on the left side) with the processed data to do the re-highlighting.
 
     // 9/26/19:  The messaging all works, but the dom in the iframe is inaccessible at this point, will go with the
-    // iframe reload (in getRefreshedHighlights) as a work around for now.
+    // iframe reload (within getRefreshedHighlights) as a work around for now.
     // removeAllHighlights();
 
     getRefreshedHighlights();
