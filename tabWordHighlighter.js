@@ -76,6 +76,9 @@ $(() => {
           } else if (request.command === 'createEndorsement') {
             openSuggestionPopUp(request.selection, request.pageURL, request.tabId);
             return false;
+          } else  {
+            console.error('tabWordHighligher in chrome.runtime.onMessage.addListener received unknown command: ' + request.command);
+            return false;
           }
         }
       }
@@ -162,46 +165,6 @@ chrome.runtime.sendMessage({command: 'getStatus'}, function (response) {
     debug&&console.log('about to get words',window.location);
 
     getWordsThenStartHighlighting();
-    // chrome.runtime.sendMessage({
-    //   command: 'getWords',
-    //   url: location.href.replace(location.protocol + '//', ''),
-    //   id: getVoterDeviceIdFromWeVoteDomainPage()  // is this nonsense?
-    // }, function (response) {
-    //   let lastError = chrome.runtime.lastError;
-    //   if (lastError) {
-    //     console.warn('chrome runtime sendMessage("getWords")',lastError.message);
-    //     return;
-    //   }
-    //   debug&&console.log('got words response: ', response);
-    //   const id = response.storedDeviceId ? response.storedDeviceId : '';
-    //   if (response.storedDeviceId && response.storedDeviceId.length > 0) {
-    //     voterDeviceId = id;
-    //   }
-    //
-    //   for (let group in response.words) {
-    //     if (response.words[group].Enabled) {
-    //       for (word in response.words[group].Words) {
-    //         debug&&console.log('getWords response, ' + word + ', group: ' + group + ', findWords: ' + response.words[group].FindWords);
-    //         let wordText = response.words[group].Words[word];
-    //         if (wordText) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
-    //           wordsArray.push({
-    //             word: response.words[group].Words[word].toLowerCase(),
-    //             'regex': globStringToRegex(response.words[group].Words[word]),
-    //             'Color': response.words[group].Color,
-    //             'Fcolor': response.words[group].Fcolor,
-    //             'FindWords': response.words[group].FindWords,
-    //             'ShowInEditableFields': response.words[group].ShowInEditableFields
-    //           });
-    //         }
-    //       }
-    //     }
-    //   }
-    //   debug&&console.log('processed words');
-    //   wordsReceived = true;
-    //
-    //   //start the highlight loop
-    //   highlightLoop();
-    // });
   }
 });
 
@@ -307,13 +270,42 @@ function getSearchParameter (n) {
     }
 }*/
 
+// <td>
+//   <em class="Highlight" style="padding: 1px; box-shadow: rgb(229, 229, 229) 1px 1px; border-radius: 3px; " +
+//             "-webkit-print-color-adjust: exact; background-color: rgb(124, 123, 124); " +
+//             "color: rgb(255, 255, 255); font-style: inherit;">Kate Gallego</em>
+// </td>
+function removeAllHighlights () {
+  // let bod = $('body');
+  // let ems = $(bod).children().find('em.Highlight');
+  var arr = document.getElementsByTagName("EM");
+  var fd = document.getElementById("frameDiv");
+  let f0 = $('iframe')[0];
+  let f0b = $(f0).find(':button');
+  let f0e = $(f0).find('em');
+
+  let b2 = $('body').find('em');
+  let b3 = $('body').find('em.Highlight');
+  let b4 = $('body em');
+  let b5 = $('body em.Highlight');
+  let buttons = $('body').find(':button');
+  console.log($('#weContainer').html());
+
+  $('em.Highlight').each((em) => {
+    let text = $(em).text();
+    console.log('removeAll: ' + i + ', ' + text);
+    $(em).replace(text);
+  });
+  // ems.replaceWith(ems.innerText);
+}
+
 
 function findWords () {
   if (Object.keys(wordsArray).length > 0) {
     Highlight=false;
 
     setTimeout(function () {
-      debug&&console.log('finding words',window.location);
+      /*debug&&*/console.log('finding words',window.location);
 
       ReadyToFindWords=false;
 

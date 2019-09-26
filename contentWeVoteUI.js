@@ -90,7 +90,7 @@ function signIn (showDialog) {
         console.warn(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
       const { success, error, err, voterName, photoURL, voterWeVoteId, voterEmail } = response.data;
-      debugLog('STEVE signIn response: ', response);
+      debugLog('signIn response: ', response);
       let voterInfo = {
         success: success,
         error: error,
@@ -161,7 +161,7 @@ function topMenu () {
 function getHighlights (doBuildUI) {
   debugLog('getHighlights() called');
   const { chrome: { runtime: { sendMessage } } } = window;
-  sendMessage({ command: 'getHighlights', url: window.location.href },
+  sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: false },
     function (response) {
       let {lastError} = runtime;
       if (lastError) {
@@ -173,14 +173,28 @@ function getHighlights (doBuildUI) {
         debugLog('SUCCESS: getHighlights received a response', response);
         if (doBuildUI) {
           buildUI();
-        } else {
-          requestReHighlight();
         }
-        // else {
-        //   findWords();
-        // }
       } else {
         console.log('ERROR: getHighlights received empty response');
+      }
+    });
+}
+
+function getRefreshedHighlights () {
+  debugLog('getRefreshedHighlights called');
+  const { chrome: { runtime: { sendMessage } } } = window;
+  sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: true },
+    function (response) {
+      let {lastError} = runtime;
+      if (lastError) {
+        console.warn(' chrome.runtime.sendMessage("getHighlights")', lastError.message);
+      }
+      console.log('getRefreshedHighlights() response', response);
+
+      if (response) {
+        debugLog('SUCCESS: getRefreshedHighlights received a response', response);
+      } else {
+        console.log('ERROR: getRefreshedHighlights received empty response');
       }
     });
 }
@@ -419,32 +433,36 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
       console.warn(' chrome.runtime.sendMessage("savePosition")', lastError.message);
     }
     debugLog('saveUpdatedCandidatePossiblePosition() response', response);
-  });
 
-  if (detachedDialog) {
-    // This should really occur on the response, not on the end of the processing of the click
-    $('div.ui-dialog').remove();
-    // getHighlights(false);
-    //TODO: Maybe, Sept23, 2019
-//              getWordsThenStartHighlighting();
-  } else {
-    const furlables = $('.furlable');
-    const thisDiv = $('#furlable-' + number);
-    const lastDiv = furlables[furlables.length - 1];
-    let forceNumber = Number(number);
-    forceNumber = (thisDiv[0] === lastDiv) ? 0 : forceNumber + 1;
-    for (let i = 0; i < 10; i++) {
-      if ($('#furlable-' + forceNumber).length === 0) {
-        forceNumber++;      // skip any missing elements
-      } else {
-        break;
+    if (detachedDialog) {
+      console.log('ZZZZZ  saveUpdatedCandidatePossiblePosition response before div.ui-dialog .remove()');
+      $('div.ui-dialog').remove();
+    } else {
+      const furlables = $('.furlable');
+      const thisDiv = $('#furlable-' + number);
+      const lastDiv = furlables[furlables.length - 1];
+      let forceNumber = Number(number);
+      forceNumber = (thisDiv[0] === lastDiv) ? 0 : forceNumber + 1;
+      for (let i = 0; i < 10; i++) {
+        if ($('#furlable-' + forceNumber).length === 0) {
+          forceNumber++;      // skip any missing elements
+        } else {
+          break;
+        }
       }
+      console.log('ZZZZZ  saveUpdatedCandidatePossiblePosition response before deactivate/unfurlOne');
+      deactivateActivePositionPane();
+      unfurlOnePositionPane(null, forceNumber);
     }
-    deactivateActivePositionPane();
-    unfurlOnePositionPane(null, forceNumber);
-    getHighlights(false);  // Refresh the highlights
-//    getWordsThenStartHighlighting();
-  }
+    // Here we are still in the response from 'savePosition'.  After a successful save on the right side (voterGuidePossibilityPositionSave in backgroundWeVoteAPICalls)
+    // return here (the left side) and after advancing the open pane (above), call getRefreshedHighlights() (below) to send a 'getHighlights' message to the right side
+    // (extWordHighlighter) with a doReHighlight: true.  This will invoke getHighlightsListFromApiServer this will make an API call
+    // to /voterGuidePossibilityHighlightsRetrieve?, upon return from the API call, it will call initializeHighlightsData() (in backgroundWeVoteApiCalls)
+    // to sort and process the raw highlights data, and then with doReHighlight true, will call requestReHighlight() which will then
+    // send a message back to here (contentWeVoteU which is on the left side) with the processed data to do the re-highlighting.
+    removeAllHighlights();
+    getRefreshedHighlights();
+  });
 }
 
 function unfurlOnePositionPane (event, forceNumber) {
@@ -491,7 +509,7 @@ function addHandlersForCandidatePaneButtons (targetDiv, number, detachedDialog) 
           $(emphasizedElement)[0].scrollIntoView({
             behavior: 'smooth',
             block: 'nearest',
-            inline: 'start'
+            // inline: 'center'
           });
         }
       });

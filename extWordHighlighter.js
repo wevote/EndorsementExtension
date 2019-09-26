@@ -26,6 +26,8 @@ let noContextMenu = ['_generated_background_page.html'];
 // let voterWeVoteId = '';
 // let voterEmail = '';
 let uniqueNames = [];
+let activeTabIdGlobal = undefined;
+let activeUrlGlobal = '';
 
 const groupNames = {
   POSSIBILITY_SUPPORT: 'POSSIBILITY_SUPPORT',
@@ -78,6 +80,7 @@ function initializeHighlightsData (highlightsList, neverHighLightOn) {
   HighlightsData.Groups = [];
   for (let groupName in groupNames) {
     let group = {
+      'groupName': groupName,
       'Fcolor': getColor(groupName, true),
       'Color': getColor(groupName, false),
       'ShowInEditableFields': false,
@@ -218,10 +221,10 @@ function updateContextMenu (inUrl){
     }
 
     // TODO: STEVE, not the way to do it!
-    let idwe = create({
+    let idContextMenuCreateNew = create({
       'title': 'Create We Vote Endorsement',
       'contexts': [contexts[0]],
-      'id': 'idwe'
+      'id': 'idContextMenuCreateNew'
     });
   }
 }
@@ -268,7 +271,10 @@ chrome.browserAction.onClicked.addListener((tab) => {  //TODO: Needs to be tab s
 
 chrome.tabs.onActivated.addListener(function (tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    console.log('chrome.tabs.query({active: true, currentWindow: true} in tabs onactivated', tabid, tabs);
+    console.log('XXXXXX set GLOBALS in tabs onactivated', tabid, tabs);
+    // Sept 25, 2019: Todo this assumes that the first tab, when you turn it on, is the one that gets the menu!
+    activeTabIdGlobal = tabs[0].id;
+    activeUrlGlobal = tabs[0].url;
 
     updateContextMenu(tabs[0].url);
   });
@@ -288,7 +294,7 @@ chrome.tabs.onCreated.addListener(function (tab){if(tab.url !== undefined){updat
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
   debugE&&console.log('Steve chrome.contextMenus.onClicked: ' + info.selectionText);
 
-  if (info.menuItemId.indexOf('idwe') > -1) {
+  if (info.menuItemId.indexOf('idContextMenuCreateNew') > -1) {
     console.log('Steve chrome.contextMenus.onClicked info: ', info);
     console.log('Steve chrome.contextMenus.onClicked tab: ', tab);
     chrome.tabs.sendMessage(tab.id, {
@@ -365,15 +371,17 @@ chrome.commands.onCommand.addListener(function (command) {
 
 chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {    // eslint-disable-line complexity
-    debugE && console.log('message received', request, sender);
+    /*debugE &&*/
+    console.log('XXXXXX message received', request, sender, sender.tab.id);
     //request=JSON.parse(evt.data);
     if (request.command === 'getTopMenuData') {
       getOrganizationFound(request.url, sendResponse);
     } else if (request.command === 'getHighlights') {
-      getHighlightsListFromApiServer(request.url, sendResponse, '6000');
+      getHighlightsListFromApiServer(request.url, request.doReHighlight, sendResponse, '6000');
     } else if (request.command==='getPositions') {
       getPossiblePositions(request.possibilityId, sendResponse);
     } else if (request.command==='savePosition') {
+      console.log('XXXXXX voterGuidePossibilityPositionSave message received', request, sender, sender.tab.id);
       voterGuidePossibilityPositionSave(
         request.itemName,
         request.voterGuidePossibilityId,
@@ -381,8 +389,7 @@ chrome.runtime.onMessage.addListener(
         request.stance,
         request.statementText,
         request.moreInfoURL.trim(),
-        () => {console.log('embedded send response for voterGuidePossibilityPositionSave');}
-      );
+        sendResponse);
     } else if(request.command==='getVoterInfo') {
       getVoterSignInInfo (sendResponse);
     } else if(request.command==='getWords') {
@@ -398,11 +405,36 @@ chrome.runtime.onMessage.addListener(
         request.comments, request.sendResponse);
     } else if (request.command==='showWordsFound') {
       sendResponse({success:showWordsFound(request.state)});
+    } else if (request.command==='initiateReHighlightFromContext') {
+      requestReHighlight();
+      sendResponse({success: true,
+        status: 'requestReHighlight invoked asynchronously'});
+    } else if(request.command==='showHighlightsCount') {
+      showHighlightsCount(request.label, request.altColor, sender.tab.id);
+      if (request.altColor.length === 0) {
+        processUniqueNames(request.uniqueNames);
+      }
+      sendResponse({success: 'ok'});
+
+
+      // Commands from "Highlight This", not currently in use
+
     } else if(request.command==='setPrintHighlights') {
       sendResponse({success:setPrintHighlights(request.state)});
     } else if(request.command==='addGroup') {
       sendResponse({success:addGroup(request.group, request.color, request.fcolor, request.findwords, request.showon,
         request.dontshowon, request.words, request.groupType, request.remoteConfig, request.regex, request.showInEditableFields)});
+    } else if(request.command==='removeWord') {
+      sendResponse({success:removeWord(request.word)});
+    } else if(request.command==='beep') {
+      document.body.innerHTML += '<audio src="beep.wav" autoplay="autoplay"/>';
+    } else if(request.command==='getStatus') {
+      sendResponse({status:highlighterEnabled, printHighlights: printHighlights});
+    } else if(request.command==='updateContextMenu'){
+      updateContextMenu(request.url);
+      sendResponse({success: 'ok'});
+    } else if(request.command==='flipGroup') {
+      sendResponse({success: flipGroup(request.group, request.action)});
     } else if(request.command==='deleteGroup') {
       sendResponse({success:deleteGroup(request.group)});
     } else if(request.command==='addWord') {
@@ -414,23 +446,6 @@ chrome.runtime.onMessage.addListener(
     } else if(request.command==='setWords') {
       sendResponse({success:setWords(request.words, request.group, request.color, request.fcolor, request.findwords,
         request.showon, request.dontshowon,  request.newname, request.groupType, request.remoteConfig,request.regex, request.showInEditableFields)});
-    } else if(request.command==='removeWord') {
-      sendResponse({success:removeWord(request.word)});
-    } else if(request.command==='showHighlightsCount') {
-      showHighlightsCount(request.label, request.altColor, sender.tab.id);
-      if (request.altColor.length === 0) {
-        processUniqueNames(request.uniqueNames);
-      }
-      sendResponse({success: 'ok'});
-    } else if(request.command==='beep') {
-      document.body.innerHTML += '<audio src="beep.wav" autoplay="autoplay"/>';
-    } else if(request.command==='getStatus') {
-      sendResponse({status:highlighterEnabled, printHighlights: printHighlights});
-    } else if(request.command==='updateContextMenu'){
-      updateContextMenu(request.url);
-      sendResponse({success: 'ok'});
-    } else if(request.command==='flipGroup') {
-      sendResponse({success: flipGroup(request.group, request.action)});
     }
 
     return true;
@@ -440,7 +455,16 @@ chrome.runtime.onMessage.addListener(
 function requestReHighlight (){
   console.log('requestReHighlight(){ called');
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    chrome.tabs.sendMessage(tabs[0].id, {command: 'ReHighlight', words:getWords(tabs[0].url)});
+    let id = '';
+    let url = '';
+    if (tabs.length) {
+      id = tabs[0].id;    // eslint-disable-line prefer-destructuring
+      url = tabs[0].url;  // eslint-disable-line prefer-destructuring
+    } else {
+      id = activeTabIdGlobal;
+      url = activeUrlGlobal;
+    }
+    chrome.tabs.sendMessage(id, {command: 'ReHighlight', words: getWords(url)});
   });
 }
 

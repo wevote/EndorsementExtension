@@ -131,8 +131,8 @@ function Hilitor(id, tag) {
     // Before change this was...  if (skipTags.test(node.nodeName)||skipClasses.test(node.className)) {return;}
     if (skipTags.test(node.nodeName) ||
         skipClasses.test(node.className) ||
-        node.id === "weTrash" ||
-        node.id === "weContainer") {
+        node.id === 'weTrash' ||
+        node.id === 'weContainer') {
       return;
     }
     // End of modification for WeVote
@@ -147,7 +147,14 @@ function Hilitor(id, tag) {
 
 
       var nv = node.nodeValue;
-      if(inContentEditable) {regs = matchRegexEditable.exec(nv);} else {regs = matchRegex.exec(nv);}
+      if (nv==='Regina Romero') {
+        console.log('hiliteWords    ' + nv);
+      }
+      if(inContentEditable) {
+        regs = matchRegexEditable.exec(nv);
+      } else {
+        regs = matchRegex.exec(nv);
+      }
       if (regs) {
         var wordfound = "";
 

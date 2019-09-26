@@ -76,7 +76,7 @@ function onPage() {
     "https://www.sierraclub.org/california/2018-endorsements",
     "https://www.eastbayexpress.com/oakland/our-november-2018-endorsement-guide/Content?oid=21443046"
   ]);
-  console.log("STEVE onPage localStorage[enabledURLsData]: ", localStorage['enabledURLsData'])
+  console.log("onPage localStorage[enabledURLsData]: ", localStorage['enabledURLsData'])
 
   drawInterface();
 
@@ -130,7 +130,7 @@ function drawInterface() {
     // eslint-disable-next-line no-invalid-this
     let id = this.id;
     let index = id.substr('removeButton'.length);
-    removeFromEnabledURLs(index);  // TODO FIX ME STEVE
+    removeFromEnabledURLs(index);
   });
 
   renderOnOff();
