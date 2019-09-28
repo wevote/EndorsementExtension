@@ -26,6 +26,22 @@ runtime errors.  It can be useful, but not as useful as the "background page" de
 
 <!-- https://docs.google.com/drawings/d/1C32qtyMrsqAZXxN7TEG3lryZXn56owVHnZhwxoAAOLo/edit?usp=sharing -->
 
+### Debugging notes
+* The (otherwise excellent) Chrome Dev Tools debugger, gets confused with extensions.  
+* Usually you will have to press the refresh (circular arrow icon) on the extension tab, to load the
+latest version of the extension code.
+![ScreenShot](docs/images/Refresh Extension.png)
+* Then you will need to update the tab where you are debugging the extension, the Hard Reload might be all you
+need with 'Shift+Option+R', but it always does the job with the "Empty Cache and Hard Reload"
+(which will only be present if you are using the debugger on that tab.) 
+![ScreenShot](docs/images/HardReload.png)
+
+Resources leak:
+* The (still otherwise excellent) Chrome Dev Tools debugger, appears to leak resources when you do a hard refresh
+while it is at a breakpoint.  The symptoms are the tab becomes slower to load, and eventually becomes non
+responsive.  When this happens close the tab, and reload it using Chrome's History/Recently Closed
+menu item.
+
 ## Publishing an Update
 
 [See the Chrome doc](https://developer.chrome.com/webstore/publish)

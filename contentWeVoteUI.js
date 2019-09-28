@@ -28,10 +28,6 @@ function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
 function buildUI () {
   console.log('Building WeVote UI --------------------------------');
   let hr = window.location.href;
-  let topMenuHeight = 75;
-  let sideAreaWidth = 400;
-  let iFrameHeight = window.innerHeight - topMenuHeight;
-  let iFrameWidth = window.innerWidth - sideAreaWidth;
   let bod = $('body');
   $(bod).children().wrapAll("<div id='weTrash' >").hide();  // if you remove it, other js goes nuts
   $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before weTrash
@@ -40,11 +36,11 @@ function buildUI () {
   let weContainer = $('#weContainer');
   $(weContainer).append('' +
     "<span id='topMenu'>" +
-    '</span>').append("<div id='weFlexGrid' ></div>");
+    '</span>').append("<div id='weFlexBox' ></div>");
 
-  let weFlexGrid = $('#weFlexGrid');
-  $(weFlexGrid).append('<aside id="frameDiv"><iframe id="frame" width=' + iFrameWidth + ' height=' + iFrameHeight + '></iframe></aside>');
-  $(weFlexGrid).append('<section id="sideArea"></section>');
+  let weFlexBox = $('#weFlexBox');
+  $(weFlexBox).append('<div id="frameDiv"><iframe id="frame" width="100%" height="100%"></iframe></div>');
+  $(weFlexBox).append('<div id="sideArea"></div>');
 
   $('#frame').attr('src', hr);
 
@@ -103,7 +99,7 @@ function signIn (showDialog) {
 
       if (voterInfo.success) {
         $('#signIn').replaceWith(
-          "<img id='signOut' class='voterPhoto noStyleWe' alt='candidate' width='35' height='35' src='" + voterInfo.photo + "' style='margin: 12px;'  />");
+          "<img id='signOut' class='voterPhoto removeContentStyles' alt='candidate' width='35' height='35' src='" + voterInfo.photo + "' style='margin: 12px;'  />");
         updatePositionsPanel();
         document.getElementById('signOut').addEventListener('click', function () {
           debugLog('Sign Out pressed');
@@ -145,7 +141,7 @@ function topMenu () {
     "<input type='text' id='email' name='email' placeholder='Email' >" +
     "<input type='text' id='topComment' name='topComment' placeholder='Comment here... (for unauthenticated suggestions)' >" +
     "<div style='width: 100%; float: right'>" +
-    "  <button type='button' id='signIn' class='signInButton weButton noStyleWe'>SIGN IN</button>" +
+    "  <button type='button' id='signIn' class='signInButton weButton removeContentStyles'>SIGN IN</button>" +
     '</div>' +
     "<span id='loginPopUp'></span>";
   $('#topMenu').append(topMarkup);
@@ -320,8 +316,8 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
     "<div class='candidate " + candNo + "'>" +
     "  <div id='unfurlable-" + i + "' class='unfurlable' >" +
     "    <span class='unfurlableTopMenu'>" +
-    "      <img class='photo noStyleWe' alt='candidate' src=" + candidate.photo + ' />' +
-    "      <div class='nameBox  noStyleWe'>" +
+    "      <img class='photo removeContentStyles' alt='candidate' src=" + candidate.photo + ' />' +
+    "      <div class='nameBox  removeContentStyles'>" +
              (!detachedDialog ? ("<div class='candidateName'>" + candidate.name + '</div>') : ("<input type='text' class='candidateNameInput-" + i + "' />")) +
     "        <div class='candidateParty'>" + party + '</div>' +
     "        <div class='officeTitle'>" + candidate.office + '</div>' +
@@ -344,17 +340,17 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
            supportButton(i, 'info', candidate.stance) +
     '    </span>' +
     "    <textarea rows='6' class='statementText-" + i + "' />" +
-    '    <br>If a more detailed endorsement page exists, enter its URL here:' +
+    '    <br><span class="advisory">If a more detailed endorsement exists, enter its URL here:</span>' +
     "    <input type='text' class='moreInfoURL-" + i + "' />" +
     "    <span class='buttons'>";
   if (!detachedDialog) {
-    markup += " <button type='button bottomButtons' class='revealLeft-" + i + " weButton ui-button ui-widget ui-corner-all noStyleWe'>Reveal</button>";
+    markup += " <button type='button bottomButtons' class='revealLeft-" + i + " weButton ui-button ui-widget ui-corner-all removeContentStyles'>Reveal</button>";
   }
-  markup += "   <button type='button bottomButtons' class='openInAdminApp-" + i + " weButton ui-button ui-widget ui-corner-all noStyleWe'>Admin App</button>";
+  markup += "   <button type='button bottomButtons' class='openInAdminApp-" + i + " weButton ui-button ui-widget ui-corner-all removeContentStyles'>Admin App</button>";
   if (candidate.party !== undefined) {
-    markup += " <button type='button bottomButtons' class='openInWebApp-" + i + " weButton ui-button ui-widget ui-corner-all noStyleWe'>Web App</button>";
+    markup += " <button type='button bottomButtons' class='openInWebApp-" + i + " weButton ui-button ui-widget ui-corner-all removeContentStyles'>Web App</button>";
   }
-  markup += "   <button type='button bottomButtons' class='saveButton-" + i + " weButton ui-button ui-widget ui-corner-all noStyleWe'>Save</button>" +
+  markup += "   <button type='button bottomButtons' class='saveButton-" + i + " weButton ui-button ui-widget ui-corner-all removeContentStyles'>Save</button>" +
     '    </span>' +
     '  </div>' +
     '</div>';
@@ -373,7 +369,7 @@ function greyAllPositionPanes (booleanGreyIt) {
 function selectOneDeselectOthers (type, targetFurl) {
   let buttons = $(targetFurl).find(':button');
   buttons.each((i, but) => {
-    const { className } = but; // "infoButton-2 weButton noStyleWe deselected"
+    const { className } = but; // "infoButton-2 weButton removeContentStyles deselected"
     // eslint-disable-next-line prefer-destructuring
     const number = className.match(/-(\d*)\s/)[1];
 
@@ -405,7 +401,7 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
   let stance = 'NO_STANCE';
 
   buttons.each((i, but) => {
-    const {className} = but;   // "infoButton-2 weButton noStyleWe deselected"
+    const {className} = but;   // "infoButton-2 weButton removeContentStyles deselected"
     if (className.match(/endorse.*?selectedEndorsed/)) {
       stance = 'SUPPORT';
     } else if (className.match(/oppose.*?selectedOpposed/)) {
@@ -577,7 +573,7 @@ function rightNewGuideDialog () {
     "<input type='text' class='orgStateNew' name='orgState'><br>" +
     'Comments:<br>' +
     "<textarea  class='orgCommentsNew' name='orgComments'></textarea></textarea><br><br>" +
-    "<input type='button' id='saveToServer' class='weButton noStyleWe' value='Save to Server'>" +
+    "<input type='button' id='saveToServer' class='weButton removeContentStyles' value='Save to Server'>" +
     '</div>';
   $(selector).append(markup);
   document.getElementById('saveToServer').addEventListener('click', function () {
@@ -708,7 +704,7 @@ function supportButton (i, type, stance) {
     }
   }
 
-  let markup = "<button type='button' class='" + type + 'Button-' + i + ' weButton noStyleWe ' + selectionStyle + "'>";
+  let markup = "<button type='button' class='" + type + 'Button-' + i + ' weButton removeContentStyles ' + selectionStyle + "'>";
 
   if (type === 'endorse' || type === 'oppose') {
     markup += "<svg class='supportButtonSVG' style='margin-top:3px'>";
