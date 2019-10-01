@@ -415,9 +415,10 @@ chrome.runtime.onMessage.addListener(
         processUniqueNames(request.uniqueNames);
       }
       sendResponse({success: 'ok'});
+    } else if(request.command==='voterGuidePossibilitySave') {
+      voterGuidePossibilitySave(request.organizationWeVoteId, request.voterGuidePossibilityId, request.internalNotes, sendResponse);
 
-
-      // Commands from "Highlight This", not currently in use
+      // Commands from "Highlight This", not currently in use:
 
     } else if(request.command==='setPrintHighlights') {
       sendResponse({success:setPrintHighlights(request.state)});

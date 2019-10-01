@@ -30,5 +30,8 @@
   "pre-commit": [
     "test",
     "lint"
-  ]
+  ],
+  "dependencies": {
+    "string-similarity": "^3.0.0"
+  }
 }

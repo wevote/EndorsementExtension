@@ -111,6 +111,12 @@
   height: 25px;
   padding: 0 4px;
 }
+[class^="orgChoiceButton"] {
+  width: unset;
+  height: 25px;
+  margin: auto;
+  padding: 0 4px;
+}
 
 [class^="statementText"], [class^="moreInfoURL"] {
   width: 95%;
@@ -300,3 +306,13 @@
   padding: 2px 5px;
 }
 
+#orgSelection {
+  border-collapse: collapse !important;
+  background-color: lightgoldenrodyellow !important;
+  border: 1px solid black !important;
+  width: 100%;
+}
+
+.chooseSubTitles {
+  margin: 4px;
+}

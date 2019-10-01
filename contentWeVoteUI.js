@@ -2,6 +2,7 @@ const { $, chrome: { runtime } } = window;
 let voterGuidePossibilityIdGlobal = '';
 let organizationWeVoteIdGlobal = '';
 let unfurledCandidateNameGlobal = '';
+let noExactMatchOrgListGlobal = [];
 const defaultImage = 'https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png';
 
 /**
@@ -47,6 +48,12 @@ function buildUI () {
   topMenu();
   updateTopMenu();
   signIn(false);
+
+  setTimeout(() => {
+    if (noExactMatchOrgListGlobal.length) {
+      orgChoiceDialog(noExactMatchOrgListGlobal)
+    }
+  }, 2000);  // Yuck! Not added casually
 
   greyAllPositionPanes(false);
 }
@@ -143,7 +150,8 @@ function topMenu () {
     "<div style='width: 100%; float: right'>" +
     "  <button type='button' id='signIn' class='signInButton weButton removeContentStyles'>SIGN IN</button>" +
     '</div>' +
-    "<span id='loginPopUp'></span>";
+    "<span id='loginPopUp'></span>"+
+    '<div id="dlgAnchor"></div>';
   $('#topMenu').append(topMarkup);
 
   document.getElementById('signIn').addEventListener('click', function () {
@@ -190,6 +198,7 @@ function getRefreshedHighlights () {
       if (response) {
         debugLog('SUCCESS: getRefreshedHighlights received a response', response);
         console.log('getRefreshedHighlights reloading iframe[0]');
+        // eslint-disable-next-line prefer-destructuring
         let frame = $('iframe')[0];
         frame.contentWindow.location.reload();
       } else {
@@ -212,18 +221,23 @@ function updateTopMenu () {
       debugLog('updateTopMenu() response', response);
 
       if (response && Object.entries(response).length > 0) {
-        const { orgName, orgLogo, possibilityId } = response.data;  // eslint-disable-line no-unused-vars
+        const { orgName, orgLogo, possibilityId, noExactMatchOrgList } = response.data;  // eslint-disable-line no-unused-vars
 
         $('#orgLogo').attr('src', orgLogo);
-        $('#orgName').text(orgName ? orgName : 'An Organization has not been stored for this URL. ');
+        $('#orgName').text(orgName ? orgName :  'Organization not found for this URL');
         $('#email').css('background', 'lightgrey').attr('disabled', true);      // The purpose of this field is to allow cloudsourced comments from un-authenticated, and untrusted public voters
         $('#topComment').css('background', 'lightgrey').attr('disabled', true); // Also for cloudsourced comments from un-authenticated, and untrusted public voters
         voterGuidePossibilityIdGlobal = possibilityId;
+        noExactMatchOrgListGlobal = noExactMatchOrgList;
         debugLog('updateTopMenu voterGuidePossibilityIdGlobal: ' + voterGuidePossibilityIdGlobal);
         if (orgName === undefined) {
           rightNewGuideDialog();
         }
         updatePositionsPanel();
+        // if (noExactMatchOrgListGlobal.length) {
+        //   orgChoiceDialog(noExactMatchOrgListGlobal)
+        // }
+
       } else {
         console.error('ERROR: updateTopMenu received empty response');
       }
@@ -777,4 +791,113 @@ function attachClickHandlers () {
       debugWarn('Candidate click IGNORED since target is in furlable area', event);
     }
   });
+}
+
+function orgChoiceDialog (orgList) {
+  console.log('building orgChoiceDialog');
+  const sortedList = sortURLs(orgList);
+  let markup =
+    '<div id="orgChoiceDialog" class="removeContentStyles" style="background-color: rgb(255, 255, 255)">' +
+    '  <div class="chooseSubTitles">This endorsement page does not have an exact match in our database</div>' +
+    '  <div class="chooseSubTitles">Please select one of the choices below, or press the <b>Close</b> and fill in the form on the right pane.</div>' +
+    '    <div style="overflow-y: auto; height: 450px; border: 1px solid black; margin: 0 4px 0 4px">' +
+    '      <table id="orgSelection">' +
+    '        <tr>' +
+    '          <th>Org</th>' +
+    '          <th>Name</th>' +
+    '          <th>URL</th>' +
+    '        </tr>';
+  sortedList.forEach((item) => {
+    const { organization_we_vote_id: id, organization_name: name, organization_website: url } = item;
+    markup +=
+      '      <tr>' +
+      '        <td>' + id + '</td>' +
+      '        <td><button type="button" id="signIn-' + id + '" class="orgChoiceButton weButton">' + name + '</button></td>' +
+      '        <td>' + url + '</td>' +
+      '      </tr>';
+  });
+  markup +=
+    '      </table>' +
+    '    </div>' +
+    '  </div>' +
+    '</div>';
+
+  $('#dlgAnchor').dialog({
+    width: 1000,
+    height: 600,
+    // modal: true,
+    // draggable: true,
+    title: 'Choose the best match for this page',
+    open: function () {
+      $(this).html(markup).addClass('removeContentStyles');
+      alterjQuerySelectors($('[role=dialog]'));
+      $('#orgSelection').css({
+        'margin-top': 0,
+        'margin-bottom': 0
+      });
+    },
+  });
+
+  /* Dale Sept 2019: If you save the `organization_we_vote_id` to this API (with the `voter_guide_possibility_id`),
+  it will return the chosen organization in `organization`: https://api.wevoteusa.org/apis/v1/docs/voterGuidePossibilitySave/
+  */
+  $('.orgChoiceButton').each((i, but) => {
+    $(but).click((event) => {
+      const {id} = event.currentTarget;
+      const {href} = window.location;
+      let organizationWeVoteId = id.substring(id.indexOf('-') + 1)
+
+      console.log('orgChoiceDialog  button onclick:  ' + event.currentTarget.id);
+      const {chrome: {runtime: {sendMessage}}} = window;
+      sendMessage({
+        command: 'voterGuidePossibilitySave',
+        organizationWeVoteId: organizationWeVoteId,
+        voterGuidePossibilityId: voterGuidePossibilityIdGlobal,
+        internalNotes: 'Proposed endorsement page: ' + href,
+      },
+      function (response) {
+        let {lastError} = runtime;
+        if (lastError) {
+          console.warn(' chrome.runtime.sendMessage("voterGuidePossibilitySave")', lastError.message);
+        }
+        debugLog('voterGuidePossibilitySave() response', response);
+      });
+    });
+  });
+}
+
+// Most sites use jQuery in some way, sometimes extensively, this minimizes the effects of their css
+function alterjQuerySelectors (dlg) {
+  let classlistbig = dlg.find('*[class^="ui-"]');
+  for (let i = 0; i < classlistbig.length; i++) {
+    let elem = classlistbig[i];
+    let cl = $(elem).attr('class');
+    let cl2 = cl.replace(/ui-/g, 'u2i-');
+    $(elem).attr('class', cl2);
+    // console.log(cl + ' ---------- ' + cl2);
+  }
+
+  let classlist = $('*[class^="ui-"]');
+  for(let i = 0; i < classlist.length; i++) {
+    let elem = classlist[i];
+    let cl = $(elem).attr('class');
+    let cl2 = cl.replace(/ui-/g, 'u2i-');
+    $(elem).attr('class', cl2);
+    // console.log(cl + ' ---------- ' + cl2);
+  }
+}
+
+function sortURLs (orgList) {
+  const {href} = window.location;
+  orgList.forEach((item) => {
+    const { organization_website: url } = item;
+    // eslint-disable-next-line no-undef
+    item.similarity = compareTwoStrings(href, url);
+  });
+
+  orgList.sort(function (a, b) {
+    return (a.similarity < b.similarity) ? 1 : -1;
+  });
+
+  return orgList;
 }

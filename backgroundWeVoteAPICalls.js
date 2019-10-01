@@ -38,12 +38,13 @@ function getOrganizationFound (locationHref, sendResponse) {
   console.log('voterGuidePossibilityRetrieve apiURL: ' + apiURL);
   $.getJSON(apiURL, '', (res) => {
     console.log('voterGuidePossibilityRetrieve API results', res);
-    let {voter_guide_possibility_edit: voterGuidePossibilityEdit, possibilityUrl, voter_guide_possibility_id: possibilityId, organization} = res;
+    let {voter_guide_possibility_edit: voterGuidePossibilityEdit, possibilityUrl, voter_guide_possibility_id: possibilityId, organization,
+      possible_owner_of_website_organizations_list: noExactMatchOrgList} = res;
     if (voterGuidePossibilityEdit) {
       let {
         organization_email: email, organization_name: orgName, organization_twitter_handle: twitterHandle, organization_we_vote_id: weVoteId,
         organization_website: orgWebsite,
-        we_vote_hosted_profile_image_url_medium: orgLogo
+        we_vote_hosted_profile_image_url_medium: orgLogo,
       } = organization;
 
       debug&&console.log('voter_guide_possibility_id:', possibilityId);
@@ -56,7 +57,8 @@ function getOrganizationFound (locationHref, sendResponse) {
         orgWebsite,
         orgLogo,
         possibilityUrl,
-        possibilityId
+        possibilityId,
+        noExactMatchOrgList
       };
     } else {
       console.log('ERROR: voterGuidePossibilityRetrieve returned with a undefined or null, res or res.organization');
@@ -177,5 +179,29 @@ function voterGuidePossibilityPositionSave (itemName, voterGuidePossibilityId, v
     }).fail((err) => {
       console.log('voterGuidePossibilityPositionSave error', err);
     });
+  }
+}
+
+// Save a possible voter guide
+function voterGuidePossibilitySave (organizationWeVoteId, voterGuidePossibilityId, internalNotes, sendResponse) {
+  let voterDeviceId = localStorage['voterDeviceId'];
+  debug && console.log('voterGuidePossibilitySave (really the organization_we_vote_id) voterGuidePossibilityId: ' + voterGuidePossibilityId);
+  if (voterDeviceId && voterDeviceId.length > 0) {
+    let apiURL = `${rootApiURL}/voterGuidePossibilitySave/?voter_device_id=${voterDeviceId}` +
+      `&voter_guide_possibility_id=${voterGuidePossibilityId}&organization_we_vote_id=${organizationWeVoteId}&internal_notes=${encodeURIComponent(internalNotes)}`;
+    // debug &&
+    console.log('voterGuidePossibilityPositionSave: ' + apiURL);
+    $.getJSON(apiURL, '', (res) => {
+      debug && console.log('get json from voterGuidePossibilitySave API SUCCESS', res);
+      sendResponse({res});
+    }).fail((err) => {
+      console.log('voterGuidePossibilitySave error', err);
+    });
+  } else {
+    let res = {
+      success: false,
+      message: 'Can not make ths api call unless you are logged in, and have a voterDeviceId',
+    }
+    sendResponse({res});
   }
 }

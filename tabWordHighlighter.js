@@ -211,6 +211,10 @@ function getWordsThenStartHighlighting () {
 
     //start the highlight loop
     highlightLoop();
+
+    // if (noExactMatchOrgListGlobal.length) {
+    //   orgChoiceDialog(noExactMatchOrgListGlobal)
+    // }
   });
 }
 
