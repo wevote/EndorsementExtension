@@ -220,11 +220,15 @@ function updateContextMenu (inUrl){
       }
     }
 
-    // TODO: STEVE, not the way to do it!
     let idContextMenuCreateNew = create({
       'title': 'Create We Vote Endorsement',
       'contexts': [contexts[0]],
       'id': 'idContextMenuCreateNew'
+    });
+    let idContextMenuRevealRight = create({
+      'title': 'Reveal in Candidate List',
+      'contexts': [contexts[0]],
+      'id': 'idContextMenuRevealRight'
     });
   }
 }
@@ -295,15 +299,22 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
   debugE&&console.log('Steve chrome.contextMenus.onClicked: ' + info.selectionText);
 
   if (info.menuItemId.indexOf('idContextMenuCreateNew') > -1) {
-    console.log('Steve chrome.contextMenus.onClicked info: ', info);
-    console.log('Steve chrome.contextMenus.onClicked tab: ', tab);
     chrome.tabs.sendMessage(tab.id, {
       command: 'createEndorsement',
       selection: info.selectionText,
       pageURL: info.pageUrl,
       tabId: tab.id,
     }, function (result) {
-      debugE&&console.log('contextMenus on click, response received to openWeMenus ', result);
+      debugE&&console.log('contextMenus on click, response received to createEndorsement ', result);
+    });
+  } else if (info.menuItemId.indexOf('idContextMenuRevealRight') > -1) {
+    chrome.tabs.sendMessage(tab.id, {
+      command: 'revealRight',
+      selection: info.selectionText,
+      pageURL: info.pageUrl,
+      tabId: tab.id,
+    }, function (result) {
+      debugE&&console.log('contextMenus on click, response received to revealRight ', result);
     });
   } else {
     if (info.menuItemId.indexOf('AddTo_') > -1) {
@@ -418,7 +429,7 @@ chrome.runtime.onMessage.addListener(
     } else if(request.command==='voterGuidePossibilitySave') {
       voterGuidePossibilitySave(request.organizationWeVoteId, request.voterGuidePossibilityId, request.internalNotes, sendResponse);
 
-      // Commands from "Highlight This", not currently in use:
+      // The following commands are from "Highlight This", and are not currently in use
 
     } else if(request.command==='setPrintHighlights') {
       sendResponse({success:setPrintHighlights(request.state)});

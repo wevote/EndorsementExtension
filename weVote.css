@@ -113,14 +113,26 @@
 }
 [class^="orgChoiceButton"] {
   width: unset;
-  height: 25px;
+  /*height: 25px;*/
   margin: auto;
   padding: 0 4px;
+  line-height: 1em;
+  height: 2em;
+  overflow: hidden;
 }
 
 [class^="statementText"], [class^="moreInfoURL"] {
   width: 95%;
   margin: 5px 0 5px 0;
+}
+
+.bottomTd {
+  padding-bottom: 6px;
+  border-bottom: 1px solid grey;
+}
+
+.topTd {
+  padding-top: 6px;
 }
 
 .weButton {
@@ -315,4 +327,14 @@
 
 .chooseSubTitles {
   margin: 4px;
+}
+
+#sideAreaStatus {
+  padding: 15px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: 600;
+  color: black;
 }

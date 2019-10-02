@@ -184,6 +184,7 @@ function voterGuidePossibilityPositionSave (itemName, voterGuidePossibilityId, v
 
 // Save a possible voter guide
 function voterGuidePossibilitySave (organizationWeVoteId, voterGuidePossibilityId, internalNotes, sendResponse) {
+  // eslint-disable-next-line prefer-destructuring
   let voterDeviceId = localStorage['voterDeviceId'];
   debug && console.log('voterGuidePossibilitySave (really the organization_we_vote_id) voterGuidePossibilityId: ' + voterGuidePossibilityId);
   if (voterDeviceId && voterDeviceId.length > 0) {
@@ -201,7 +202,7 @@ function voterGuidePossibilitySave (organizationWeVoteId, voterGuidePossibilityI
     let res = {
       success: false,
       message: 'Can not make ths api call unless you are logged in, and have a voterDeviceId',
-    }
+    };
     sendResponse({res});
   }
 }

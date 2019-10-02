@@ -3,6 +3,7 @@ let voterGuidePossibilityIdGlobal = '';
 let organizationWeVoteIdGlobal = '';
 let unfurledCandidateNameGlobal = '';
 let noExactMatchOrgListGlobal = [];
+let voterWeVoteIdGlobal = '';
 const defaultImage = 'https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png';
 
 /**
@@ -50,10 +51,16 @@ function buildUI () {
   signIn(false);
 
   setTimeout(() => {
-    if (noExactMatchOrgListGlobal.length) {
-      orgChoiceDialog(noExactMatchOrgListGlobal)
+    if (voterWeVoteIdGlobal.length) {
+      if (noExactMatchOrgListGlobal.length) {
+        orgChoiceDialog(noExactMatchOrgListGlobal)
+      } else {
+        $('#sideArea').append('<div id="sideAreaStatus">No Candidate endorsements have been captured.</div>');
+      }
+    } else if ($('#sideAreaStatus').length === 0) {
+      $('#sideArea').append('<div id="sideAreaStatus">Candidate information can not be displayed if you are not signed in.</div>');
     }
-  }, 2000);  // Yuck! Not added casually
+  }, 2000);  // Yuck! Time delays are a last resort
 
   greyAllPositionPanes(false);
 }
@@ -92,7 +99,8 @@ function signIn (showDialog) {
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
-      const { success, error, err, voterName, photoURL, voterWeVoteId, voterEmail } = response.data;
+      const { success, error, err, voterName, photoURL, weVoteId, voterEmail } = response.data;
+      voterWeVoteIdGlobal = weVoteId || '';
       debugLog('signIn response: ', response);
       let voterInfo = {
         success: success,
@@ -100,7 +108,7 @@ function signIn (showDialog) {
         err: err,
         name: voterName,
         photo: photoURL,
-        voterId: voterWeVoteId,
+        voterId: weVoteId,
         email: voterEmail
       };
 
@@ -115,18 +123,19 @@ function signIn (showDialog) {
           return false;
         });
       } else {
-        console.error('signIn() getVoterInfo returned error: ' + voterInfo.error + ', err: ' + voterInfo.err);
+        console.warn('signIn() getVoterInfo returned error: ' + voterInfo.error + ', err: ' + voterInfo.err);
         if (showDialog) {
           $('#loginPopUp').dialog({
             dialogClass: 'no-close',
             width: 500,
             position: { my: 'right top', at: 'left bottom', of: '#signIn' },
             open: function () {
-              const markup = "<div style='text-align: center;'><b>Authenticate this \"We Vote Endorsement Tool\" Chrome extension,</b><br>" +
+              const markup = "<div style='text-align: center;'><br><b>Authenticate this \"We Vote Endorsement Tool\" Chrome extension,</b><br>" +
                 ' by logging into the We Vote WebApp (https://wevote.us) in another tab.<br><br>' +
                 'Once you have logged into the We Vote Web App, ' +
                 'navigate back to this tab and press the <b>SIGN IN</b> button again to authenticate the "We Vote Endorsement Tool" Chrome Extension.</div>';
               $(this).html(markup);
+              alterjQuerySelectors ($(this));
             },
           });
         }
@@ -224,20 +233,16 @@ function updateTopMenu () {
         const { orgName, orgLogo, possibilityId, noExactMatchOrgList } = response.data;  // eslint-disable-line no-unused-vars
 
         $('#orgLogo').attr('src', orgLogo);
-        $('#orgName').text(orgName ? orgName :  'Organization not found for this URL');
+        $('#orgName').text(orgName ? orgName : 'Organization not found for this URL');
         $('#email').css('background', 'lightgrey').attr('disabled', true);      // The purpose of this field is to allow cloudsourced comments from un-authenticated, and untrusted public voters
         $('#topComment').css('background', 'lightgrey').attr('disabled', true); // Also for cloudsourced comments from un-authenticated, and untrusted public voters
         voterGuidePossibilityIdGlobal = possibilityId;
         noExactMatchOrgListGlobal = noExactMatchOrgList;
         debugLog('updateTopMenu voterGuidePossibilityIdGlobal: ' + voterGuidePossibilityIdGlobal);
         if (orgName === undefined) {
-          rightNewGuideDialog();
+          // rightNewGuideDialog();
         }
         updatePositionsPanel();
-        // if (noExactMatchOrgListGlobal.length) {
-        //   orgChoiceDialog(noExactMatchOrgListGlobal)
-        // }
-
       } else {
         console.error('ERROR: updateTopMenu received empty response');
       }
@@ -254,11 +259,15 @@ function updatePositionsPanel () {
         console.warn(' chrome.runtime.sendMessage("getPositions")', lastError.message);
       }
       debugLog('updatePositionsPanel() response', response);
+      $('.candidate').remove();   // Remove all the existing candidates, and then redraw them
+      let names = [];
       if ((response && Object.entries(response).length > 0) && (response.data !== undefined) && (response.data.length > 0)) {
         let {data} = response;
         let l = data.length;
         let selector = $('#sideArea');
         if (l > 0) {
+          $('#sideAreaStatus').remove();
+          let insert = 0;
           for (let i = 0; i < l; i++) {
             debugLog('updatePositionsPanel data: ', data[i]);
             // be sure not to use position_stance_stored, statement_text_stored, or more_info_url_stored -- we want the possibilities, not the live data
@@ -268,6 +277,14 @@ function updatePositionsPanel () {
               possibility_position_id: possibilityPositionId, possibility_position_number: possibilityPositionNumber, organization_name: organizationName,
               voter_guide_possibility_id: voterGuidePossibilityId
             } = data[i];
+
+            if (names.includes(name)) {
+              console.log('Skipping duplicate name ' + name + ", insert = " + insert);
+              // eslint-disable-next-line no-continue
+              continue;
+            }
+            names.push(name);
+
             organizationWeVoteIdGlobal = organizationWeVoteId;
 
             let position = {
@@ -287,7 +304,9 @@ function updatePositionsPanel () {
               possibilityPositionNumber,
               voterGuidePossibilityId
             };
-            rightPositionPanes(i, position, selector);
+            // console.log(i + ": " + name + ', ',position);
+            rightPositionPanes(insert, position, selector);
+            insert++;
           }
         }
         attachClickHandlers();
@@ -300,13 +319,13 @@ function updatePositionsPanel () {
 
 function rightPositionPanes (i, candidate, selector) {
   let dupe = $(".candidateName:contains('" + candidate.name + "')").length;
-  debugLog('rightPositionPanes checked for duplicate ' + candidate.name + ': ' + dupe);
+  debugLog('rightPositionPanes ------------------------------ i: ' + i + ", " + candidate.name);
   let furlNo = 'furlable-' + i;
   let candNo = 'candidate-' + i;
   if (candidate.name === null || candidate.name.length === 0) {
     debugWarn('rightPositionPane rejected index: ' + i + ', possibilityPositionNumber: ' + candidate.possibilityPositionNumber +
       ', possibilityPositionNumber: ' + candidate.possibilityPositionNumber);
-    return;
+    return false;
   }
   if (!dupe) {
     $(selector).append(candidatePaneMarkup(candNo, furlNo, i, candidate, false));
@@ -316,8 +335,9 @@ function rightPositionPanes (i, candidate, selector) {
       'height': $('#frameDiv').height() + 'px',
       'overflow': 'scroll'
     });
-
+    return true;
   }
+  return false;
 }
 
 function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
@@ -448,8 +468,8 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
     debugLog('saveUpdatedCandidatePossiblePosition() response', response);
 
     if (detachedDialog) {
-      console.log('ZZZZZ  saveUpdatedCandidatePossiblePosition response before div.ui-dialog .remove()');
       $('div.ui-dialog').remove();
+      updatePositionsPanel();
     } else {
       const furlables = $('.furlable');
       const thisDiv = $('#furlable-' + number);
@@ -463,7 +483,6 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
           break;
         }
       }
-      console.log('ZZZZZ  saveUpdatedCandidatePossiblePosition response before deactivate/unfurlOne');
       deactivateActivePositionPane();
       unfurlOnePositionPane(null, forceNumber);
     }
@@ -575,6 +594,8 @@ function deactivateActivePositionPane () {
   }
 }
 
+
+// We might still need this, but for now it won't be called
 function rightNewGuideDialog () {
   let selector = $('#sideArea');
   let markup = "<div id='newGuide'>" +
@@ -628,7 +649,7 @@ function saveNewOrgData () {
         $('#topComment').val(comments);
         debugLog('updateTopMenu orgName: ' + orgName);
         if (orgName === undefined) {
-          rightNewGuideDialog();
+          // rightNewGuideDialog();
         } else {
           $('#newGuide').remove();
           updatePositionsPanel();
@@ -794,79 +815,64 @@ function attachClickHandlers () {
 }
 
 function orgChoiceDialog (orgList) {
-  console.log('building orgChoiceDialog');
+  // console.log('building orgChoiceDialog');
   const sortedList = sortURLs(orgList);
   let markup =
     '<div id="orgChoiceDialog" class="removeContentStyles" style="background-color: rgb(255, 255, 255)">' +
-    '  <div class="chooseSubTitles">This endorsement page does not have an exact match in our database</div>' +
-    '  <div class="chooseSubTitles">Please select one of the choices below, or press the <b>Close</b> and fill in the form on the right pane.</div>' +
-    '    <div style="overflow-y: auto; height: 450px; border: 1px solid black; margin: 0 4px 0 4px">' +
-    '      <table id="orgSelection">' +
-    '        <tr>' +
-    '          <th>Org</th>' +
-    '          <th>Name</th>' +
-    '          <th>URL</th>' +
-    '        </tr>';
+    '  <div class="chooseSubTitles">This endorsement page does not have an exact match in our database.</div>' +
+    '  <div class="chooseSubTitles"><b>Please select one of the choices below.</b></div>' +
+    '  <table id="orgSelection">';
   sortedList.forEach((item) => {
     const { organization_we_vote_id: id, organization_name: name, organization_website: url } = item;
+    let dispUrl = (url.length < 45) ? url : url.substring(0, 45) + '...';
     markup +=
-      '      <tr>' +
-      '        <td>' + id + '</td>' +
-      '        <td><button type="button" id="signIn-' + id + '" class="orgChoiceButton weButton">' + name + '</button></td>' +
-      '        <td>' + url + '</td>' +
-      '      </tr>';
+      '  <tr class="topTd">' +
+      '    <td><button type="button" id="orgChoice-' + id + '" class="orgChoiceButton weButton">' + name + '</button></td>' +
+      '  </tr>' +
+      '  <tr class="bottomTd">' +
+      '    <td><a id="externalLink" href="' + url + '" target="_blank">' + dispUrl + '</a>' +
+      '  </tr>';
   });
   markup +=
-    '      </table>' +
-    '    </div>' +
-    '  </div>' +
+    '  </table>' +
     '</div>';
 
-  $('#dlgAnchor').dialog({
-    width: 1000,
-    height: 600,
-    // modal: true,
-    // draggable: true,
-    title: 'Choose the best match for this page',
-    open: function () {
-      $(this).html(markup).addClass('removeContentStyles');
-      alterjQuerySelectors($('[role=dialog]'));
-      $('#orgSelection').css({
-        'margin-top': 0,
-        'margin-bottom': 0
-      });
-    },
-  });
-
-  /* Dale Sept 2019: If you save the `organization_we_vote_id` to this API (with the `voter_guide_possibility_id`),
-  it will return the chosen organization in `organization`: https://api.wevoteusa.org/apis/v1/docs/voterGuidePossibilitySave/
-  */
+  $('#sideAreaStatus').remove();
+  $('#sideArea').append(markup);
+  alterjQuerySelectors($('.orgChoiceDialog'));
   $('.orgChoiceButton').each((i, but) => {
     $(but).click((event) => {
       const {id} = event.currentTarget;
       const {href} = window.location;
-      let organizationWeVoteId = id.substring(id.indexOf('-') + 1)
+      let organizationWeVoteId = id.substring(id.indexOf('-') + 1);
 
-      console.log('orgChoiceDialog  button onclick:  ' + event.currentTarget.id);
+      // console.log('orgChoiceDialog  button onclick:  ' + event.currentTarget.id);
       const {chrome: {runtime: {sendMessage}}} = window;
       sendMessage({
         command: 'voterGuidePossibilitySave',
         organizationWeVoteId: organizationWeVoteId,
         voterGuidePossibilityId: voterGuidePossibilityIdGlobal,
         internalNotes: 'Proposed endorsement page: ' + href,
+        voterWeVoteId : voterWeVoteIdGlobal,
       },
-      function (response) {
+      function (res) {
         let {lastError} = runtime;
         if (lastError) {
           console.warn(' chrome.runtime.sendMessage("voterGuidePossibilitySave")', lastError.message);
         }
-        debugLog('voterGuidePossibilitySave() response', response);
+        debugLog('voterGuidePossibilitySave() response', res);
+        const{ organization_we_vote_id: id } = res.res.organization;
+        if (id && id.length) {
+          updateTopMenu();
+          $('#orgChoiceDialog').remove();  // Remove this selection menu/dialog
+          $('#sideArea').append('<div id="sideAreaStatus">No Candidate endorsements have been captured.</div>');
+        }
       });
     });
   });
 }
 
-// Most sites use jQuery in some way, sometimes extensively, this minimizes the effects of their css
+// Most sites use jQuery in some way, sometimes extensively, this minimizes the effects of their css overriding ours
 function alterjQuerySelectors (dlg) {
   let classlistbig = dlg.find('*[class^="ui-"]');
   for (let i = 0; i < classlistbig.length; i++) {
