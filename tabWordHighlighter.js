@@ -76,6 +76,9 @@ $(() => {
           } else if (request.command === 'createEndorsement') {
             openSuggestionPopUp(request.selection, request.pageURL, request.tabId);
             return false;
+          } else if (request.command === 'revealRight') {
+            revealRightAction(request.selection, request.pageURL, request.tabId);
+            return false;
           } else  {
             console.error('tabWordHighligher in chrome.runtime.onMessage.addListener received unknown command: ' + request.command);
             return false;
@@ -355,6 +358,17 @@ function findWords () {
   // This next log line floods the log, and slow things down
   // debug&&console.log('finished finding words');
 
+}
+
+function revealRightAction (selection, pageURL, tabId) {
+  const nameMatchElement = $('#sideArea').contents().find(':contains(' + selection + '):last');
+  if (nameMatchElement.length) {
+    $(nameMatchElement)[0].scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      // inline: 'center'
+    });
+  }
 }
 
 
