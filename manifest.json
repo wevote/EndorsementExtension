@@ -1,7 +1,7 @@
 {
    "background": {
-      "css": [ "libs/jquery/jquery-ui.theme-1.12.1-we-vote.css" ],
-      "scripts": [ "libs/jquery/jquery-3.4.0.min.js", "libs/jquery/jquery-ui-1.12.1.min.js",
+      "css": [ "libs/jquery-ui-modified/jquery-ui.theme-1.12.1-we-vote.css" ],
+      "scripts": [ "libs/jquery/jquery-3.4.0.min.js", "libs/jquery-ui-modified/jquery-ui-1.12.1.min-we-vote.js",
          "libs/sanitize-html/sanitize-html.js", "backgroundWeVoteAPICalls.js", "extWordHighlighter.js", "libs/string-similarity/compare-strings.js" ]
    },
    "browser_action": {
@@ -19,8 +19,8 @@
    },
    "content_scripts": [ {
       "all_frames": true,
-      "css": [ "libs/jquery/jquery-ui.theme-1.12.1-we-vote.css", "highlightThis.css", "weVote.css" ],
-      "js": [ "libs/jquery/jquery-3.4.0.min.js", "libs/jquery/jquery-ui-1.12.1.min.js", "libs/string-similarity/compare-strings.js",
+      "css": [ "libs/jquery-ui-modified/jquery-ui.theme-1.12.1-we-vote.css", "highlightThis.css", "weVote.css" ],
+      "js": [ "libs/jquery/jquery-3.4.0.min.js", "libs/jquery-ui-modified/jquery-ui-1.12.1.min-we-vote.js", "libs/string-similarity/compare-strings.js",
          "hilitor.js", "tabWordHighlighter.js", "contentWeVoteUI.js" ],
       "match_about_blank": true,
       "matches": [ "http://*/*", "https://*/*" ],

@@ -49,21 +49,24 @@ function buildUI () {
   topMenu();
   updateTopMenu();
   signIn(false);
+  initializeOrgChoiceList();
+  greyAllPositionPanes(false);
+}
 
+function initializeOrgChoiceList() {
   setTimeout(() => {
     if (voterWeVoteIdGlobal.length) {
       if (noExactMatchOrgListGlobal.length) {
         orgChoiceDialog(noExactMatchOrgListGlobal)
       } else {
-        $('#sideArea').append('<div id="sideAreaStatus">No Candidate endorsements have been captured.</div>');
+        setSideAreaStatus('No Candidate endorsements have been captured yet.');
       }
-    } else if ($('#sideAreaStatus').length === 0) {
-      $('#sideArea').append('<div id="sideAreaStatus">Candidate information can not be displayed if you are not signed in.</div>');
+    } else {
+      setSideAreaStatus('You must be signed in to display Candidate information.');
     }
-  }, 2000);  // Yuck! Time delays are a last resort
-
-  greyAllPositionPanes(false);
+  }, 2000);  // Yuck! Time delays are always a last resort
 }
+
 
 function debugLog (...args) {
   const {debugLocal} = window;
@@ -135,7 +138,9 @@ function signIn (showDialog) {
                 'Once you have logged into the We Vote Web App, ' +
                 'navigate back to this tab and press the <b>SIGN IN</b> button again to authenticate the "We Vote Endorsement Tool" Chrome Extension.</div>';
               $(this).html(markup);
-              alterjQuerySelectors ($(this));
+              setSideAreaStatus();
+              setSideAreaStatus('No Candidate endorsements have been captured yet.');
+              initializeOrgChoiceList();
             },
           });
         }
@@ -266,7 +271,7 @@ function updatePositionsPanel () {
         let l = data.length;
         let selector = $('#sideArea');
         if (l > 0) {
-          $('#sideAreaStatus').remove();
+          setSideAreaStatus();
           let insert = 0;
           for (let i = 0; i < l; i++) {
             debugLog('updatePositionsPanel data: ', data[i]);
@@ -311,7 +316,8 @@ function updatePositionsPanel () {
         }
         attachClickHandlers();
       } else {
-        console.error('ERROR: updatePositionsPanel() getPositions returned an empty response or no data element.')
+        // This is not necessarily an error, it could be a brand new voter guide possibility with no position possibilities yet.
+        console.log('Note: updatePositionsPanel() getPositions returned an empty response or no data element.');
       }
     }
   );
@@ -469,6 +475,7 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
 
     if (detachedDialog) {
       $('div.ui-dialog').remove();
+      setSideAreaStatus();
       updatePositionsPanel();
     } else {
       const furlables = $('.furlable');
@@ -596,69 +603,70 @@ function deactivateActivePositionPane () {
 
 
 // We might still need this, but for now it won't be called
-function rightNewGuideDialog () {
-  let selector = $('#sideArea');
-  let markup = "<div id='newGuide'>" +
-    '<h3>Store Organization Info<br>for this Guide</h3><br>' +
-    'Organization Name:<br>' +
-    "<input type='text' class='orgNameNew' name='orgName'><br>" +
-    'Organization Twitter Handle:<br>' +
-    "<input type='text' class='orgTwitterNew' name='orgTwitter'><br>" +
-    'State Code (two letters)(optional):<br>' +
-    "<input type='text' class='orgStateNew' name='orgState'><br>" +
-    'Comments:<br>' +
-    "<textarea  class='orgCommentsNew' name='orgComments'></textarea></textarea><br><br>" +
-    "<input type='button' id='saveToServer' class='weButton removeContentStyles' value='Save to Server'>" +
-    '</div>';
-  $(selector).append(markup);
-  document.getElementById('saveToServer').addEventListener('click', function () {
-    debugLog('Save to Server pressed');
-    saveNewOrgData();
-    return false;
-  });
-}
+// function rightNewGuideDialog () {
+//   let selector = $('#sideArea');
+//   let markup = "<div id='newGuide'>" +
+//     '<h3>Store Organization Info<br>for this Guide</h3><br>' +
+//     'Organization Name:<br>' +
+//     "<input type='text' class='orgNameNew' name='orgName'><br>" +
+//     'Organization Twitter Handle:<br>' +
+//     "<input type='text' class='orgTwitterNew' name='orgTwitter'><br>" +
+//     'State Code (two letters)(optional):<br>' +
+//     "<input type='text' class='orgStateNew' name='orgState'><br>" +
+//     'Comments:<br>' +
+//     "<textarea  class='orgCommentsNew' name='orgComments'></textarea></textarea><br><br>" +
+//     "<input type='button' id='saveToServer' class='weButton removeContentStyles' value='Save to Server'>" +
+//     '</div>';
+//   $(selector).append(markup);
+//   document.getElementById('saveToServer').addEventListener('click', function () {
+//     debugLog('Save to Server pressed');
+//     saveNewOrgData();
+//     return false;
+//   });
+// }
 
-function saveNewOrgData () {
-  console.log('saveNewOrgData() ');
-  let name = $('.orgNameNew').val();
-  let twitter = $('.orgTwitterNew').val();
-  let state = $('.orgStateNew').val();
-  let comments = $('.orgCommentsNew').val();
-  const { chrome: { runtime: { sendMessage } } } = window;
-  sendMessage(
-    {
-      command: 'updateVoterGuide',
-      voterGuidePossibilityId: voterGuidePossibilityIdGlobal,
-      orgName: name,
-      orgTwitter: twitter,
-      orgState: state,
-      comments: comments
-    },
-    function (response) {
-      let {lastError} = runtime;
-      if (lastError) {
-        console.warn(' chrome.runtime.sendMessage("updateVoterGuide")', lastError.message);
-      }
-      console.log('saveNewOrgData() response', response);
+// function saveNewOrgData () {
+//   console.log('saveNewOrgData() ');
+//   let name = $('.orgNameNew').val();
+//   let twitter = $('.orgTwitterNew').val();
+//   let state = $('.orgStateNew').val();
+//   let comments = $('.orgCommentsNew').val();
+//   const { chrome: { runtime: { sendMessage } } } = window;
+//   sendMessage(
+//     {
+//       command: 'updateVoterGuide',
+//       voterGuidePossibilityId: voterGuidePossibilityIdGlobal,
+//       orgName: name,
+//       orgTwitter: twitter,
+//       orgState: state,
+//       comments: comments
+//     },
+//     function (response) {
+//       let {lastError} = runtime;
+//       if (lastError) {
+//         console.warn(' chrome.runtime.sendMessage("updateVoterGuide")', lastError.message);
+//       }
+//       console.log('saveNewOrgData() response', response);
+//
+//       if (response && Object.entries(response).length > 0) {
+//         const {orgName, comments} = response.data;  // eslint-disable-line no-unused-vars
+//
+//         // $('#orgLogo').attr("src", orgLogo);
+//         $('#orgName').text(orgName);
+//         $('#topComment').val(comments);
+//         debugLog('updateTopMenu orgName: ' + orgName);
+//         if (orgName === undefined) {
+//           // rightNewGuideDialog();
+//         } else {
+//           $('#newGuide').remove();
+//           updatePositionsPanel();
+//         }
+//       } else {
+//         console.error('ERROR: updateTopMenu received empty response');
+//       }
+//     });
+// }
 
-      if (response && Object.entries(response).length > 0) {
-        const {orgName, comments} = response.data;  // eslint-disable-line no-unused-vars
-
-        // $('#orgLogo').attr("src", orgLogo);
-        $('#orgName').text(orgName);
-        $('#topComment').val(comments);
-        debugLog('updateTopMenu orgName: ' + orgName);
-        if (orgName === undefined) {
-          // rightNewGuideDialog();
-        } else {
-          $('#newGuide').remove();
-          updatePositionsPanel();
-        }
-      } else {
-        console.error('ERROR: updateTopMenu received empty response');
-      }
-    });
-}
 // The text they select, will need to be the full name that we send to the API, although they will have a chance to edit it before sending
 // eslint-disable-next-line no-unused-vars
 function openSuggestionPopUp (selection, pageURL, tabId) {
@@ -837,9 +845,8 @@ function orgChoiceDialog (orgList) {
     '  </table>' +
     '</div>';
 
-  $('#sideAreaStatus').remove();
+  setSideAreaStatus();
   $('#sideArea').append(markup);
-  alterjQuerySelectors($('.orgChoiceDialog'));
   $('.orgChoiceButton').each((i, but) => {
     $(but).click((event) => {
       const {id} = event.currentTarget;
@@ -865,32 +872,11 @@ function orgChoiceDialog (orgList) {
         if (id && id.length) {
           updateTopMenu();
           $('#orgChoiceDialog').remove();  // Remove this selection menu/dialog
-          $('#sideArea').append('<div id="sideAreaStatus">No Candidate endorsements have been captured.</div>');
+          setSideAreaStatus('No Candidate endorsements have been captured yet.');
         }
       });
     });
   });
-}
-
-// Most sites use jQuery in some way, sometimes extensively, this minimizes the effects of their css overriding ours
-function alterjQuerySelectors (dlg) {
-  let classlistbig = dlg.find('*[class^="ui-"]');
-  for (let i = 0; i < classlistbig.length; i++) {
-    let elem = classlistbig[i];
-    let cl = $(elem).attr('class');
-    let cl2 = cl.replace(/ui-/g, 'u2i-');
-    $(elem).attr('class', cl2);
-    // console.log(cl + ' ---------- ' + cl2);
-  }
-
-  let classlist = $('*[class^="ui-"]');
-  for(let i = 0; i < classlist.length; i++) {
-    let elem = classlist[i];
-    let cl = $(elem).attr('class');
-    let cl2 = cl.replace(/ui-/g, 'u2i-');
-    $(elem).attr('class', cl2);
-    // console.log(cl + ' ---------- ' + cl2);
-  }
 }
 
 function sortURLs (orgList) {
@@ -906,4 +892,12 @@ function sortURLs (orgList) {
   });
 
   return orgList;
+}
+
+function setSideAreaStatus(text) {
+  if (!text || text.length === 0) {
+    $('#sideAreaStatus').remove();
+  } else if ($('#sideAreaStatus').length === 0) {
+    $('#sideArea').append('<div id="sideAreaStatus">' + text + '</div>');
+  }
 }
