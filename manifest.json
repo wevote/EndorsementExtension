@@ -39,5 +39,5 @@
    "permissions": [ "tabs", "contextMenus", "notifications", "activeTab", "alarms", "downloads", "storage" ],
    "short_name": "We Vote Chrome Extension",
    "update_url": "https://clients2.google.com/service/update2/crx",
-   "version": "0.0.0.5"
+   "version": "0.0.0.6"
 }

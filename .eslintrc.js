@@ -66,7 +66,7 @@ module.exports = {
         "id-length": "off",
         "id-match": "error",
         "implicit-arrow-linebreak": "error",
-        "indent": ["error",2],
+        "indent": ["error", 2, { "SwitchCase": 1 }],
         "indent-legacy": "off",
         "init-declarations": "error",
         "jsx-quotes": "error",

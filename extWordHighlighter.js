@@ -26,8 +26,9 @@ let noContextMenu = ['_generated_background_page.html'];
 // let voterWeVoteId = '';
 // let voterEmail = '';
 let uniqueNames = [];
-let activeTabIdGlobal = undefined;
+let activeTabIdGlobal;
 let activeUrlGlobal = '';
+let aliasNames = [];
 
 const groupNames = {
   POSSIBILITY_SUPPORT: 'POSSIBILITY_SUPPORT',
@@ -40,12 +41,12 @@ const groupNames = {
   DEFAULT: 'DEFAULT'
 };
 
-
 $(() => {
   console.log('extWordHighlighter constructor');
 });
 
 function getWordsInGroup (groupName, highlightsList) {
+  // eslint-disable-next-line prefer-destructuring
   const display = groupName.split('_')[0];
   let stance = groupName.split('_')[1] ? groupName.split('_')[1] : '';
   if (stance === 'INFO') {
@@ -68,8 +69,41 @@ function getWordsInGroup (groupName, highlightsList) {
   return wordList;
 }
 
+// Unfortunately aliases all are sent by the server as DEFAULTS, fix the data here
+function promoteAliasesThatArriveAsDefault (highlightsList) {
+  aliasNames = [];
+  for (let i = 0; i < highlightsList.length; i++) {
+    let highlight = highlightsList[i];
+    const {display, we_vote_id: weVoteId, name} = highlight;
+    if (display === 'DEFAULT') {
+      let match = highlightsList.find(function (possibleAlias) {
+        return possibleAlias.we_vote_id === weVoteId;
+      });
+
+      const { display: displayMatch, stance: stanceMatch } = match;
+      if (displayMatch !== 'DEFAULT') {
+        console.log('For ' + name + ' overwriting to ' + displayMatch + ', ' + stanceMatch + ', from ', match);
+        highlight.display = displayMatch;
+        highlight.stance = stanceMatch;
+      }
+    }
+    let match = aliasNames.find((alias) => alias.candidateWeVoteId === weVoteId);
+    if (match === undefined) {
+      aliasNames.push({
+        candidateWeVoteId: weVoteId,
+        names: [name],
+      });
+    } else {
+      match.names.push(name);
+      console.log('ALIAS FOUND <<<<<<<<<<<< ' + name + ', ', match);
+    }
+  }
+}
+
 function initializeHighlightsData (highlightsList, neverHighLightOn) {
   // console.log("START START START initializeHighlightsData");
+  promoteAliasesThatArriveAsDefault(highlightsList);
+
   HighlightsData.Version = '12';
   HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOn);
   console.log('neverHighLightOn:', neverHighLightOn);
@@ -114,7 +148,6 @@ function preProcessNeverList (neverList) {
   return outList;
 }
 
-/* eslint-disable indent */
 function getColor (typeStance, foreground) {
   switch (typeStance) {
     case 'POSSIBILITY_SUPPORT':
@@ -136,7 +169,6 @@ function getColor (typeStance, foreground) {
       return foreground ? '#000' : '#ff6';
   }
 }
-/* eslint-enable indent */
 
 function createSearchMenu (){
   /* debugE&& */
@@ -157,8 +189,6 @@ function createSearchMenu (){
     }
   );
 }
-
-//let id = chrome.contextMenus.create({"title": "something", "id":"something", "contexts": ["selection"]});
 
 function updateContextMenu (inUrl){
   debugE&&console.log('updating context menu', inUrl);
@@ -186,11 +216,6 @@ function updateContextMenu (inUrl){
       let numItems = 0;
       for (let i = 0; i < contexts.length; i++) {
         let context = contexts[i];
-        /*let sortedarr = [];
-        for (group in filteredGroups) {
-            sortedarr.push(group)
-        }
-        sortedarr.sort();*/
         sortedByModified.forEach(function (group) {
           if (numItems === 10) {
             //create a parent menu
@@ -247,13 +272,13 @@ function processUniqueNames (uniqueNamesFromPage) {
 }
 
 // Clicked the browser bar icon
-chrome.browserAction.onClicked.addListener((tab) => {  //TODO: Needs to be tab specific, maybe it is?  Toggle works, but needs to do something
-  // Ignore if on a 'neverHighlightOn' page, but unfortunately this doesn't work well unless the Highlights data has already been received
+chrome.browserAction.onClicked.addListener((tab) => {
+  // Ignore if on a 'neverHighlightOn' page
   if (HighlightsData.neverHighlightOn === undefined) {
-    HighlightsData.neverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org','localhost'];
+    HighlightsData.neverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org', 'localhost'];
   }
-  for(let neverShowOn in HighlightsData.neverHighlightOn){
-    if (tab.url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))){
+  for (let neverShowOn in HighlightsData.neverHighlightOn) {
+    if (tab.url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
       showHighlightsCount('x', 'red', tab.id);
       setTimeout(function () {
         showHighlightsCount('', 'white', tab.id);
@@ -264,14 +289,33 @@ chrome.browserAction.onClicked.addListener((tab) => {  //TODO: Needs to be tab s
 
   highlighterEnabled = !highlighterEnabled;
   console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
-  chrome.tabs.sendMessage(tab.id, {
-    command: 'openWeMenus',
-    enabled: highlighterEnabled
-  }, function (result) {
-    debugE&&console.log('on click icon, response received to openWeMenus ', result);
+
+  // Here we are telling all tabs to enable/disable highlighting, and telling them all to open/close the 3 pane display
+  // it would be possible to fall back to only having the currently displayed tab, shoe the 3 pane display, and the others
+  // would only show the highlights
+  chrome.tabs.getAllInWindow(null, function (tabs) {
+    for (let i = 0; i < tabs.length; i++) {
+      const { id: tabId, url } = tabs[i];
+
+      let skip = false;  // Skip those tabs whose URLs are on the neverHighlightOn list
+      for(let neverShowOn in HighlightsData.neverHighlightOn){
+        if (url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
+          skip = true;
+          break;
+        }
+      }
+      if (!skip) {
+        chrome.tabs.sendMessage(tabId, {
+          command: 'openWeMenus',
+          enabled: highlighterEnabled,
+          tabId: tabId,
+        }, function (result) {
+          debugE && console.log('on click icon, response received to openWeMenus ', result);
+        });
+      }
+    }
   });
 });
-
 
 chrome.tabs.onActivated.addListener(function (tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {

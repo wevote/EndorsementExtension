@@ -74,7 +74,7 @@ $(() => {
             reHighlight(request.words);
             return false;
           } else if (request.command === 'createEndorsement') {
-            openSuggestionPopUp(request.selection, request.pageURL, request.tabId);
+            openSuggestionPopUp(request.selection);
             return false;
           } else if (request.command === 'revealRight') {
             revealRightAction(request.selection, request.pageURL, request.tabId);
@@ -156,7 +156,7 @@ function getVoterDeviceIdFromWeVoteDomainPage () {
 
 // this is just inline, so it gets executed on startup
 chrome.runtime.sendMessage({command: 'getStatus'}, function (response) {
-  let lastError = chrome.runtime.lastError;
+  let { lastError } = chrome.runtime;
   if (lastError) {
     console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
     return;
@@ -172,13 +172,13 @@ chrome.runtime.sendMessage({command: 'getStatus'}, function (response) {
 });
 
 function getWordsThenStartHighlighting () {
-  console.log('Called getWordsThenStartHighlighting()');
+  debug && console.log('Called getWordsThenStartHighlighting()');
   chrome.runtime.sendMessage({
     command: 'getWords',
     url: location.href.replace(location.protocol + '//', ''),
     id: getVoterDeviceIdFromWeVoteDomainPage()  // is this nonsense?
   }, function (response) {
-    console.log('Received response in getWordsThenStartHighlighting');
+    debug && console.log('Received response in getWordsThenStartHighlighting');
 
     let lastError = chrome.runtime.lastError;
     if (lastError) {
@@ -278,33 +278,33 @@ function getSearchParameter (n) {
 //             "-webkit-print-color-adjust: exact; background-color: rgb(124, 123, 124); " +
 //             "color: rgb(255, 255, 255); font-style: inherit;">Kate Gallego</em>
 // </td>
-function removeAllHighlights () {
-  // For some reason when we get here, the dom for the iframe is inaccessible, even though it should be in the same
-  // domain.
-  // 9/26/19:  Will go with a iframe reload for now
-
-  // let bod = $('body');
-  // let ems = $(bod).children().find('em.Highlight');
-  var arr = document.getElementsByTagName("EM");
-  var fd = document.getElementById("frameDiv");
-  let f0 = $('iframe')[0];
-  let f0b = $(f0).find(':button');
-  let f0e = $(f0).find('em');
-
-  let b2 = $('body').find('em');
-  let b3 = $('body').find('em.Highlight');
-  let b4 = $('body em');
-  let b5 = $('body em.Highlight');
-  let buttons = $('body').find(':button');
-  console.log($('#weContainer').html());
-
-  $('em.Highlight').each((em) => {
-    let text = $(em).text();
-    console.log('removeAll: ' + i + ', ' + text);
-    $(em).replace(text);
-  });
-  // ems.replaceWith(ems.innerText);
-}
+// function removeAllHighlights () {
+//   // For some reason when we get here, the dom for the iframe is inaccessible, even though it should be in the same
+//   // domain.
+//   // 9/26/19:  Will go with a iframe reload for now
+//
+//   // let bod = $('body');
+//   // let ems = $(bod).children().find('em.Highlight');
+//   var arr = document.getElementsByTagName('EM');
+//   var fd = document.getElementById('frameDiv');
+//   let f0 = $('iframe')[0];
+//   let f0b = $(f0).find(':button');
+//   let f0e = $(f0).find('em');
+//
+//   let b2 = $('body').find('em');
+//   let b3 = $('body').find('em.Highlight');
+//   let b4 = $('body em');
+//   let b5 = $('body em.Highlight');
+//   let buttons = $('body').find(':button');
+//   console.log($('#weContainer').html());
+//
+//   $('em.Highlight').each((em) => {
+//     let text = $(em).text();
+//     console.log('removeAll: ' + i + ', ' + text);
+//     $(em).replace(text);
+//   });
+//   // ems.replaceWith(ems.innerText);
+// }
 
 
 function findWords () {
@@ -312,7 +312,7 @@ function findWords () {
     Highlight=false;
 
     setTimeout(function () {
-      /*debug&&*/console.log('finding words',window.location);
+      debug && console.log('finding words',window.location);
 
       ReadyToFindWords=false;
 
@@ -342,11 +342,23 @@ function findWords () {
           command: 'showHighlightsCount',
           label: highlights.numberOfHighlights.toString(),
           uniqueNames: uniqueNameMatches,
-          altColor: '',
+          altColor: uniqueNameMatches.length ? '' : 'darkgreen',
         }, function (response) {
           let lastError = chrome.runtime.lastError;
           if (lastError) {
             console.warn(' chrome.runtime.sendMessage("showHighlightsCount")',lastError.message);
+          }
+        });
+      } else {
+        chrome.runtime.sendMessage({
+          command: 'showHighlightsCount',
+          label: '0',
+          uniqueNames: [],
+          altColor: 'darkgreen',
+        }, function (response) {
+          let lastError = chrome.runtime.lastError;
+          if (lastError) {
+            console.warn(' chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
           }
         });
       }
@@ -355,9 +367,9 @@ function findWords () {
       //}, HighligthCooldown);
     }, HighlightWarmup);
   }
-  // This next log line floods the log, and slow things down
-  // debug&&console.log('finished finding words');
 
+  // This next log line floods the log, and slow things down -- use sparingly while debugging
+  // debug&&console.log('finished finding words');
 }
 
 function revealRightAction (selection, pageURL, tabId) {
@@ -370,7 +382,6 @@ function revealRightAction (selection, pageURL, tabId) {
     });
   }
 }
-
 
 function globStringToRegex (str) {
   return preg_quote(str).replace(/\\\*/g, '\\S*').replace(/\\\?/g, '.');
