@@ -445,7 +445,7 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
            supportButton(i, 'info', candidate.stance) +
     '    </span>' +
     "    <textarea rows='6' class='statementText-" + i + " removeContentStyles' />" +
-    '    <br><span class="core-text">If a more detailed endorsement exists, enter its URL here:</span>' +
+    '    <br><span class="core-text">If dedicated candidate page exists, enter URL here:</span>' +
     "    <input type='text' class='moreInfoURL-" + i + " weInfoText removeContentStyles' />" +
     "    <span class='buttons'>";
   if (!detachedDialog) {
@@ -453,7 +453,7 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
   }
   markup += "   <button type='button' class='openInAdminApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Admin App</button>";
   if (candidate.party !== undefined) {
-    markup += " <button type='button' class='openInWebApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Web App</button>";
+    markup += " <button type='button' class='openInWebApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>WeVote.US</button>";
   }
   markup += "   <button type='button' class='saveButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Save</button>" +
     '    </span>' +
@@ -627,11 +627,10 @@ function addHandlersForCandidatePaneButtons (targetDiv, number, detachedDialog) 
     } else if (className.startsWith('openInAdminApp-')) {
       $(but).click((event) => {
         event.stopPropagation();
-        const googleCivicElectionId = $('#googleCivicElectionId-' + number).val();
         let candidateName = $('#candidateName-' + number).val();
         candidateName = encodeURIComponent(candidateName);
-        let URL = 'https://api.wevoteusa.org/c/?google_civic_election_id=' + googleCivicElectionId +
-          '&hide_candidate_tools=0&page=0&state_code=&candidate_search=' + candidateName + '&show_all_elections=False';
+        let URL = 'https://api.wevoteusa.org/c/?show_all_elections=1&hide_candidate_tools=0&page=0&state_code=' +
+          '&candidate_search=' + candidateName + '&show_all_elections=False';
         window.open(URL, '_blank');
 
       });

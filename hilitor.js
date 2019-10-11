@@ -10,18 +10,18 @@
 //  - stop at the id noDisplayPageBeforeFraming (the original dom, that becomes dormant and invisible, with a fresh copy in the new iframe)
 
 
-function Hilitor(id, tag) {
+function Hilitor (id, tag) {
 
   var targetNode = document.body;
-  var hiliteTag = tag || "EM";
-  var hiliteClassname = "Highlight";
-  var skipTags = new RegExp("^(?:SCRIPT|HEAD|NOSCRIPT|STYLE|TEXTAREA)$");
-  var skipClasses = new RegExp("(ui-datepicker)",'gi');
-  var colors = ["#ff6", "#a0ffff", "#9f9", "#f99", "#f6f"];
+  var hiliteTag = tag || 'EM';
+  var hiliteClassname = 'Highlight';
+  var skipTags = new RegExp('^(?:SCRIPT|HEAD|NOSCRIPT|STYLE|TEXTAREA)$');
+  var skipClasses = new RegExp('(ui-datepicker)','gi');
+  var colors = ['#ff6', '#a0ffff', '#9f9', '#f99', '#f6f'];
   var wordColor = [];
   var colorIdx = 0;
-  var matchRegex = "";
-  var matchRegexEditable = "";
+  var matchRegex = '';
+  var matchRegexEditable = '';
   var openLeft = false;
   var openRight = false;
   var numberOfHighlights = 0; //added
@@ -32,15 +32,15 @@ function Hilitor(id, tag) {
 
   this.setMatchType = function (type) {
     switch (type) {
-      case "left":
+      case 'left':
         this.openLeft = false;
         this.openRight = true;
         break;
-      case "right":
+      case 'right':
         this.openLeft = true;
         this.openRight = false;
         break;
-      case "open":
+      case 'open':
         this.openLeft = this.openRight = true;
         break;
       default:
@@ -49,10 +49,10 @@ function Hilitor(id, tag) {
   };
 
   this.setRegex = function (input) {
-    var words = "";
-    var wordparts = "";
-    var wordsEditable = "";
-    var wordpartsEditable = "";
+    var words = '';
+    var wordparts = '';
+    var wordsEditable = '';
+    var wordpartsEditable = '';
     var wordsList = [];
     var wordpartsList = [];
 
@@ -66,10 +66,10 @@ function Hilitor(id, tag) {
     debugH && console.log('duped sortedKeys.length ' + sortedKeys.length);
 
     let names = [];
-    for (i = 0; i < sortedKeys.length; i++) {
+    for (let i = 0; i < sortedKeys.length; i++) {
       const name = sortedKeys[i].word;
       if (name === 'tamara sawyer' || name === 'tami sawyer') {
-        debugH && console.log("hilitor  " + i + ": " + sortedKeys[i].word);
+        debugH && console.log('hilitor  ' + i + ': ' + sortedKeys[i].word);
       }
       if (names.includes(name)) {
         debugH && console.log('Skipping duplicate hilitor name ' + name + ', insert = ' + i);
@@ -83,63 +83,63 @@ function Hilitor(id, tag) {
 
     // --------------------------
 
-    input.map(function(x){return x.word})
+    input.map(function (x){return x.word});
 
-    for (word in sortedKeys) {
+    for (let word in sortedKeys) {
       if (sortedKeys[word].FindWords) {
-        words += sortedKeys[word].regex + "|";
+        words += sortedKeys[word].regex + '|';
         if (sortedKeys[word].ShowInEditableFields) {
-          wordsEditable += sortedKeys[word].regex + "|";
+          wordsEditable += sortedKeys[word].regex + '|';
         }
       }
       else {
-        wordparts += sortedKeys[word].regex + "|";
+        wordparts += sortedKeys[word].regex + '|';
         if (sortedKeys[word].ShowInEditableFields) {
-          wordpartsEditable += sortedKeys[word].regex + "|";
+          wordpartsEditable += sortedKeys[word].regex + '|';
         }
       }
 
     }
     //regex for all words
-    var re = "";
+    var re = '';
     if (words.length > 1) {
       words = words.substring(0, words.length - 1);
-      re += "(" + words + ")";
+      re += '(' + words + ')';
       if (!this.openLeft && !this.openRight) {
-        re = "\\b" + re + "\\b" + "|\\s" + re + "\\s";
+        re = '\\b' + re + '\\b' + '|\\s' + re + '\\s';
       }
 
     }
     if (wordparts.length > 1 && words.length > 1) {
-      re += "|";
+      re += '|';
     }
     if (wordparts.length > 1) {
       wordparts = wordparts.substring(0, wordparts.length - 1);
-      re += "(" + wordparts + ")";
+      re += '(' + wordparts + ')';
     }
-    matchRegex = new RegExp(re, "i");
+    matchRegex = new RegExp(re, 'i');
 
     debugH && console.log(matchRegex);
 
     //ContentEditable regex
-    var re = "";
+    var re = '';
     if (wordsEditable.length > 1) {
       wordsEditable = wordsEditable.substring(0, wordsEditable.length - 1);
-      re += "(" + wordsEditable + ")";
+      re += '(' + wordsEditable + ')';
       if (!this.openLeft && !this.openRight) {
-        re = "\\b" + re + "\\b" + "|\\s" + re + "\\s";
+        re = '\\b' + re + '\\b' + '|\\s' + re + '\\s';
       }
     }
 
     if (wordpartsEditable.length > 1 && wordsEditable.length > 1) {
-      re += "|";
+      re += '|';
     }
 
     if (wordpartsEditable.length > 1) {
       wordpartsEditable = wordpartsEditable.substring(0, wordpartsEditable.length - 1);
-      re += "(" + wordpartsEditable + ")";
+      re += '(' + wordpartsEditable + ')';
     }
-    matchRegexEditable = new RegExp(re, "i");
+    matchRegexEditable = new RegExp(re, 'i');
     debugH && console.log('matchRegexEditable', matchRegexEditable);
   };
 
@@ -148,7 +148,7 @@ function Hilitor(id, tag) {
   // recursively apply word highlighting
   this.hiliteWords = function (node, printHighlights, inContentEditable) {
 
-    if (node == undefined || !node) {return;}
+    if (node == undefined || !node) {return;}1
     if (!matchRegex) {return;}
 
     // Begin modification for WeVote
@@ -179,14 +179,14 @@ function Hilitor(id, tag) {
         }
       }
       if (regs) {
-        var wordfound = "";
+        var wordfound = '';
 
         //find back the word
         for (word in wordColor) {
-          var pattern = new RegExp(wordColor[word].regex, "i");
+          var pattern = new RegExp(wordColor[word].regex, 'i');
           if (pattern.test(regs[0]) && word.length > wordfound.length) {
             wordfound = word;
-            debugH && console.log("hilitor word found: " + word)
+            debugH && console.log('hilitor word found: ' + word)
             break;
           }
         }
@@ -201,10 +201,10 @@ function Hilitor(id, tag) {
             match.className = hiliteClassname;
             match.appendChild(document.createTextNode(regs[0]));
             if (printHighlights) {
-              match.style = "padding: 1px;box-shadow: 1px 1px #e5e5e5;border-radius: 3px;-webkit-print-color-adjust:exact;";
+              match.style = 'padding: 1px;box-shadow: 1px 1px #e5e5e5;border-radius: 3px;-webkit-print-color-adjust:exact;';
             }
             else {
-              match.style = "padding: 1px;box-shadow: 1px 1px #e5e5e5;border-radius: 3px;";
+              match.style = 'padding: 1px;box-shadow: 1px 1px #e5e5e5;border-radius: 3px;';
             }
 
             if (wordColor[wordfound].Color) {
@@ -214,7 +214,7 @@ function Hilitor(id, tag) {
               match.style.color = wordColor[wordfound].Fcolor;
             }
 
-            match.style.fontStyle = "inherit";
+            match.style.fontStyle = 'inherit';
 
             if (!inContentEditable || (inContentEditable && wordColor[wordfound].ShowInEditableFields)) {
               var after = node.splitText(regs.index);
@@ -225,15 +225,15 @@ function Hilitor(id, tag) {
           }
 
           var nodeAttributes = this.findNodeAttributes(node.parentElement, {
-            "offset": 0,
-            "isInHidden": false
+            'offset': 0,
+            'isInHidden': false
           });
 
           highlightMarkers[numberOfHighlights] = {
-            "word": wordColor[wordfound].word,
-            "offset": nodeAttributes.offset,
-            "hidden": nodeAttributes.isInHidden,
-            "color": wordColor[wordfound].Color
+            'word': wordColor[wordfound].word,
+            'offset': nodeAttributes.offset,
+            'hidden': nodeAttributes.isInHidden,
+            'color': wordColor[wordfound].Color
           };
 
           numberOfHighlights += 1;
@@ -247,7 +247,7 @@ function Hilitor(id, tag) {
   this.findNodeAttributes = function (inNode, attributes) {
 
     attributes.offset += inNode.offsetTop;
-    if (inNode.hidden || inNode.getAttribute("aria-hidden")) {
+    if (inNode.hidden || inNode.getAttribute('aria-hidden')) {
       attributes.isInHidden = true;
     }
     if (inNode.offsetParent) {

@@ -377,5 +377,5 @@
 [class^="openInAdminApp"], [class^="saveButton"], [class^="openInWebApp"], [class^="revealLeft"] {
   margin: 1px 2px 1px 1px;
   width: fit-content;
-  font-size: 16px !important;
+  font-size: 15px !important;
 }
