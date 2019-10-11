@@ -319,7 +319,7 @@ chrome.browserAction.onClicked.addListener((tab) => {
 
 chrome.tabs.onActivated.addListener(function (tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    console.log('XXXXXX set GLOBALS in tabs onactivated', tabid, tabs);
+    debugE && console.log('XXXXXX set GLOBALS in tabs onactivated', tabid, tabs);
     // Sept 25, 2019: Todo this assumes that the first tab, when you turn it on, is the one that gets the menu!
     activeTabIdGlobal = tabs[0].id;
     activeUrlGlobal = tabs[0].url;
