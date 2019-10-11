@@ -95,7 +95,7 @@ function promoteAliasesThatArriveAsDefault (highlightsList) {
       });
     } else {
       match.names.push(name);
-      console.log('ALIAS FOUND <<<<<<<<<<<< ' + name + ', ', match);
+      debugE && console.log('ALIAS FOUND <<<<<<<<<<<< ' + name + ', ', match);
     }
   }
 }
@@ -126,7 +126,7 @@ function initializeHighlightsData (highlightsList, neverHighLightOn) {
       'Type': 'local',
       'Modified': Date.now()
     };
-    debugE&&console.log('groupName: ' + groupName + ', group: ' + group);
+    debugE && console.log('groupName: ' + groupName + ', group: ' + group);
     HighlightsData.Groups.push(groupName, group);
   }
   localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
@@ -319,7 +319,7 @@ chrome.browserAction.onClicked.addListener((tab) => {
 
 chrome.tabs.onActivated.addListener(function (tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    console.log('XXXXXX set GLOBALS in tabs onactivated', tabid, tabs);
+    debugE && console.log('XXXXXX set GLOBALS in tabs onactivated', tabid, tabs);
     // Sept 25, 2019: Todo this assumes that the first tab, when you turn it on, is the one that gets the menu!
     activeTabIdGlobal = tabs[0].id;
     activeUrlGlobal = tabs[0].url;
@@ -426,8 +426,7 @@ chrome.commands.onCommand.addListener(function (command) {
 
 chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {    // eslint-disable-line complexity
-    /*debugE &&*/
-    console.log('XXXXXX message received', request, sender, sender.tab.id);
+    debugE && console.log('XXXXXX message received', request, sender, sender.tab.id);
     //request=JSON.parse(evt.data);
     if (request.command === 'getTopMenuData') {
       getOrganizationFound(request.url, sendResponse);
@@ -436,7 +435,7 @@ chrome.runtime.onMessage.addListener(
     } else if (request.command==='getPositions') {
       getPossiblePositions(request.possibilityId, sendResponse);
     } else if (request.command==='savePosition') {
-      console.log('XXXXXX voterGuidePossibilityPositionSave message received', request, sender, sender.tab.id);
+      debugE && console.log('XXXXXX voterGuidePossibilityPositionSave message received', request, sender, sender.tab.id);
       voterGuidePossibilityPositionSave(
         request.itemName,
         request.voterGuidePossibilityId,

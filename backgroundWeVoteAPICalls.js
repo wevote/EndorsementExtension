@@ -37,7 +37,7 @@ function getOrganizationFound (locationHref, sendResponse) {
   const apiURL = `${rootApiURL}/voterGuidePossibilityRetrieve/?voter_device_id=${localStorage['voterDeviceId']}&url_to_scan=${hrefEncoded}`;
   console.log('voterGuidePossibilityRetrieve apiURL: ' + apiURL);
   $.getJSON(apiURL, '', (res) => {
-    console.log('voterGuidePossibilityRetrieve API results', res);
+    debug && console.log('voterGuidePossibilityRetrieve API results', res);
     let {voter_guide_possibility_edit: voterGuidePossibilityEdit, possibilityUrl, voter_guide_possibility_id: possibilityId, organization,
       possible_owner_of_website_organizations_list: noExactMatchOrgList} = res;
     if (voterGuidePossibilityEdit) {
@@ -47,7 +47,7 @@ function getOrganizationFound (locationHref, sendResponse) {
         we_vote_hosted_profile_image_url_medium: orgLogo,
       } = organization;
 
-      debug&&console.log('voter_guide_possibility_id:', possibilityId);
+      debug && console.log('voter_guide_possibility_id:', possibilityId);
 
       data = {
         email,
@@ -114,9 +114,9 @@ function getPossiblePositions (possibilityId, sendResponse) {
   let voterDeviceId = localStorage['voterDeviceId'];
   if (voterDeviceId && voterDeviceId.length > 0) {
     const apiURL = `${rootApiURL}/voterGuidePossibilityPositionsRetrieve/?voter_device_id=${voterDeviceId}&voter_guide_possibility_id=${possibilityId}`;
-    debug&&console.log('getPossiblePositions: ' + apiURL);
+    debug && console.log('getPossiblePositions: ' + apiURL);
     $.getJSON(apiURL, '', (res) => {
-      console.log('get json from getPossiblePositions API SUCCESS', res);
+      debug && console.log('get json from getPossiblePositions API SUCCESS', res);
 
       const {possible_position_list: possiblePositions} = res;
 
