@@ -1,13 +1,19 @@
 [hidden] {
   display: none!important
 }
+.core-text {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  width: 100%;
+  font-weight: 400;
+  color: black;
+  line-height: 14px;
+}
 
-.advisory {
-  font-family: Helvetica;
-  font-size:12px;
-  font-stretch:100%;
-  font-style:normal;
-  font-weight: 300;
+.aliases {
+  font-size: 10px;
+  padding-bottom: 7px;
 }
 
 .removeContentStyles {
@@ -41,10 +47,10 @@
   height: 60px;
 }
 
-.candidate {
+.candidateWe {
   background-color: white;
   border-bottom: 1px solid grey;
-  margin-bottom: 1rem;
+  padding: 4px 0 10px 0;
 }
 
 .photo {
@@ -69,8 +75,20 @@
   line-height: 15.4px;
   margin-top: 0;
   margin-left: 2px;
-  padding: 0 0 0 54px;
+  padding: 0 0 0 4px;
 }
+
+.notInPane {
+  padding-left: 10px;
+}
+
+.warningIcon {
+  height: 22px;
+  width: 22px;
+  transform: translate(4px);
+  filter: invert(12%) sepia(85%) saturate(7424%) hue-rotate(0deg) brightness(107%) contrast(112%);  /* red */
+}
+
 .candidateParty {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 12px;
@@ -95,7 +113,7 @@
 
 .furlable {
   display: inline-block;
-  margin: 5px;
+  margin: 8px 5px 5px 5px;
   width: 100%
 }
 
@@ -121,11 +139,6 @@
   overflow: hidden;
 }
 
-[class^="statementText"], [class^="moreInfoURL"] {
-  width: 95%;
-  margin: 5px 0 5px 0;
-}
-
 .bottomTd {
   padding-bottom: 6px;
   border-bottom: 1px solid grey;
@@ -144,7 +157,8 @@
   line-height: 15.4px;
   color: black;
   background-color: white;
-  border: 1px solid rgba(46, 60, 93, 0.5);;
+  padding: 1px 3px;
+  border: 1px solid rgba(46, 60, 93, 0.5);
   border-radius: 4px;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   box-shadow: 0 1px 2px 0 rgba(0,0,0,0.2);
@@ -156,7 +170,6 @@
   position: relative;
   left: 2px;
   top: -2px;
-  width: 100px;
 }
 
 .selectedOpposed {
@@ -165,7 +178,6 @@
   position: relative;
   left: 2px;
   top: -2px;
-  width: 100px;
 }
 
 .selectedInfo {
@@ -174,7 +186,6 @@
   position: relative;
   left: 2px;
   top: -2px;
-  width: 100px;
 }
 
 .deselected {
@@ -183,7 +194,11 @@
   position: relative;
   left: 2px;
   top: -2px;
-  width: 100px;
+}
+
+[class^="endorseButton"], [class^="opposeButton"], [class^="infoButton"] {
+  padding-right: 5px;
+  width: unset;
 }
 
 .supportButtonSVG {
@@ -202,10 +217,6 @@
   display: block;
   text-align: center;
   font-size: 12px !important;
-}
-
-.bottomButton {
-  width: 95%;
 }
 
 .signInButton {
@@ -229,7 +240,7 @@
 
 #weFlexBox {
   display: flex;
-  margin: auto -1rem 1rem;
+  margin: auto 0 0;
 }
 
 #sideArea {
@@ -245,7 +256,7 @@
 
 #frameDiv {
   border: 2px solid black;
-  margin-left: 20px;
+  margin-left: 10px;
   position: relative;
   overflow: hidden;
   height: 100vh;
@@ -264,17 +275,25 @@
 #topMenu {
   display: flex;
   justify-content: left;
+  margin: 2px 10px 2px 4px;
+}
+
+#topMenuDiv {
+  margin-left: 10px;
+  margin-bottom: 4px;
+  align-content: center;
+  width: 20%;
 }
 
 #orgLogo {
-  height: 26px;
-  margin: 0 0 5px 5px;
+  height: 48px;
+  margin: 5px 60px 5px 0;
   vertical-align: middle
 }
 
-#email {
+#emailWe {
   height: 20px;
-  margin: 44px 0 0 40px;
+  margin: 46px 0 10px 50px;
   padding: unset;
   border-color: rgb(206,212,218);
   border-width: 1px;
@@ -282,13 +301,18 @@
   width: 10%;
 }
 
+#topMenu input{
+  padding: 0;
+  margin: 40px 0 10px 10px;
+}
+
 #topComment {
   height: 20px;
-  margin: 44px 0 0 10px;
+  margin: 46px 0 10px 10px;
   border-color: rgb(206,212,218);
   border-width: 1px;
   border-radius: 4px;
-  width: 50%;
+  width: 80%;
 }
 
 #newGuide {
@@ -337,4 +361,21 @@
   font-variant: normal;
   font-weight: 600;
   color: black;
+}
+
+.createDlgTitle {
+  margin-left: 6px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  height: auto;
+}
+
+.bottomButton {
+  width: 95%;
+}
+
+[class^="openInAdminApp"], [class^="saveButton"], [class^="openInWebApp"], [class^="revealLeft"] {
+  margin: 1px 2px 1px 1px;
+  width: fit-content;
+  font-size: 16px !important;
 }

@@ -1,10 +1,15 @@
 const { $, chrome: { runtime } } = window;
-let voterGuidePossibilityIdGlobal = '';
-let organizationWeVoteIdGlobal = '';
-let unfurledCandidateNameGlobal = '';
-let noExactMatchOrgListGlobal = [];
-let voterWeVoteIdGlobal = '';
 const defaultImage = 'https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png';
+// TODO:             'https://wevote.us/img/endorsement-extension/endorsement-icon48.png'
+let state = {
+  voterGuidePossibilityId: '',
+  organizationWeVoteId: '',
+  candidateName: '',
+  allNames: '',
+  possibleOrgsList: [],
+  positionsCount: 0,
+  voterWeVoteId: '',
+};
 
 /**
  * Display (or remove) the we vote extension UI
@@ -31,9 +36,9 @@ function buildUI () {
   console.log('Building WeVote UI --------------------------------');
   let hr = window.location.href;
   let bod = $('body');
-  $(bod).children().wrapAll("<div id='weTrash' >").hide();  // if you remove it, other js goes nuts
-  $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before weTrash
-  $('#weTrash').insertAfter('#weContainer');
+  $(bod).children().wrapAll("<div id='noDisplayPageBeforeFraming' >").hide();  // if you remove it, other js goes nuts
+  $(bod).children().wrapAll("<div id='weContainer' >");  // Ends up before noDisplayPageBeforeFraming
+  $('#noDisplayPageBeforeFraming').insertAfter('#weContainer');
 
   let weContainer = $('#weContainer');
   $(weContainer).append('' +
@@ -43,22 +48,20 @@ function buildUI () {
   let weFlexBox = $('#weFlexBox');
   $(weFlexBox).append('<div id="frameDiv"><iframe id="frame" width="100%" height="100%"></iframe></div>');
   $(weFlexBox).append('<div id="sideArea"></div>');
-
   $('#frame').attr('src', hr);
-
   topMenu();
   updateTopMenu();
-  signIn(false);
-  initializeOrgChoiceList();
+  signIn(false);                       // Calls updatePositionsPanel
+  initializeOrgChoiceList();           //  Does not display org choice list if not logged in, or have chosen an org
   greyAllPositionPanes(false);
 }
 
-function initializeOrgChoiceList() {
+function initializeOrgChoiceList () {
   setTimeout(() => {
-    if (voterWeVoteIdGlobal.length) {
-      if (noExactMatchOrgListGlobal.length) {
-        orgChoiceDialog(noExactMatchOrgListGlobal)
-      } else {
+    if (state.voterWeVoteId.length) {
+      if (state.possibleOrgsList.length) {
+        orgChoiceDialog(state.possibleOrgsList)
+      } else if (state.positionsCount === 0) {
         setSideAreaStatus('No Candidate endorsements have been captured yet.');
       }
     } else {
@@ -103,21 +106,23 @@ function signIn (showDialog) {
         console.warn(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
       const { success, error, err, voterName, photoURL, weVoteId, voterEmail } = response.data;
-      voterWeVoteIdGlobal = weVoteId || '';
+      state.voterWeVoteId = weVoteId || '';
       debugLog('signIn response: ', response);
       let voterInfo = {
         success: success,
         error: error,
         err: err,
         name: voterName,
-        photo: photoURL,
+        photo: (!photoURL || photoURL.length < 10) ? 'https://wevote.us/img/global/icons/avatar-generic.png' : photoURL,
+        // TODO:                                             'https://wevote.us/img/endorsement-extension/avatar-generic-icon.png'
         voterId: weVoteId,
         email: voterEmail
       };
+      // Unfortunately /avatar-generic.png can't be "served" from the page, since file loading is relative to the endorsement page
 
       if (voterInfo.success) {
         $('#signIn').replaceWith(
-          "<img id='signOut' class='voterPhoto removeContentStyles' alt='candidate' width='35' height='35' src='" + voterInfo.photo + "' style='margin: 12px;'  />");
+          "<img id='signOut' class='voterPhoto removeContentStyles' alt='candidateWe' width='35' height='35' src='" + voterInfo.photo + "' style='margin: 12px;'  />");
         updatePositionsPanel();
         document.getElementById('signOut').addEventListener('click', function () {
           debugLog('Sign Out pressed');
@@ -155,11 +160,12 @@ function signOut () {
 
 function topMenu () {
   let topMarkup = '' +
-    "<div style='margin-left:12px; margin-bottom:4px; align-content: center; width: 10%'>" +
+    "<div id='topMenuDiv'>" +
     "  <img id='orgLogo' src='https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png' alt=''>" +
+    // TODO:                 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png'
     "  <b><span id='orgName'></span></b>" +
     '</div>' +
-    "<input type='text' id='email' name='email' placeholder='Email' >" +
+    "<input type='text' id='emailWe' name='email' placeholder='Email' >" +
     "<input type='text' id='topComment' name='topComment' placeholder='Comment here... (for unauthenticated suggestions)' >" +
     "<div style='width: 100%; float: right'>" +
     "  <button type='button' id='signIn' class='signInButton weButton removeContentStyles'>SIGN IN</button>" +
@@ -235,15 +241,15 @@ function updateTopMenu () {
       debugLog('updateTopMenu() response', response);
 
       if (response && Object.entries(response).length > 0) {
-        const { orgName, orgLogo, possibilityId, noExactMatchOrgList } = response.data;  // eslint-disable-line no-unused-vars
+        const { orgName, orgLogo, possibilityId, noExactMatchOrgList } = response.data;
 
         $('#orgLogo').attr('src', orgLogo);
         $('#orgName').text(orgName ? orgName : 'Organization not found for this URL');
-        $('#email').css('background', 'lightgrey').attr('disabled', true);      // The purpose of this field is to allow cloudsourced comments from un-authenticated, and untrusted public voters
+        $('#emailWe').css('background', 'lightgrey').attr('disabled', true);    // The purpose of this field is to allow cloud sourced comments from un-authenticated, and untrusted public voters
         $('#topComment').css('background', 'lightgrey').attr('disabled', true); // Also for cloudsourced comments from un-authenticated, and untrusted public voters
-        voterGuidePossibilityIdGlobal = possibilityId;
-        noExactMatchOrgListGlobal = noExactMatchOrgList;
-        debugLog('updateTopMenu voterGuidePossibilityIdGlobal: ' + voterGuidePossibilityIdGlobal);
+        state.voterGuidePossibilityId = possibilityId;
+        state.possibleOrgsList = noExactMatchOrgList;
+        debugLog('updateTopMenu voterGuidePossibilityId: ' + state.voterGuidePossibilityId);
         if (orgName === undefined) {
           // rightNewGuideDialog();
         }
@@ -257,43 +263,47 @@ function updateTopMenu () {
 function updatePositionsPanel () {
   debugLog('updatePositionsPanel() getPositions');
   const { chrome: { runtime: { sendMessage } } } = window;
-  sendMessage({ command: 'getPositions', url: window.location.href, possibilityId: voterGuidePossibilityIdGlobal },
+  sendMessage({ command: 'getPositions', url: window.location.href, possibilityId: state.voterGuidePossibilityId },
     function (response) {
       let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getPositions")', lastError.message);
       }
       debugLog('updatePositionsPanel() response', response);
-      $('.candidate').remove();   // Remove all the existing candidates, and then redraw them
+      $('.candidateWe').remove();   // Remove all the existing candidates, and then redraw them
       let names = [];
+      let positions = [];
       if ((response && Object.entries(response).length > 0) && (response.data !== undefined) && (response.data.length > 0)) {
         let {data} = response;
-        let l = data.length;
+        state.positionsCount = data.length;
         let selector = $('#sideArea');
-        if (l > 0) {
+        if (state.positionsCount > 0) {
           setSideAreaStatus();
           let insert = 0;
-          for (let i = 0; i < l; i++) {
+          let allHtml = $('#noDisplayPageBeforeFraming').html();
+          for (let i = 0; i < state.positionsCount; i++) {
             debugLog('updatePositionsPanel data: ', data[i]);
             // be sure not to use position_stance_stored, statement_text_stored, or more_info_url_stored -- we want the possibilities, not the live data
-            let { ballot_item_name: name, position_stance: stance, statement_text: comment, more_info_url: url,
+            let { ballot_item_name: name, candidate_alternate_names: alternateNames, position_stance: stance, statement_text: comment, more_info_url: url,
               political_party: party, office_name: officeName, ballot_item_image_url_https_large: imageURL, candidate_we_vote_id: candidateWeVoteId,
               google_civic_election_id: googleCivicElectionId, office_we_vote_id: officeWeVoteId, organization_we_vote_id: organizationWeVoteId,
               possibility_position_id: possibilityPositionId, possibility_position_number: possibilityPositionNumber, organization_name: organizationName,
               voter_guide_possibility_id: voterGuidePossibilityId
             } = data[i];
 
-            if (names.includes(name)) {
-              console.log('Skipping duplicate name ' + name + ", insert = " + insert);
+            if (names.includes(name.toLowerCase())) {
+              // Note October 2019: This is a lttle risky, since it assumes the first one is the best one
+              console.log('Skipping right position panel duplicate name "' + name + '", index = ' + insert);
               // eslint-disable-next-line no-continue
               continue;
             }
-            names.push(name);
+            names.push(name.toLowerCase());
 
-            organizationWeVoteIdGlobal = organizationWeVoteId;
+            state.organizationWeVoteId = organizationWeVoteId;
 
             let position = {
               name,
+              alternateNames,
               party,
               office: officeName ? officeName : '',
               photo: (imageURL && imageURL.length > 0) ? imageURL : defaultImage,
@@ -307,12 +317,24 @@ function updatePositionsPanel () {
               organizationName,
               possibilityPositionId,
               possibilityPositionNumber,
-              voterGuidePossibilityId
+              voterGuidePossibilityId,
             };
-            // console.log(i + ": " + name + ', ',position);
-            rightPositionPanes(insert, position, selector);
+            positions.push({
+              position,
+              selector,
+              insert,
+              sortOffset: allHtml.indexOf(name),
+            });
             insert++;
           }
+        }
+        // eslint-disable-next-line arrow-body-style
+        positions.sort((a, b) => {
+          return a.sortOffset > b.sortOffset ? 1 : -1;
+        });
+        for (let k = 0; k < positions.length; k++) {
+          const {insert, position, selector} = positions[k];
+          rightPositionPanes(insert, position, selector);
         }
         attachClickHandlers();
       } else {
@@ -325,9 +347,9 @@ function updatePositionsPanel () {
 
 function rightPositionPanes (i, candidate, selector) {
   let dupe = $(".candidateName:contains('" + candidate.name + "')").length;
-  debugLog('rightPositionPanes ------------------------------ i: ' + i + ", " + candidate.name);
+  debugLog('rightPositionPanes ------------------------------ i: ' + i + ', ' + candidate.name);
   let furlNo = 'furlable-' + i;
-  let candNo = 'candidate-' + i;
+  let candNo = 'candidateWe-' + i;
   if (candidate.name === null || candidate.name.length === 0) {
     debugWarn('rightPositionPane rejected index: ' + i + ', possibilityPositionNumber: ' + candidate.possibilityPositionNumber +
       ', possibilityPositionNumber: ' + candidate.possibilityPositionNumber);
@@ -335,8 +357,8 @@ function rightPositionPanes (i, candidate, selector) {
   }
   if (!dupe) {
     $(selector).append(candidatePaneMarkup(candNo, furlNo, i, candidate, false));
-    $('.statementText-' + i).val(candidate.comment);
-    $('.moreInfoURL-' + i).val(candidate.url);
+    $('.statementText-' + i).val(candidate.comment).css(getEditableElementTextStyles());
+    $('.moreInfoURL-' + i).val(candidate.url).css(getEditableElementTextStyles());
     $(selector).css({
       'height': $('#frameDiv').height() + 'px',
       'overflow': 'scroll'
@@ -347,50 +369,93 @@ function rightPositionPanes (i, candidate, selector) {
 }
 
 function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
-  let {party} = candidate;
+  let { party, name, alternateNames } = candidate;
   if (party === undefined) {
     party = (detachedDialog) ? 'Party: Not specified' :'No match for any current WeVote candidate.';
   }
+  let allNames = [];
+  allNames.push(name);
+  let aliases = '';
+  if (alternateNames) {
+    for (let i = 0; i < alternateNames.length; i++) {
+      allNames.push(alternateNames[i]);
+      if (alternateNames.length) {
+        if (alternateNames.length === 1) {
+          aliases = '[ ' +  alternateNames[i] + ' ]';
+        } else if (i===0) {
+          aliases = '[ ' +  alternateNames[i] + ', ';
+        } else if (i === alternateNames.length -1) {
+          aliases += alternateNames[i] + ' ]';
+        } else {
+          aliases += alternateNames[i] + ', ';
+        }
+      }
+    }
+  }
+
+  let inLeftPane = false;
+  for (let i = 0; i < allNames.length; i++) {
+    inLeftPane = $('*:contains(' + allNames[i] + ')').length > 0 ? true : inLeftPane;
+  }
+  let divNameElement = '';
+  if (!detachedDialog) {
+    divNameElement = '<div class="nameWrap removeContentStyles"><span class="candidateName">' + name + '</span>';
+    if (inLeftPane) {
+      divNameElement += '</span></div>';
+    } else {
+      //divNameElement += '<span class="notInPane">&#x2260</span></div>';
+      divNameElement +=     // Material Icon warning-24px.svg
+        '<span class="notInPane">' +
+        '  <svg class="warningIcon">' +
+        '    <path d="M0 0h24v24H0z" fill="none"/>' +
+        '    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>' +
+        '  </svg>' +
+        '</span></div>';
+    }
+  } else {
+    divNameElement = '<input type="text" class="candidateNameInput-' + i + '"/>';
+  }
 
   let markup =
-    "<div class='candidate " + candNo + "'>" +
+    "<div class='candidateWe " + candNo + "'>" +
     "  <div id='unfurlable-" + i + "' class='unfurlable' >" +
     "    <span class='unfurlableTopMenu'>" +
-    "      <img class='photo removeContentStyles' alt='candidate' src=" + candidate.photo + ' />' +
+    "      <img class='photo removeContentStyles' alt='candidateWe' src=" + candidate.photo + ' />' +
     "      <div class='nameBox  removeContentStyles'>" +
-             (!detachedDialog ? ("<div class='candidateName'>" + candidate.name + '</div>') : ("<input type='text' class='candidateNameInput-" + i + "' />")) +
+             divNameElement +
     "        <div class='candidateParty'>" + party + '</div>' +
     "        <div class='officeTitle'>" + candidate.office + '</div>' +
     '      </div>' +
     '    </span>' +
-    "    <input type='hidden' id='candidateName-" + i + "' value='" + candidate.name + "'>" +
+    "    <input type='hidden' id='candidateName-" + i + "' value='" + name + "'>" +
     "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidate.candidateWeVoteId + "'>" +
     "    <input type='hidden' id='voterGuidePossibilityId-" + i + "' value='" + candidate.voterGuidePossibilityId + "'>" +
     "    <input type='hidden' id='possibilityPositionNumber-" + i + "' value='" + candidate.possibilityPositionNumber + "'>" +
     "    <input type='hidden' id='possibilityPositionId-" + i + "' value='" + candidate.possibilityPositionId + "'>" +
     "    <input type='hidden' id='organizationWeVoteId-" + i + "' value='" + candidate.organizationWeVoteId + "'>" +
     "    <input type='hidden' id='organizationName-" + i + "' value='" + candidate.organizationName + "'>" +
-    "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidate.candidateWeVoteId + "'>" +
     "    <input type='hidden' id='googleCivicElectionId-" + i + "' value='" + candidate.googleCivicElectionId + "'>" +
+    "    <input type='hidden' id='allNames-" + i + "' value='" + allNames + "'>" +
     '  </div>' +
     '  <div id= ' + furlNo + " class='furlable' " + (detachedDialog ? '' : 'hidden') + '>' +
+    "    <div class='core-text aliases'>" + aliases + '</div>' +
     "    <span class='buttons'>" +
            supportButton(i, 'endorse', candidate.stance) +
            supportButton(i, 'oppose', candidate.stance) +
            supportButton(i, 'info', candidate.stance) +
     '    </span>' +
-    "    <textarea rows='6' class='statementText-" + i + "' />" +
-    '    <br><span class="advisory">If a more detailed endorsement exists, enter its URL here:</span>' +
-    "    <input type='text' class='moreInfoURL-" + i + "' />" +
+    "    <textarea rows='6' class='statementText-" + i + " removeContentStyles' />" +
+    '    <br><span class="core-text">If a more detailed endorsement exists, enter its URL here:</span>' +
+    "    <input type='text' class='moreInfoURL-" + i + " weInfoText removeContentStyles' />" +
     "    <span class='buttons'>";
   if (!detachedDialog) {
-    markup += " <button type='button bottomButtons' class='revealLeft-" + i + " weButton ui-button ui-widget ui-corner-all removeContentStyles'>Reveal</button>";
+    markup += " <button type='button' class='revealLeft-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Reveal</button>";
   }
-  markup += "   <button type='button bottomButtons' class='openInAdminApp-" + i + " weButton ui-button ui-widget ui-corner-all removeContentStyles'>Admin App</button>";
+  markup += "   <button type='button' class='openInAdminApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Admin App</button>";
   if (candidate.party !== undefined) {
-    markup += " <button type='button bottomButtons' class='openInWebApp-" + i + " weButton ui-button ui-widget ui-corner-all removeContentStyles'>Web App</button>";
+    markup += " <button type='button' class='openInWebApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Web App</button>";
   }
-  markup += "   <button type='button bottomButtons' class='saveButton-" + i + " weButton ui-button ui-widget ui-corner-all removeContentStyles'>Save</button>" +
+  markup += "   <button type='button' class='saveButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Save</button>" +
     '    </span>' +
     '  </div>' +
     '</div>';
@@ -399,9 +464,9 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
 
 function greyAllPositionPanes (booleanGreyIt) {
   if (booleanGreyIt) {
-    $('div.candidate').css('opacity', '0.25');
+    $('div.candidateWe').css('opacity', '0.25');
   } else {
-    $('div.candidate').css('opacity', '1');
+    $('div.candidateWe').css('opacity', '1');
   }
 
 }
@@ -414,7 +479,6 @@ function selectOneDeselectOthers (type, targetFurl) {
     const number = className.match(/-(\d*)\s/)[1];
 
     const iterationType = className.substring(0, className.indexOf('Button'));
-    /* eslint-disable indent */
     switch (iterationType) {
       case 'endorse':
         toggleSupportButton($(but), number, iterationType, className.startsWith(type) ? 'SUPPORT': '');
@@ -426,14 +490,13 @@ function selectOneDeselectOthers (type, targetFurl) {
         toggleSupportButton($(but), number, iterationType, className.startsWith(type) ? 'INFO_ONLY': '');
         break;
     }
-    /* eslint-enable indent */
   });
 }
 
 // As of Sept 2019, we are only updating possiblilities here, we are not changing the "stored" live presentation data
 function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
-  const targetCand = event.currentTarget.className; // div.candidate.candidate-4
-  const targetFurl = '#' + targetCand.replace('candidate candidate', 'furlable');
+  const targetCand = event.currentTarget.className; // div.candidateWe.candidateWe-4
+  const targetFurl = '#' + targetCand.replace('candidateWe candidateWe', 'furlable');
   // eslint-disable-next-line prefer-destructuring
   const number = targetFurl.match(/-(\d*)\s/)[1];
   const buttonContainerId = detachedDialog ? '#1000' : '#furlable-' + number;
@@ -460,7 +523,7 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
   sendMessage({
     command: 'savePosition',
     itemName,
-    voterGuidePossibilityId: voterGuidePossibilityIdGlobal,
+    voterGuidePossibilityId: state.voterGuidePossibilityId,
     voterGuidePossibilityPositionId,
     stance,
     statementText,
@@ -515,11 +578,13 @@ function unfurlOnePositionPane (event, forceNumber) {
     targetFurl = '#furlable-' + forceNumber;
     number = forceNumber;
   } else {
-    const targetCand = event.currentTarget.className; // div.candidate.candidate-4
-    targetFurl = '#' + targetCand.replace('candidate candidate', 'furlable');
+    const targetCand = event.currentTarget.className; // div.candidateWe.candidateWe-4
+    targetFurl = '#' + targetCand.replace('candidateWe candidateWe', 'furlable');
     number = targetFurl.substring(targetFurl.indexOf('-') + 1);
-    let selectorForName = '#' + event.currentTarget.classList[1].replace('candidate', 'candidateName');
-    unfurledCandidateNameGlobal = $(selectorForName).val();
+    let selectorForName = '#' + event.currentTarget.classList[1].replace('candidateWe', 'candidateName');
+    state.candidateName = $(selectorForName).val();
+    let selectorForAllNames = '#' + event.currentTarget.classList[1].replace('candidateWe', 'allNames');
+    state.allNames = $(selectorForAllNames).val();
   }
   const element = document.getElementById('unfurlable-' + number);
   element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }); // alignTioTop
@@ -547,13 +612,16 @@ function addHandlersForCandidatePaneButtons (targetDiv, number, detachedDialog) 
     } else if (className.startsWith('revealLeft')) {
       $(but).click((event) => {
         event.stopPropagation();
-        const emphasizedElement = $('#frame:first').contents().find(':contains(' + unfurledCandidateNameGlobal + '):last');
-        if (emphasizedElement.length) {
-          $(emphasizedElement)[0].scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest',
-            // inline: 'center'
-          });
+        // Try each name, hopefully only one will be on the screen, if not we will end up at the last matching name
+        let aliases = state.allNames.split(',');
+        for (let i = 0; i < aliases.length; i++) {
+          const emphasizedElement = $('#frame:first').contents().find(':contains(' + aliases[i] + '):last');
+          if (emphasizedElement.length) {
+            $(emphasizedElement)[0].scrollIntoView({
+              behavior: 'smooth',
+              block: 'nearest',
+            });
+          }
         }
       });
     } else if (className.startsWith('openInAdminApp-')) {
@@ -601,7 +669,6 @@ function deactivateActivePositionPane () {
   }
 }
 
-
 // We might still need this, but for now it won't be called
 // function rightNewGuideDialog () {
 //   let selector = $('#sideArea');
@@ -635,7 +702,7 @@ function deactivateActivePositionPane () {
 //   sendMessage(
 //     {
 //       command: 'updateVoterGuide',
-//       voterGuidePossibilityId: voterGuidePossibilityIdGlobal,
+//       voterGuidePossibilityId: state.voterGuidePossibilityId,
 //       orgName: name,
 //       orgTwitter: twitter,
 //       orgState: state,
@@ -669,8 +736,9 @@ function deactivateActivePositionPane () {
 
 // The text they select, will need to be the full name that we send to the API, although they will have a chance to edit it before sending
 // eslint-disable-next-line no-unused-vars
-function openSuggestionPopUp (selection, pageURL, tabId) {
+function openSuggestionPopUp (selection) {
   const i = 1000;
+  $('[role=dialog]').remove();  // Only one suggestion dialog at a time is allowed, so close any previous
   if (selection.length > 0) {
     let candidate = {
       name: selection,
@@ -688,25 +756,57 @@ function openSuggestionPopUp (selection, pageURL, tabId) {
       resizable: false,
       fixedDimensions: true
     });
-    $("button[title='Close']").css('float', 'right');
-    $('.ui-dialog-titlebar').css('height', '22px');
-    $('.ui-resizable-handle').css('display', 'none');
-    $('.ui-dialog-title').css('margin-left', '6px');
-    $('#unfurlable-' + i).css('height', '66px');
-    const can = '.candidate.1000';
+    // Styles injected here preempt all others, especially those from the underlying endorsement page, which we do not control
+    $("button[title='Close']").css({
+      'font-size': '16px',
+      'float': 'right',
+      'padding-right': '2px',
+      'line-height': 'normal',
+    });
+    $('.u2i-dialog-titlebar').css('height', '28px');
+    $('.u2i-resizable-handle').css('display', 'none');
+    $('.u2i-dialog-title').addClass('createDlgTitle');
+    $('#unfurlable-' + i).css('height', i === 1000 ? '80px' : '66px');
+    const can = '.candidateWe.1000';
     $(can).css({'background-color': '#FFFFF6', 'padding': '8px 0 8px 8px'});
     $('#1000').removeClass();
-    $('.candidateNameInput-1000').css({width: '80%', height: '24px'}).val(selection);
-    $('.statementText-' + i).val(candidate.comment);
-    $('.moreInfoURL-' + i).val(candidate.url);
-    $('#voterGuidePossibilityId-' + i).val(voterGuidePossibilityIdGlobal);
-    $('#organizationWeVoteId-' + i).val(organizationWeVoteIdGlobal);
+    $('.candidateNameInput-1000').val(selection).css({
+      width: '80%',
+      height: '24px',
+      margin: '0',
+      padding: '0 0 0 4px',
+      'font-family': '"Helvetica Neue", Helvetica, Arial, sans-serif',
+      'font-size': '16px',
+      'font-stretch': '100%',
+      'font-style': 'normal',
+      'font-weight': 400,
+      color: 'black',
+    });
+    $('.statementText-' + i).val(candidate.comment).css(getEditableElementTextStyles());
+    $('.moreInfoURL-' + i).val(candidate.url).css(getEditableElementTextStyles());
+    $('#voterGuidePossibilityId-' + i).val(state.voterGuidePossibilityId);
+    $('#organizationWeVoteId-' + i).val(state.organizationWeVoteId);
     $('.openInWebApp-' + i).stop(); // Stop animations, on the webapp button, since we don't have the twitter id necessary for the url
-    $('div.ui-dialog').on('dialogclose', () => {
-      $('div.ui-dialog').remove();
+    $('div.u2i-dialog').on('dialogclose', () => {
+      $('div.u2i-dialog').remove();
     });
     addHandlersForCandidatePaneButtons('#1000', '1000', true);
   }
+}
+
+function getEditableElementTextStyles () {
+  return {
+    width: '95%',
+    margin: '5px 0 5px 0',
+    border: '1px solid grey',
+    padding: '5px',
+    'font-family': '"Helvetica Neue", Helvetica, Arial, sans-serif',
+    'font-size': '12px',
+    'font-style': 'normal',
+    'font-variant': 'normal',
+    'font-weight': 400,
+    'line-height': '14px',
+  };
 }
 
 // SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
@@ -810,14 +910,14 @@ function isParentFurlable (target) {
 }
 
 function attachClickHandlers () {
-  //console.log("attachClickHandlers", $('div.candidate').length);
+  //console.log("attachClickHandlers", $('div.candidateWe').length);
 
-  $('div.candidate').click((event) => {
+  $('div.candidateWe').click((event) => {
     if (!isParentFurlable(event.target)) {
       deactivateActivePositionPane();
       unfurlOnePositionPane(event, -1);
     } else {
-      debugWarn('Candidate click IGNORED since target is in furlable area', event);
+      debugWarn('candidateWe click IGNORED since target is in furlable area', event);
     }
   });
 }
@@ -858,9 +958,9 @@ function orgChoiceDialog (orgList) {
       sendMessage({
         command: 'voterGuidePossibilitySave',
         organizationWeVoteId: organizationWeVoteId,
-        voterGuidePossibilityId: voterGuidePossibilityIdGlobal,
+        voterGuidePossibilityId: state.voterGuidePossibilityId,
         internalNotes: 'Proposed endorsement page: ' + href,
-        voterWeVoteId : voterWeVoteIdGlobal,
+        voterWeVoteId : state.voterWeVoteId,
       },
       function (res) {
         let {lastError} = runtime;
@@ -894,7 +994,7 @@ function sortURLs (orgList) {
   return orgList;
 }
 
-function setSideAreaStatus(text) {
+function setSideAreaStatus (text) {
   if (!text || text.length === 0) {
     $('#sideAreaStatus').remove();
   } else if ($('#sideAreaStatus').length === 0) {

@@ -7,7 +7,7 @@
 
 // modified by WeVote to:
 //  - stop the recursive search for words at the id weContainer (our menus)
-//  - stop at the id weTrash (the original dom, that becomes dormant and invisible, with a fresh copy in the new iframe)
+//  - stop at the id noDisplayPageBeforeFraming (the original dom, that becomes dormant and invisible, with a fresh copy in the new iframe)
 
 
 function Hilitor(id, tag) {
@@ -27,23 +27,24 @@ function Hilitor(id, tag) {
   var numberOfHighlights = 0; //added
   var highlights = {}; //added
   var highlightMarkers = {};
+  let debugH = false;
 
 
   this.setMatchType = function (type) {
     switch (type) {
-    case "left":
-      this.openLeft = false;
-      this.openRight = true;
-      break;
-    case "right":
-      this.openLeft = true;
-      this.openRight = false;
-      break;
-    case "open":
-      this.openLeft = this.openRight = true;
-      break;
-    default:
-      this.openLeft = this.openRight = false;
+      case "left":
+        this.openLeft = false;
+        this.openRight = true;
+        break;
+      case "right":
+        this.openLeft = true;
+        this.openRight = false;
+        break;
+      case "open":
+        this.openLeft = this.openRight = true;
+        break;
+      default:
+        this.openLeft = this.openRight = false;
     }
   };
 
@@ -60,6 +61,27 @@ function Hilitor(id, tag) {
     var sortedKeys = input.sort(function (a, b) {
       return b.word.length - a.word.length;
     });
+
+    // --------------------------
+    debugH && console.log('duped sortedKeys.length ' + sortedKeys.length);
+
+    let names = [];
+    for (i = 0; i < sortedKeys.length; i++) {
+      const name = sortedKeys[i].word;
+      if (name === 'tamara sawyer' || name === 'tami sawyer') {
+        debugH && console.log("hilitor  " + i + ": " + sortedKeys[i].word);
+      }
+      if (names.includes(name)) {
+        debugH && console.log('Skipping duplicate hilitor name ' + name + ', insert = ' + i);
+      } else {
+        names.push(name);
+      }
+    }
+    debugH && console.log('deduped name list size ' + names.length);
+
+
+
+    // --------------------------
 
     input.map(function(x){return x.word})
 
@@ -97,6 +119,8 @@ function Hilitor(id, tag) {
     }
     matchRegex = new RegExp(re, "i");
 
+    debugH && console.log(matchRegex);
+
     //ContentEditable regex
     var re = "";
     if (wordsEditable.length > 1) {
@@ -116,7 +140,7 @@ function Hilitor(id, tag) {
       re += "(" + wordpartsEditable + ")";
     }
     matchRegexEditable = new RegExp(re, "i");
-
+    debugH && console.log('matchRegexEditable', matchRegexEditable);
   };
 
 
@@ -130,9 +154,9 @@ function Hilitor(id, tag) {
     // Begin modification for WeVote
     // Before change this was...  if (skipTags.test(node.nodeName)||skipClasses.test(node.className)) {return;}
     if (skipTags.test(node.nodeName) ||
-        skipClasses.test(node.className) ||
-        node.id === 'weTrash' ||
-        node.id === 'weContainer') {
+      skipClasses.test(node.className) ||
+      node.id === 'noDisplayPageBeforeFraming' ||
+      node.id === 'weContainer') {
       return;
     }
     // End of modification for WeVote
@@ -145,15 +169,14 @@ function Hilitor(id, tag) {
 
     if (node.nodeType == 3) { // NODE_TEXT
 
-
-      var nv = node.nodeValue;
-      if (nv==='Regina Romero') {
-        console.log('hiliteWords    ' + nv);
-      }
+      let nv = node.nodeValue;
       if(inContentEditable) {
         regs = matchRegexEditable.exec(nv);
       } else {
         regs = matchRegex.exec(nv);
+        if (regs) {
+          debugH && console.log('regs response', regs);
+        }
       }
       if (regs) {
         var wordfound = "";
@@ -163,6 +186,7 @@ function Hilitor(id, tag) {
           var pattern = new RegExp(wordColor[word].regex, "i");
           if (pattern.test(regs[0]) && word.length > wordfound.length) {
             wordfound = word;
+            debugH && console.log("hilitor word found: " + word)
             break;
           }
         }
@@ -231,7 +255,7 @@ function Hilitor(id, tag) {
 
     }
     return attributes;
-  }
+  };
 
   // remove highlighting
   this.remove = function () {
