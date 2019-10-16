@@ -49,8 +49,7 @@
 
 .candidateWe {
   background-color: white;
-  border-bottom: 1px solid grey;
-  padding: 4px 0 10px 0;
+  padding-bottom: 6px;
 }
 
 .photo {
@@ -78,15 +77,20 @@
   padding: 0 0 0 4px;
 }
 
-.notInPane {
+.rightIcon {
   padding-left: 10px;
 }
 
-.warningIcon {
-  height: 22px;
-  width: 22px;
-  transform: translate(4px);
-  filter: invert(12%) sepia(85%) saturate(7424%) hue-rotate(0deg) brightness(107%) contrast(112%);  /* red */
+.commentSVG {
+  height:24px;
+  width: 24px;
+}
+
+.supportButtonSVG {
+  position: absolute;
+  height:32px;
+  top: -3px;
+  left: 1px;
 }
 
 .candidateParty {
@@ -201,13 +205,6 @@
   width: unset;
 }
 
-.supportButtonSVG {
-  position: absolute;
-  height:32px;
-  top: -3px;
-  left: 1px;
-}
-
 .supportButtonText {
   margin-left: 28px;
   font-size: 12px !important;
@@ -248,7 +245,7 @@
   margin-right: 15px;
   border-top: grey solid 2px;
   padding: 5px;
-  width: 400px;
+  width: 460px;
   grid-row: 1;
   height: 100vh;
   overflow-x: hidden !important;
