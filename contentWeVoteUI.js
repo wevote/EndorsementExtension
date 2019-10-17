@@ -46,12 +46,12 @@ function buildUI () {
     '</span>').append("<div id='weFlexBox' ></div>");
 
   let weFlexBox = $('#weFlexBox');
-  $(weFlexBox).append('<div id="frameDiv"><iframe id="frame" width="100%" height="100%"></iframe></div>');
+  $(weFlexBox).append('<div id="frameDiv"><iframe id="frame" width="100%" ></iframe></div>');
   $(weFlexBox).append('<div id="sideArea"></div>');
   $('#frame').attr('src', hr);
   topMenu();
   updateTopMenu();
-  signIn(false);                       // Calls updatePositionsPanel
+  signIn(false);             // Calls updatePositionsPanel
   initializeOrgChoiceList();           //  Does not display org choice list if not logged in, or have chosen an org
   greyAllPositionPanes(false);
 }
@@ -87,7 +87,7 @@ function debugWarn (...args) {
 
 /*
   May 16, 2019
-   For now if the API server is swapped local/production you will need to get a new device ID.
+   For now if the API server gets swapped local/production you will need to get a new device ID.
   With the extension running, go to the wevote.us or localhost:3000 page, and open the popup, and press the login button.
   Then when you navigate to some endorsement page. the device id will become available in local storage.
   Sept 10, 2019, you may have to clear localStorage['voterDeviceId'].  You will have to be running a local webapp, which
@@ -227,7 +227,6 @@ function getRefreshedHighlights () {
     });
 }
 
-
 // Call into the background script to do a voterGuidePossibilityRetrieve() api call, and return the data, then update the top menu
 function updateTopMenu () {
   debugLog('updateTopMenu()');
@@ -285,9 +284,9 @@ function updatePositionsPanel () {
             debugLog('updatePositionsPanel data: ', data[i]);
             // be sure not to use position_stance_stored, statement_text_stored, or more_info_url_stored -- we want the possibilities, not the live data
             let { ballot_item_name: name, candidate_alternate_names: alternateNames, position_stance: stance, statement_text: comment, more_info_url: url,
-              political_party: party, office_name: officeName, ballot_item_image_url_https_large: imageURL, candidate_we_vote_id: candidateWeVoteId,
-              google_civic_election_id: googleCivicElectionId, office_we_vote_id: officeWeVoteId, organization_we_vote_id: organizationWeVoteId,
-              possibility_position_id: possibilityPositionId, possibility_position_number: possibilityPositionNumber, organization_name: organizationName,
+              political_party: party, office_name: officeName, ballot_item_image_url_https_large: imageURL, position_we_vote_id: positionWeVoteId,
+              candidate_we_vote_id: candidateWeVoteId, google_civic_election_id: googleCivicElectionId, office_we_vote_id: officeWeVoteId,
+              organization_we_vote_id: organizationWeVoteId, possibility_position_id: possibilityPositionId, organization_name: organizationName,
               voter_guide_possibility_id: voterGuidePossibilityId
             } = data[i];
 
@@ -316,7 +315,7 @@ function updatePositionsPanel () {
               organizationWeVoteId,
               organizationName,
               possibilityPositionId,
-              possibilityPositionNumber,
+              positionWeVoteId,
               voterGuidePossibilityId,
             };
             positions.push({
@@ -333,8 +332,8 @@ function updatePositionsPanel () {
           return a.sortOffset > b.sortOffset ? 1 : -1;
         });
         for (let k = 0; k < positions.length; k++) {
-          const {insert, position, selector} = positions[k];
-          rightPositionPanes(insert, position, selector);
+          const {position, selector} = positions[k];
+          rightPositionPanes(k, position, selector);
         }
         attachClickHandlers();
       } else {
@@ -346,32 +345,30 @@ function updatePositionsPanel () {
 }
 
 function rightPositionPanes (i, candidate, selector) {
-  let dupe = $(".candidateName:contains('" + candidate.name + "')").length;
-  debugLog('rightPositionPanes ------------------------------ i: ' + i + ', ' + candidate.name);
+  const { name, comment, url, positionWeVoteId,  } = candidate;
+  let dupe = $(".candidateName:contains('" + name + "')").length;
+  debugLog('rightPositionPanes ------------------------------ i: ' + i + ', ' + name);
   let furlNo = 'furlable-' + i;
   let candNo = 'candidateWe-' + i;
-  if (candidate.name === null || candidate.name.length === 0) {
-    debugWarn('rightPositionPane rejected index: ' + i + ', possibilityPositionNumber: ' + candidate.possibilityPositionNumber +
-      ', possibilityPositionNumber: ' + candidate.possibilityPositionNumber);
+  if (name === null || name.length === 0) {
+    debugWarn('rightPositionPane rejected index: ' + i + ', positionWeVoteId: ' + positionWeVoteId +
+      ', positionWeVoteId: ' + positionWeVoteId);
     return false;
   }
   if (!dupe) {
     $(selector).append(candidatePaneMarkup(candNo, furlNo, i, candidate, false));
-    $('.statementText-' + i).val(candidate.comment).css(getEditableElementTextStyles());
-    $('.moreInfoURL-' + i).val(candidate.url).css(getEditableElementTextStyles());
-    $(selector).css({
-      'height': $('#frameDiv').height() + 'px',
-      'overflow': 'scroll'
-    });
+    $('.statementText-' + i).val(comment).css(getEditableElementTextStyles());
+    $('.moreInfoURL-' + i).val(url).css(getEditableElementTextStyles());
     return true;
   }
   return false;
 }
 
 function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
-  let { party, name, alternateNames } = candidate;
+  let { party, name, alternateNames, photo, office, comment, candidateWeVoteId, voterGuidePossibilityId, positionWeVoteId,
+    possibilityPositionId, organizationWeVoteId, organizationName, googleCivicElectionId, stance, } = candidate;
   if (party === undefined) {
-    party = (detachedDialog) ? 'Party: Not specified' :'No match for any current WeVote candidate.';
+    party = (detachedDialog) ? 'Party: Not specified' :'No match for any current candidate.';
   }
   let allNames = [];
   allNames.push(name);
@@ -397,52 +394,30 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
   for (let i = 0; i < allNames.length; i++) {
     inLeftPane = $('*:contains(' + allNames[i] + ')').length > 0 ? true : inLeftPane;
   }
-  let divNameElement = '';
-  if (!detachedDialog) {
-    divNameElement = '<div class="nameWrap removeContentStyles"><span class="candidateName">' + name + '</span>';
-    if (inLeftPane) {
-      divNameElement += '</span></div>';
-    } else {
-      //divNameElement += '<span class="notInPane">&#x2260</span></div>';
-      divNameElement +=     // Material Icon warning-24px.svg
-        '<span class="notInPane">' +
-        '  <svg class="warningIcon">' +
-        '    <path d="M0 0h24v24H0z" fill="none"/>' +
-        '    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>' +
-        '  </svg>' +
-        '</span></div>';
-    }
-  } else {
-    divNameElement = '<input type="text" class="candidateNameInput-' + i + '"/>';
-  }
 
+
+  const isStored = positionWeVoteId !== undefined && positionWeVoteId !== null && positionWeVoteId.length > 0;
   let markup =
     "<div class='candidateWe " + candNo + "'>" +
     "  <div id='unfurlable-" + i + "' class='unfurlable' >" +
-    "    <span class='unfurlableTopMenu'>" +
-    "      <img class='photo removeContentStyles' alt='candidateWe' src=" + candidate.photo + ' />' +
-    "      <div class='nameBox  removeContentStyles'>" +
-             divNameElement +
-    "        <div class='candidateParty'>" + party + '</div>' +
-    "        <div class='officeTitle'>" + candidate.office + '</div>' +
-    '      </div>' +
-    '    </span>' +
+         unfurlableGrid(i, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, comment.trim().length > 0, false) +
     "    <input type='hidden' id='candidateName-" + i + "' value='" + name + "'>" +
-    "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidate.candidateWeVoteId + "'>" +
-    "    <input type='hidden' id='voterGuidePossibilityId-" + i + "' value='" + candidate.voterGuidePossibilityId + "'>" +
-    "    <input type='hidden' id='possibilityPositionNumber-" + i + "' value='" + candidate.possibilityPositionNumber + "'>" +
-    "    <input type='hidden' id='possibilityPositionId-" + i + "' value='" + candidate.possibilityPositionId + "'>" +
-    "    <input type='hidden' id='organizationWeVoteId-" + i + "' value='" + candidate.organizationWeVoteId + "'>" +
-    "    <input type='hidden' id='organizationName-" + i + "' value='" + candidate.organizationName + "'>" +
-    "    <input type='hidden' id='googleCivicElectionId-" + i + "' value='" + candidate.googleCivicElectionId + "'>" +
+    "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidateWeVoteId + "'>" +
+    "    <input type='hidden' id='voterGuidePossibilityId-" + i + "' value='" + voterGuidePossibilityId + "'>" +
+    "    <input type='hidden' id='positionWeVoteId-" + i + "' value='" + positionWeVoteId + "'>" +
+    "    <input type='hidden' id='possibilityPositionId-" + i + "' value='" + possibilityPositionId + "'>" +
+    "    <input type='hidden' id='organizationWeVoteId-" + i + "' value='" + organizationWeVoteId + "'>" +
+    "    <input type='hidden' id='organizationName-" + i + "' value='" + organizationName + "'>" +
+    "    <input type='hidden' id='googleCivicElectionId-" + i + "' value='" + googleCivicElectionId + "'>" +
     "    <input type='hidden' id='allNames-" + i + "' value='" + allNames + "'>" +
+    "    <input type='hidden' id='isStored-" + i + "' value='" + isStored + "'>" +
     '  </div>' +
     '  <div id= ' + furlNo + " class='furlable' " + (detachedDialog ? '' : 'hidden') + '>' +
     "    <div class='core-text aliases'>" + aliases + '</div>' +
     "    <span class='buttons'>" +
-           supportButton(i, 'endorse', candidate.stance) +
-           supportButton(i, 'oppose', candidate.stance) +
-           supportButton(i, 'info', candidate.stance) +
+           supportButton(i, 'endorse', stance) +
+           supportButton(i, 'oppose', stance) +
+           supportButton(i, 'info', stance) +
     '    </span>' +
     "    <textarea rows='6' class='statementText-" + i + " removeContentStyles' />" +
     '    <br><span class="core-text">If dedicated candidate page exists, enter URL here:</span>' +
@@ -452,7 +427,7 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
     markup += " <button type='button' class='revealLeft-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Reveal</button>";
   }
   markup += "   <button type='button' class='openInAdminApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Admin App</button>";
-  if (candidate.party !== undefined) {
+  if (party !== undefined) {
     markup += " <button type='button' class='openInWebApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>WeVote.US</button>";
   }
   markup += "   <button type='button' class='saveButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Save</button>" +
@@ -462,13 +437,90 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
   return markup;
 }
 
+function unfurlableGrid (index, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, showComment, iconOnly) {
+  let iconContainer = '';
+
+  if (!detachedDialog && !inLeftPane) {
+    iconContainer =
+      '<div id="iconContainer-' + index + '" class="iconContainer">' +
+      '  <svg class="warningSvg">' +
+      '    <path d="M0 0h24v24H0z" fill="none"/>' +
+      '    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>' +
+      '  </svg>' +
+      '</div>';
+  }
+
+  // eslint-disable-next-line no-nested-ternary
+  const type = (stance === 'OPPOSE') ? 'oppose' : 'endorse';
+  const showThumb = stance !== 'NO_STANCE';
+  const showSomething = !detachedDialog;
+  const showBar = showThumb && showComment;
+  const viewBoxComment = showBar ? '"0 0 22 22"' : '"0 0 24 24"';
+  const showThumbOnly = showThumb && !showComment;
+  const showCommentOnly = !showThumb && showComment;
+  const showOnlyClass = (showCommentOnly ? 'commentOnly' : '') + (showThumbOnly ? 'thumbOnly' : '') + (stance === 'NO_STANCE' && !showComment ? 'emptyInfo' : '');
+
+  if (showSomething && inLeftPane) {
+    iconContainer +=
+        '<div id="iconContainer-' + index + '" class="iconContainer ' + showOnlyClass + '" style="background-color:' + backgroundColor(stance, isStored) + '">';
+    if (showThumb) {
+      iconContainer += markupForThumbSvg ('thumbIconSVG', type, 'white');
+    }
+    if (showBar) {
+      iconContainer +=
+        '  <div style="transform: translate(19px, -26px); color: white; font-size: 10pt; background-color:' + backgroundColor(stance, isStored) + '; width: 2px;">&#124;</div>';
+    }
+    if (showComment) {    // https://material.io/resources/icons/?style=baseline comment
+      iconContainer +=
+        '  <svg class="commentIconSVG ' + (showCommentOnly ? 'commentIconOnly' : '') + '" style="margin-top:3px; background-color:' + backgroundColor(stance, isStored) + ';" viewBox=' + viewBoxComment + '>' +
+        '    <path fill="white" d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>' +
+        '    <path d="M0 0h24v24H0z" fill="none"/>' +
+        '  </svg>';
+    }
+    iconContainer +=
+       '</div>';
+  }
+
+  let markup =
+    '<div class="gridUnfurlableContainer">' +
+      '<div class="gridCandidatePhoto">' +
+        '<img class="photo removeContentStyles" alt="candidateWe" src="' + photo + '">' +
+      '</div>' +
+        (detachedDialog ? ('<input type="text" class="candidateNameInput-' + index + '"/>') : ('<div class="gridCandidateName">' + name + '</div>')) +
+        '<div class="gridIcon">' +
+            iconContainer +
+        '</div>' +
+      '<div class="gridCandidateParty">' + party + '</div>' +
+      '<div class="gridOfficeTitle">' + office + '</div>' +
+    '</div>';
+
+  if (iconOnly) {
+    markup = iconContainer;
+  }
+
+  return markup;
+}
+
+function backgroundColor (stance, isStored) {
+  if (stance === 'SUPPORT') {
+    return isStored ? '#60b864' : '#a6d5bd';
+  }
+  if (stance === 'OPPOSE') {
+    return isStored ? '#f16936' : '#f7c9b8';
+  }
+  if (stance === 'NO_STANCE') {
+    return '#888888';
+  }
+
+  return 'purple';
+}
+
 function greyAllPositionPanes (booleanGreyIt) {
   if (booleanGreyIt) {
     $('div.candidateWe').css('opacity', '0.25');
   } else {
     $('div.candidateWe').css('opacity', '1');
   }
-
 }
 
 function selectOneDeselectOthers (type, targetFurl) {
@@ -517,8 +569,13 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
 
   const itemName = detachedDialog ? $('.candidateNameInput-1000').val() : '';
   const voterGuidePossibilityPositionId = detachedDialog ? 0 : $('#possibilityPositionId-' + number).val();
-  const statementText = $('.statementText-' + number).val();
+  const statementText = $('.statementText-' + number).val().trim();
   const moreInfoURL = $('.moreInfoURL-' + number).val().trim();
+  const isStored =  $('.isStored-' + number).val();
+  // Since we might have changed the stance and/or comment, update the right icon in the unfurlable grid
+  let iconContainer = unfurlableGrid (number, '', '', '', '', true, false, stance, isStored, statementText.length > 0, true);
+  $('#iconContainer-' + number).wrap('<p/>').parent().html(iconContainer);
+
   const {chrome: {runtime: {sendMessage}}} = window;
   sendMessage({
     command: 'savePosition',
@@ -668,71 +725,6 @@ function deactivateActivePositionPane () {
   }
 }
 
-// We might still need this, but for now it won't be called
-// function rightNewGuideDialog () {
-//   let selector = $('#sideArea');
-//   let markup = "<div id='newGuide'>" +
-//     '<h3>Store Organization Info<br>for this Guide</h3><br>' +
-//     'Organization Name:<br>' +
-//     "<input type='text' class='orgNameNew' name='orgName'><br>" +
-//     'Organization Twitter Handle:<br>' +
-//     "<input type='text' class='orgTwitterNew' name='orgTwitter'><br>" +
-//     'State Code (two letters)(optional):<br>' +
-//     "<input type='text' class='orgStateNew' name='orgState'><br>" +
-//     'Comments:<br>' +
-//     "<textarea  class='orgCommentsNew' name='orgComments'></textarea></textarea><br><br>" +
-//     "<input type='button' id='saveToServer' class='weButton removeContentStyles' value='Save to Server'>" +
-//     '</div>';
-//   $(selector).append(markup);
-//   document.getElementById('saveToServer').addEventListener('click', function () {
-//     debugLog('Save to Server pressed');
-//     saveNewOrgData();
-//     return false;
-//   });
-// }
-
-// function saveNewOrgData () {
-//   console.log('saveNewOrgData() ');
-//   let name = $('.orgNameNew').val();
-//   let twitter = $('.orgTwitterNew').val();
-//   let state = $('.orgStateNew').val();
-//   let comments = $('.orgCommentsNew').val();
-//   const { chrome: { runtime: { sendMessage } } } = window;
-//   sendMessage(
-//     {
-//       command: 'updateVoterGuide',
-//       voterGuidePossibilityId: state.voterGuidePossibilityId,
-//       orgName: name,
-//       orgTwitter: twitter,
-//       orgState: state,
-//       comments: comments
-//     },
-//     function (response) {
-//       let {lastError} = runtime;
-//       if (lastError) {
-//         console.warn(' chrome.runtime.sendMessage("updateVoterGuide")', lastError.message);
-//       }
-//       console.log('saveNewOrgData() response', response);
-//
-//       if (response && Object.entries(response).length > 0) {
-//         const {orgName, comments} = response.data;  // eslint-disable-line no-unused-vars
-//
-//         // $('#orgLogo').attr("src", orgLogo);
-//         $('#orgName').text(orgName);
-//         $('#topComment').val(comments);
-//         debugLog('updateTopMenu orgName: ' + orgName);
-//         if (orgName === undefined) {
-//           // rightNewGuideDialog();
-//         } else {
-//           $('#newGuide').remove();
-//           updatePositionsPanel();
-//         }
-//       } else {
-//         console.error('ERROR: updateTopMenu received empty response');
-//       }
-//     });
-// }
-
 // The text they select, will need to be the full name that we send to the API, although they will have a chance to edit it before sending
 // eslint-disable-next-line no-unused-vars
 function openSuggestionPopUp (selection) {
@@ -751,7 +743,7 @@ function openSuggestionPopUp (selection) {
     $(candidatePaneMarkup(i, i, i, candidate, true)).dialog({
       title: 'Create a We Vote endorsement',
       show: true,
-      width: 340,
+      width: 380,
       resizable: false,
       fixedDimensions: true
     });
@@ -847,9 +839,15 @@ function supportButton (i, type, stance) {
   }
 
   let markup = "<button type='button' class='" + type + 'Button-' + i + ' weButton removeContentStyles ' + selectionStyle + "'>";
+  markup += markupForThumbSvg('supportButtonSVG', type, fillColor);
+  markup += "<span class='" + textClass + "'>" + buttonText + '</span></button>';
 
+  return markup;
+}
+
+function markupForThumbSvg (classString, type, fillColor) {
   if (type === 'endorse' || type === 'oppose') {
-    markup += "<svg class='supportButtonSVG' style='margin-top:3px'>";
+    let markup = "<svg class='" + classString + "' style='margin-top:3px'>";
 
     if (type === 'endorse') {
       markup += "<path fill='" + fillColor + "' d='M6,16.8181818 L8.36363636,16.8181818 L8.36363636,9.72727273 L6,9.72727273 L6,16.8181818 L6,16.8181818 Z M19,10.3181818 C19,9.66818182 18.4681818,9.13636364 17.8181818,9.13636364 L14.0895455,9.13636364 L14.6509091,6.43590909 L14.6686364,6.24681818 C14.6686364,6.00454545 14.5681818,5.78 14.4086364,5.62045455 L13.7822727,5 L9.89409091,8.89409091 C9.67545455,9.10681818 9.54545455,9.40227273 9.54545455,9.72727273 L9.54545455,15.6363636 C9.54545455,16.2863636 10.0772727,16.8181818 10.7272727,16.8181818 L16.0454545,16.8181818 C16.5359091,16.8181818 16.9554545,16.5227273 17.1327273,16.0972727 L18.9172727,11.9313636 C18.9704545,11.7954545 19,11.6536364 19,11.5 L19,10.3713636 L18.9940909,10.3654545 L19,10.3181818 L19,10.3181818 Z'/>" +
@@ -860,11 +858,10 @@ function supportButton (i, type, stance) {
     }
 
     markup += '</svg>';
+
+    return markup;
   }
-
-  markup += "<span class='" + textClass + "'>" + buttonText + '</span></button>';
-
-  return markup;
+  return '';
 }
 
 function toggleSupportButton (button, i, type, stance) {
