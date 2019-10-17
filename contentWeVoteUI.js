@@ -46,7 +46,7 @@ function buildUI () {
     '</span>').append("<div id='weFlexBox' ></div>");
 
   let weFlexBox = $('#weFlexBox');
-  $(weFlexBox).append('<div id="frameDiv"><iframe id="frame" width="100%" height="100%"></iframe></div>');
+  $(weFlexBox).append('<div id="frameDiv"><iframe id="frame" width="100%" ></iframe></div>');
   $(weFlexBox).append('<div id="sideArea"></div>');
   $('#frame').attr('src', hr);
   topMenu();
@@ -284,9 +284,9 @@ function updatePositionsPanel () {
             debugLog('updatePositionsPanel data: ', data[i]);
             // be sure not to use position_stance_stored, statement_text_stored, or more_info_url_stored -- we want the possibilities, not the live data
             let { ballot_item_name: name, candidate_alternate_names: alternateNames, position_stance: stance, statement_text: comment, more_info_url: url,
-              political_party: party, office_name: officeName, ballot_item_image_url_https_large: imageURL, candidate_we_vote_id: candidateWeVoteId,
-              google_civic_election_id: googleCivicElectionId, office_we_vote_id: officeWeVoteId, organization_we_vote_id: organizationWeVoteId,
-              possibility_position_id: possibilityPositionId, possibility_position_number: possibilityPositionNumber, organization_name: organizationName,
+              political_party: party, office_name: officeName, ballot_item_image_url_https_large: imageURL, position_we_vote_id: positionWeVoteId,
+              candidate_we_vote_id: candidateWeVoteId, google_civic_election_id: googleCivicElectionId, office_we_vote_id: officeWeVoteId,
+              organization_we_vote_id: organizationWeVoteId, possibility_position_id: possibilityPositionId, organization_name: organizationName,
               voter_guide_possibility_id: voterGuidePossibilityId
             } = data[i];
 
@@ -315,7 +315,7 @@ function updatePositionsPanel () {
               organizationWeVoteId,
               organizationName,
               possibilityPositionId,
-              possibilityPositionNumber,
+              positionWeVoteId,
               voterGuidePossibilityId,
             };
             positions.push({
@@ -332,8 +332,8 @@ function updatePositionsPanel () {
           return a.sortOffset > b.sortOffset ? 1 : -1;
         });
         for (let k = 0; k < positions.length; k++) {
-          const {insert, position, selector} = positions[k];
-          rightPositionPanes(insert, position, selector);
+          const {position, selector} = positions[k];
+          rightPositionPanes(k, position, selector);
         }
         attachClickHandlers();
       } else {
@@ -345,31 +345,27 @@ function updatePositionsPanel () {
 }
 
 function rightPositionPanes (i, candidate, selector) {
-  const { name, comment, url, possibilityPositionNumber,  } = candidate;
+  const { name, comment, url, positionWeVoteId,  } = candidate;
   let dupe = $(".candidateName:contains('" + name + "')").length;
   debugLog('rightPositionPanes ------------------------------ i: ' + i + ', ' + name);
   let furlNo = 'furlable-' + i;
   let candNo = 'candidateWe-' + i;
   if (name === null || name.length === 0) {
-    debugWarn('rightPositionPane rejected index: ' + i + ', possibilityPositionNumber: ' + possibilityPositionNumber +
-      ', possibilityPositionNumber: ' + possibilityPositionNumber);
+    debugWarn('rightPositionPane rejected index: ' + i + ', positionWeVoteId: ' + positionWeVoteId +
+      ', positionWeVoteId: ' + positionWeVoteId);
     return false;
   }
   if (!dupe) {
     $(selector).append(candidatePaneMarkup(candNo, furlNo, i, candidate, false));
     $('.statementText-' + i).val(comment).css(getEditableElementTextStyles());
     $('.moreInfoURL-' + i).val(url).css(getEditableElementTextStyles());
-    $(selector).css({
-      'height': $('#frameDiv').height() + 'px',
-      'overflow': 'scroll'
-    });
     return true;
   }
   return false;
 }
 
 function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
-  let { party, name, alternateNames, photo, office, comment, candidateWeVoteId, voterGuidePossibilityId, possibilityPositionNumber,
+  let { party, name, alternateNames, photo, office, comment, candidateWeVoteId, voterGuidePossibilityId, positionWeVoteId,
     possibilityPositionId, organizationWeVoteId, organizationName, googleCivicElectionId, stance, } = candidate;
   if (party === undefined) {
     party = (detachedDialog) ? 'Party: Not specified' :'No match for any current candidate.';
@@ -399,19 +395,22 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
     inLeftPane = $('*:contains(' + allNames[i] + ')').length > 0 ? true : inLeftPane;
   }
 
+
+  const isStored = positionWeVoteId !== undefined && positionWeVoteId !== null && positionWeVoteId.length > 0;
   let markup =
     "<div class='candidateWe " + candNo + "'>" +
     "  <div id='unfurlable-" + i + "' class='unfurlable' >" +
-         unfurlableGrid(i, name, photo, party, office, inLeftPane, detachedDialog, stance, !!googleCivicElectionId, comment.trim().length > 0) +
+         unfurlableGrid(i, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, comment.trim().length > 0, false) +
     "    <input type='hidden' id='candidateName-" + i + "' value='" + name + "'>" +
     "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidateWeVoteId + "'>" +
     "    <input type='hidden' id='voterGuidePossibilityId-" + i + "' value='" + voterGuidePossibilityId + "'>" +
-    "    <input type='hidden' id='possibilityPositionNumber-" + i + "' value='" + possibilityPositionNumber + "'>" +
+    "    <input type='hidden' id='positionWeVoteId-" + i + "' value='" + positionWeVoteId + "'>" +
     "    <input type='hidden' id='possibilityPositionId-" + i + "' value='" + possibilityPositionId + "'>" +
     "    <input type='hidden' id='organizationWeVoteId-" + i + "' value='" + organizationWeVoteId + "'>" +
     "    <input type='hidden' id='organizationName-" + i + "' value='" + organizationName + "'>" +
     "    <input type='hidden' id='googleCivicElectionId-" + i + "' value='" + googleCivicElectionId + "'>" +
     "    <input type='hidden' id='allNames-" + i + "' value='" + allNames + "'>" +
+    "    <input type='hidden' id='isStored-" + i + "' value='" + isStored + "'>" +
     '  </div>' +
     '  <div id= ' + furlNo + " class='furlable' " + (detachedDialog ? '' : 'hidden') + '>' +
     "    <div class='core-text aliases'>" + aliases + '</div>' +
@@ -438,12 +437,12 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
   return markup;
 }
 
-function unfurlableGrid (index, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, showComment) {
+function unfurlableGrid (index, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, showComment, iconOnly) {
   let iconContainer = '';
 
   if (!detachedDialog && !inLeftPane) {
     iconContainer =
-      '<div class="iconContainer">' +
+      '<div id="iconContainer-' + index + '" class="iconContainer">' +
       '  <svg class="warningSvg">' +
       '    <path d="M0 0h24v24H0z" fill="none"/>' +
       '    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>' +
@@ -452,29 +451,28 @@ function unfurlableGrid (index, name, photo, party, office, inLeftPane, detached
   }
 
   // eslint-disable-next-line no-nested-ternary
-  const background = (stance === 'OPPOSE') ? '#f27034' : (stance === 'NO_STANCE' ? '#888888' : '#60b864');
   const type = (stance === 'OPPOSE') ? 'oppose' : 'endorse';
   const showThumb = stance !== 'NO_STANCE';
-  const showSomething = !detachedDialog && (showThumb || showComment);
+  const showSomething = !detachedDialog;
   const showBar = showThumb && showComment;
   const viewBoxComment = showBar ? '"0 0 22 22"' : '"0 0 24 24"';
   const showThumbOnly = showThumb && !showComment;
   const showCommentOnly = !showThumb && showComment;
-  const showOnlyClass = (showCommentOnly ? 'commentOnly' : '') + (showThumbOnly ? 'thumbOnly' : '');
+  const showOnlyClass = (showCommentOnly ? 'commentOnly' : '') + (showThumbOnly ? 'thumbOnly' : '') + (stance === 'NO_STANCE' && !showComment ? 'emptyInfo' : '');
 
   if (showSomething && inLeftPane) {
     iconContainer +=
-        '<div class="iconContainer ' + showOnlyClass + '" style="background-color:' + background + '">';
+        '<div id="iconContainer-' + index + '" class="iconContainer ' + showOnlyClass + '" style="background-color:' + backgroundColor(stance, isStored) + '">';
     if (showThumb) {
       iconContainer += markupForThumbSvg ('thumbIconSVG', type, 'white');
     }
     if (showBar) {
       iconContainer +=
-        '  <div style="transform: translate(19px, -26px); color: white; font-size: 10pt; background-color:' + background + '; width: 2px;">&#124;</div>';
+        '  <div style="transform: translate(19px, -26px); color: white; font-size: 10pt; background-color:' + backgroundColor(stance, isStored) + '; width: 2px;">&#124;</div>';
     }
     if (showComment) {    // https://material.io/resources/icons/?style=baseline comment
       iconContainer +=
-        '  <svg class="commentIconSVG ' + (showCommentOnly ? 'commentIconOnly' : '') + '" style="margin-top:3px; background-color:' + background + ';" viewBox=' + viewBoxComment + '>' +
+        '  <svg class="commentIconSVG ' + (showCommentOnly ? 'commentIconOnly' : '') + '" style="margin-top:3px; background-color:' + backgroundColor(stance, isStored) + ';" viewBox=' + viewBoxComment + '>' +
         '    <path fill="white" d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>' +
         '    <path d="M0 0h24v24H0z" fill="none"/>' +
         '  </svg>';
@@ -483,7 +481,7 @@ function unfurlableGrid (index, name, photo, party, office, inLeftPane, detached
        '</div>';
   }
 
-  const markup =
+  let markup =
     '<div class="gridUnfurlableContainer">' +
       '<div class="gridCandidatePhoto">' +
         '<img class="photo removeContentStyles" alt="candidateWe" src="' + photo + '">' +
@@ -496,7 +494,25 @@ function unfurlableGrid (index, name, photo, party, office, inLeftPane, detached
       '<div class="gridOfficeTitle">' + office + '</div>' +
     '</div>';
 
+  if (iconOnly) {
+    markup = iconContainer;
+  }
+
   return markup;
+}
+
+function backgroundColor (stance, isStored) {
+  if (stance === 'SUPPORT') {
+    return isStored ? '#60b864' : '#a6d5bd';
+  }
+  if (stance === 'OPPOSE') {
+    return isStored ? '#f16936' : '#f7c9b8';
+  }
+  if (stance === 'NO_STANCE') {
+    return '#888888';
+  }
+
+  return 'purple';
 }
 
 function greyAllPositionPanes (booleanGreyIt) {
@@ -505,7 +521,6 @@ function greyAllPositionPanes (booleanGreyIt) {
   } else {
     $('div.candidateWe').css('opacity', '1');
   }
-
 }
 
 function selectOneDeselectOthers (type, targetFurl) {
@@ -554,8 +569,13 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
 
   const itemName = detachedDialog ? $('.candidateNameInput-1000').val() : '';
   const voterGuidePossibilityPositionId = detachedDialog ? 0 : $('#possibilityPositionId-' + number).val();
-  const statementText = $('.statementText-' + number).val();
+  const statementText = $('.statementText-' + number).val().trim();
   const moreInfoURL = $('.moreInfoURL-' + number).val().trim();
+  const isStored =  $('.isStored-' + number).val();
+  // Since we might have changed the stance and/or comment, update the right icon in the unfurlable grid
+  let iconContainer = unfurlableGrid (number, '', '', '', '', true, false, stance, isStored, statementText.length > 0, true);
+  $('#iconContainer-' + number).wrap('<p/>').parent().html(iconContainer);
+
   const {chrome: {runtime: {sendMessage}}} = window;
   sendMessage({
     command: 'savePosition',
@@ -723,7 +743,7 @@ function openSuggestionPopUp (selection) {
     $(candidatePaneMarkup(i, i, i, candidate, true)).dialog({
       title: 'Create a We Vote endorsement',
       show: true,
-      width: 340,
+      width: 380,
       resizable: false,
       fixedDimensions: true
     });
