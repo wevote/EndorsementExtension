@@ -183,13 +183,13 @@ function voterGuidePossibilityPositionSave (itemName, voterGuidePossibilityId, v
 }
 
 // Save a possible voter guide
-function voterGuidePossibilitySave (organizationWeVoteId, voterGuidePossibilityId, internalNotes, sendResponse) {
+function voterGuidePossibilitySave (organizationWeVoteId, voterGuidePossibilityId, internalNotes, contributorEmail, sendResponse) {
   // eslint-disable-next-line prefer-destructuring
   let voterDeviceId = localStorage['voterDeviceId'];
   debug && console.log('voterGuidePossibilitySave (really the organization_we_vote_id) voterGuidePossibilityId: ' + voterGuidePossibilityId);
   if (voterDeviceId && voterDeviceId.length > 0) {
     let apiURL = `${rootApiURL}/voterGuidePossibilitySave/?voter_device_id=${voterDeviceId}` +
-      `&voter_guide_possibility_id=${voterGuidePossibilityId}&organization_we_vote_id=${organizationWeVoteId}&internal_notes=${encodeURIComponent(internalNotes)}`;
+      `&voter_guide_possibility_id=${voterGuidePossibilityId}&organization_we_vote_id=${organizationWeVoteId}&internal_notes=${encodeURIComponent(internalNotes)}&contributor_email=${contributorEmail}`;
     // debug &&
     console.log('voterGuidePossibilityPositionSave: ' + apiURL);
     $.getJSON(apiURL, '', (res) => {

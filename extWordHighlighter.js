@@ -30,17 +30,6 @@ let activeTabIdGlobal;
 let activeUrlGlobal = '';
 let aliasNames = [];
 
-const groupNames = {
-  POSSIBILITY_SUPPORT: 'POSSIBILITY_SUPPORT',
-  POSSIBILITY_OPPOSE: 'POSSIBILITY_OPPOSE',
-  POSSIBILITY_INFO: 'POSSIBILITY_INFO',       // INFO_ONLY IS A DEPRECATED STATE, COMES THROUGH API AS NO_STANCE
-  STORED_SUPPORT: 'STORED_SUPPORT',
-  STORED_OPPOSE: 'STORED_OPPOSE',
-  STORED_INFO: 'STORED_INFO',                 // INFO_ONLY IS A DEPRECATED STATE, COMES THROUGH API AS NO_STANCE
-  DELETED: 'DELETED',
-  DEFAULT: 'DEFAULT'
-};
-
 $(() => {
   console.log('extWordHighlighter constructor');
 });
@@ -151,19 +140,19 @@ function preProcessNeverList (neverList) {
 function getColor (typeStance, foreground) {
   switch (typeStance) {
     case 'POSSIBILITY_SUPPORT':
-      return foreground ? '#FFFFFF' : '#27af72';
+      return foreground ? colors.POSS_SUPPORT_FOREGROUND : colors.POSS_SUPPORT_BACKGROUND;
     case 'POSSIBILITY_OPPOSE':
-      return foreground ? '#FFFFFF' : '#fb6532';
+      return foreground ? colors.POSS_OPPOSE_FOREGROUND : colors.POSS_OPPOSE_BACKGROUND;
     case 'POSSIBILITY_INFO':
-      return foreground ? '#FFFFFF' : '#7c7b7c';
+      return foreground ? colors.POSS_INFO_FOREGROUND : colors.POSS_INFO_BACKGROUND;
     case 'STORED_SUPPORT':
-      return foreground ? '#28b074' : '#b4e7cd';
+      return foreground ? colors.STORED_SUPPORT_FOREGROUND : colors.STORED_SUPPORT_BACKGROUND;
     case 'STORED_OPPOSE':
-      return foreground ? '#f16936' : '#f7c9b8';
+      return foreground ? colors.STORED_OPPOSE_FOREGROUND : colors.STORED_OPPOSE_BACKGROUND;
     case 'STORED_INFO':
-      return foreground ? '#818082' : '#dad8da';
+      return foreground ? colors.STORED_INFO_FOREGROUND : colors.STORED_INFO_BACKGROUND;
     case 'DELETED':
-      return foreground ? '#aa0311' : '#f0c7c8';
+      return foreground ? colors.DELETED_FOREGROUND : colors.DELETED_BACKGROUND;
     case 'DEFAULT':
     default:
       return foreground ? '#000' : '#ff6';
@@ -470,7 +459,7 @@ chrome.runtime.onMessage.addListener(
       }
       sendResponse({success: 'ok'});
     } else if(request.command==='voterGuidePossibilitySave') {
-      voterGuidePossibilitySave(request.organizationWeVoteId, request.voterGuidePossibilityId, request.internalNotes, sendResponse);
+      voterGuidePossibilitySave(request.organizationWeVoteId, request.voterGuidePossibilityId, request.internalNotes, request.contributorEmail, sendResponse);
 
       // The following commands are from "Highlight This", and are not currently in use
 
