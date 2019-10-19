@@ -51,7 +51,7 @@ function buildUI () {
   $('#frame').attr('src', hr);
   topMenu();
   updateTopMenu();
-  signIn(false);             // Calls updatePositionsPanel
+  signIn(false);                       // Calls updatePositionsPanel
   initializeOrgChoiceList();           //  Does not display org choice list if not logged in, or have chosen an org
   greyAllPositionPanes(false);
 }
@@ -122,7 +122,7 @@ function signIn (showDialog) {
 
       if (voterInfo.success) {
         $('#signIn').replaceWith(
-          "<img id='signOut' class='voterPhoto removeContentStyles' alt='candidateWe' width='35' height='35' src='" + voterInfo.photo + "' style='margin: 12px;'  />");
+          "<img id='signOut' class='gridSignInTop voterPhoto removeContentStyles' alt='candidateWe' width='35' height='35' src='" + voterInfo.photo + "' style='margin: 12px;'  />");
         updatePositionsPanel();
         document.getElementById('signOut').addEventListener('click', function () {
           debugLog('Sign Out pressed');
@@ -160,18 +160,22 @@ function signOut () {
 
 function topMenu () {
   let topMarkup = '' +
-    "<div id='topMenuDiv'>" +
-    "  <img id='orgLogo' src='https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png' alt=''>" +
-    // TODO:                 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png'
-    "  <b><span id='orgName'></span></b>" +
-    '</div>' +
-    "<input type='text' id='emailWe' name='email' placeholder='Email' >" +
-    "<input type='text' id='topComment' name='topComment' placeholder='Comment here... (for unauthenticated suggestions)' >" +
-    "<div style='width: 100%; float: right'>" +
-    "  <button type='button' id='signIn' class='signInButton weButton removeContentStyles'>SIGN IN</button>" +
-    '</div>' +
-    "<span id='loginPopUp'></span>"+
-    '<div id="dlgAnchor"></div>';
+    '<div id="topMenuContainer" class="topMenuContainer">' +
+    '  <img id="orgLogo" class="gridOrgIcon" src="https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png" alt="">' +
+    // TODO:                                     'https://wevote.us/img/endorsement-extension/endorsement-icon48.png'
+    '  <div id="orgName" class="gridOrgName core-text"></div>' +
+    '  <span class="gridSend">' +
+    '    <span class="innerGridSend">' +
+    '      <span class="topCommentLabel core-text">Send us a comment about this page: </span>' +
+    '      <input type="text" id="emailWe" class="" name="email" placeholder="Your email" >' +
+    '      <input type="text" id="topComment" name="topComment" placeholder="Comment here..." >' +
+    '      <button type="button" id="sendTopComment" class="sendTopComment weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">Send</button>' +
+    '    </span>' +
+    '  </span>' +
+    '  <button type="button" id="signIn" class="gridSignInTop  weButton removeContentStyles">SIGN IN</button>' +
+    '  <span id="loginPopUp"></span>' +
+    '  <div id="dlgAnchor"></div>' +
+  '</div>';
   $('#topMenu').append(topMarkup);
 
   document.getElementById('signIn').addEventListener('click', function () {
@@ -244,8 +248,9 @@ function updateTopMenu () {
 
         $('#orgLogo').attr('src', orgLogo);
         $('#orgName').text(orgName ? orgName : 'Organization not found for this URL');
-        $('#emailWe').css('background', 'lightgrey').attr('disabled', true);    // The purpose of this field is to allow cloud sourced comments from un-authenticated, and untrusted public voters
-        $('#topComment').css('background', 'lightgrey').attr('disabled', true); // Also for cloudsourced comments from un-authenticated, and untrusted public voters
+        $('#sendTopComment').click(() => {
+          sendTopComment();
+        });
         state.voterGuidePossibilityId = possibilityId;
         state.possibleOrgsList = noExactMatchOrgList;
         debugLog('updateTopMenu voterGuidePossibilityId: ' + state.voterGuidePossibilityId);
@@ -258,6 +263,7 @@ function updateTopMenu () {
       }
     });
 }
+
 
 function updatePositionsPanel () {
   debugLog('updatePositionsPanel() getPositions');
@@ -503,13 +509,13 @@ function unfurlableGrid (index, name, photo, party, office, inLeftPane, detached
 
 function backgroundColor (stance, isStored) {
   if (stance === 'SUPPORT') {
-    return isStored ? '#60b864' : '#a6d5bd';
+    return isStored ? colors.STORED_SUPPORT_BACKGROUND : colors.POSS_SUPPORT_BACKGROUND;
   }
   if (stance === 'OPPOSE') {
-    return isStored ? '#f16936' : '#f7c9b8';
+    return isStored ? colors.STORED_OPPOSE_BACKGROUND : colors.POSS_OPPOSE_BACKGROUND;
   }
   if (stance === 'NO_STANCE') {
-    return '#888888';
+    return colors.POSS_INFO_BACKGROUND;
   }
 
   return 'purple';
@@ -961,9 +967,9 @@ function orgChoiceDialog (orgList) {
       function (res) {
         let {lastError} = runtime;
         if (lastError) {
-          console.warn(' chrome.runtime.sendMessage("voterGuidePossibilitySave")', lastError.message);
+          console.warn(' chrome.runtime.sendMessage("setSideAreaStatus voterGuidePossibilitySave")', lastError.message);
         }
-        debugLog('voterGuidePossibilitySave() response', res);
+        debugLog('setSideAreaStatus voterGuidePossibilitySave() response', res);
         const{ organization_we_vote_id: id } = res.res.organization;
         if (id && id.length) {
           updateTopMenu();
@@ -971,6 +977,38 @@ function orgChoiceDialog (orgList) {
           setSideAreaStatus('No Candidate endorsements have been captured yet.');
         }
       });
+    });
+  });
+}
+
+function sendTopComment () {
+  // console.log('orgChoiceDialog  button onclick:  ' + event.currentTarget.id);
+  const {chrome: {runtime: {sendMessage}}} = window;
+  sendMessage({
+    command: 'voterGuidePossibilitySave',
+    organizationWeVoteId: state.organizationWeVoteId,
+    voterGuidePossibilityId: state.voterGuidePossibilityId,
+    internalNotes: $('#topComment').val(),
+    contributorEmail: $('#emailWe').val(),
+    voterWeVoteId : state.voterWeVoteId,
+  },
+  function (res) {
+    let {lastError} = runtime;
+    if (lastError) {
+      console.warn(' chrome.runtime.sendMessage("sendTopComment voterGuidePossibilitySave")', lastError.message);
+    }
+    debugLog('sendTopComment voterGuidePossibilitySave() response', res);
+    $('#dlgAnchor').dialog({
+      show: true,
+      width: 330,
+      height: 65,
+      resizable: false,
+      fixedDimensions: true,
+      position: { my: 'right top', at: 'left bottom', of: '#sendTopComment' },
+      open: function () {
+        const markup = '<div class="core-text" style="text-align: center; font-size: large; padding-top: 10px;">Thank you for your help!</div>';
+        $(this).html(markup);
+      },
     });
   });
 }

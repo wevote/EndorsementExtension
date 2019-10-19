@@ -99,3 +99,91 @@
   transform: translate(10px);
   filter: invert(12%) sepia(85%) saturate(7424%) hue-rotate(0deg) brightness(107%) contrast(112%);  /* red */
 }
+
+/* ---- Top Menu Styles ---- */
+
+.topMenuContainer {
+  display: grid;
+  grid-template-areas:
+    'orgIconTop blank1  signInTop'
+    'orgTop     sendTop blank2';
+  grid-template-columns: 150px  auto 50px;
+  grid-template-rows: 60px  auto;
+  grid-gap: 1px;
+  width: 100%;
+  margin: 2px 8px 8px 8px;
+}
+
+.gridOrgIcon {
+  grid-area: orgIconTop;
+  padding-left: 2px;
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.2);
+}
+
+.gridBlank1 {
+  grid-area: blank1;
+}
+
+.gridBlank2 {
+  grid-area: blank2;
+}
+
+.gridSend {
+  grid-area: sendTop;
+  padding-left:8px;
+}
+
+.innerGridSend {
+  padding: 6px 10px 8px 8px;
+  border: 1px solid grey;
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.2);
+}
+
+.gridSignInTop {
+  grid-area: signInTop;
+  height: 20px;
+  width: 65px;
+  transform: translate(-14px, 0px);
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.2);
+}
+
+.gridOrgName {
+  grid-area: orgTop;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+#topMenu input{
+  margin: 0 0 0 10px;
+  padding: 0 0 0 4px;
+}
+
+.topCommentLabel {
+  transform: translate(2px, 2px);
+}
+
+#topComment {
+  height: 20px;
+  border-color: rgb(206,212,218);
+  border-width: 1px;
+  border-radius: 4px;
+  width: 50%;
+}
+
+#emailWe {
+  height: 20px;
+  border-color: rgb(206,212,218);
+  border-width: 1px;
+  border-radius: 4px;
+  width: 10%;
+}
+
+.sendTopComment {
+  transform: translate(2px, 2px);
+}
+
+.voterPhoto {
+  height: 35px;
+  border-radius: 4px;
+  margin: 0 12px 0 12px;
+}

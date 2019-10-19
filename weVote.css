@@ -216,18 +216,6 @@
   font-size: 12px !important;
 }
 
-.signInButton {
-  float: right;
-  margin: 48px 10px 0 0;
-}
-
-.voterPhoto {
-  float: right;
-  margin: 48px 0 0 0;
-  height: 35px;
-  border-radius: 4px;
-}
-
 [class^="saveButton"] {
   float: right;
   padding: 0 4px;
@@ -284,29 +272,7 @@
   vertical-align: middle
 }
 
-#emailWe {
-  height: 20px;
-  margin: 46px 0 10px 50px;
-  padding: unset;
-  border-color: rgb(206,212,218);
-  border-width: 1px;
-  border-radius: 4px;
-  width: 10%;
-}
 
-#topMenu input{
-  padding: 0;
-  margin: 40px 0 10px 10px;
-}
-
-#topComment {
-  height: 20px;
-  margin: 46px 0 10px 10px;
-  border-color: rgb(206,212,218);
-  border-width: 1px;
-  border-radius: 4px;
-  width: 80%;
-}
 
 #newGuide {
   margin: 5px;
