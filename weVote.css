@@ -45,6 +45,8 @@
 
 .unfurlable {
   height: 60px;
+  display: grid;
+  width: 428px;
 }
 
 .candidateWe {
@@ -52,10 +54,12 @@
   padding-bottom: 6px;
 }
 
-.photo {
-  height: 50px;
-  width: 50px;
+.photoWe {
+  height: 50px !important;
+  width: 50px !important;
+  max-width: 100%;
   float: left;
+  padding: 0;
 }
 
 .nameBox {
@@ -133,6 +137,7 @@
   height: 25px;
   padding: 0 4px;
 }
+
 [class^="orgChoiceButton"] {
   width: unset;
   /*height: 25px;*/
@@ -271,8 +276,6 @@
   margin: 5px 60px 5px 0;
   vertical-align: middle
 }
-
-
 
 #newGuide {
   margin: 5px;

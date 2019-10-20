@@ -122,7 +122,8 @@ function signIn (showDialog) {
 
       if (voterInfo.success) {
         $('#signIn').replaceWith(
-          "<img id='signOut' class='gridSignInTop voterPhoto removeContentStyles' alt='candidateWe' width='35' height='35' src='" + voterInfo.photo + "' style='margin: 12px;'  />");
+          '<img id="signOut" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" width="35" height="35" src="' + voterInfo.photo + '" ' +
+              'style="margin: 12px; width: 48px; height: 48px;" />');
         updatePositionsPanel();
         document.getElementById('signOut').addEventListener('click', function () {
           debugLog('Sign Out pressed');
@@ -165,10 +166,10 @@ function topMenu () {
     // TODO:                                     'https://wevote.us/img/endorsement-extension/endorsement-icon48.png'
     '  <div id="orgName" class="gridOrgName core-text"></div>' +
     '  <span class="gridSend">' +
-    '    <span class="innerGridSend">' +
+    '    <span class="innerGridSend core-text">' +
     '      <span class="topCommentLabel core-text">Send us a comment about this page: </span>' +
-    '      <input type="text" id="emailWe" class="" name="email" placeholder="Your email" >' +
-    '      <input type="text" id="topComment" name="topComment" placeholder="Comment here..." >' +
+    '      <input type="text" id="emailWe" class="core-text" name="email" placeholder="Your email" >' +
+    '      <input type="text" id="topComment" class="core-text"  sname="topComment" placeholder="Comment here..." >' +
     '      <button type="button" id="sendTopComment" class="sendTopComment weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">Send</button>' +
     '    </span>' +
     '  </span>' +
@@ -407,6 +408,7 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
     "<div class='candidateWe " + candNo + "'>" +
     "  <div id='unfurlable-" + i + "' class='unfurlable' >" +
          unfurlableGrid(i, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, comment.trim().length > 0, false) +
+    // "    <div style='height: 1px; width: 380px'></div>" +
     "    <input type='hidden' id='candidateName-" + i + "' value='" + name + "'>" +
     "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidateWeVoteId + "'>" +
     "    <input type='hidden' id='voterGuidePossibilityId-" + i + "' value='" + voterGuidePossibilityId + "'>" +
@@ -488,9 +490,9 @@ function unfurlableGrid (index, name, photo, party, office, inLeftPane, detached
   }
 
   let markup =
-    '<div class="gridUnfurlableContainer">' +
+    '<div class="gridUnfurlableContainer core-text">' +
       '<div class="gridCandidatePhoto">' +
-        '<img class="photo removeContentStyles" alt="candidateWe" src="' + photo + '">' +
+        '<img class="photoWe removeContentStyles" alt="candidateWe" src="' + photo + '">' +
       '</div>' +
         (detachedDialog ? ('<input type="text" class="candidateNameInput-' + index + '"/>') : ('<div class="gridCandidateName">' + name + '</div>')) +
         '<div class="gridIcon">' +
