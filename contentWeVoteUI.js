@@ -122,8 +122,7 @@ function signIn (showDialog) {
 
       if (voterInfo.success) {
         $('#signIn').replaceWith(
-          '<img id="signOut" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" width="35" height="35" src="' + voterInfo.photo + '" ' +
-              'style="margin: 12px; width: 48px; height: 48px;" />');
+          "<img id='signOut' class='gridSignInTop voterPhoto removeContentStyles' alt='candidateWe' width='35' height='35' src='" + voterInfo.photo + "' style='margin: 12px;'  />");
         updatePositionsPanel();
         document.getElementById('signOut').addEventListener('click', function () {
           debugLog('Sign Out pressed');
@@ -325,11 +324,17 @@ function updatePositionsPanel () {
               positionWeVoteId,
               voterGuidePossibilityId,
             };
+
+            let offs = allHtml.indexOf(name);
+            for (let j = 0; j < alternateNames.length && offs < 0; j++) {
+              offs = allHtml.indexOf(alternateNames[j]);
+            }
+
             positions.push({
               position,
               selector,
               insert,
-              sortOffset: allHtml.indexOf(name),
+              sortOffset: offs,
             });
             insert++;
           }
@@ -408,7 +413,6 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
     "<div class='candidateWe " + candNo + "'>" +
     "  <div id='unfurlable-" + i + "' class='unfurlable' >" +
          unfurlableGrid(i, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, comment.trim().length > 0, false) +
-    // "    <div style='height: 1px; width: 380px'></div>" +
     "    <input type='hidden' id='candidateName-" + i + "' value='" + name + "'>" +
     "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidateWeVoteId + "'>" +
     "    <input type='hidden' id='voterGuidePossibilityId-" + i + "' value='" + voterGuidePossibilityId + "'>" +
