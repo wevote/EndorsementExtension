@@ -122,7 +122,8 @@ function signIn (showDialog) {
 
       if (voterInfo.success) {
         $('#signIn').replaceWith(
-          "<img id='signOut' class='gridSignInTop voterPhoto removeContentStyles' alt='candidateWe' width='35' height='35' src='" + voterInfo.photo + "' style='margin: 12px;'  />");
+          '<img id="signOut" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" src="' + voterInfo.photo + '" ' +
+            'style="margin: 12px; width: 50px; height: 50px;" />');
         updatePositionsPanel();
         document.getElementById('signOut').addEventListener('click', function () {
           debugLog('Sign Out pressed');
@@ -432,8 +433,8 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
            supportButton(i, 'info', stance) +
     '    </span>' +
     "    <textarea rows='6' class='statementText-" + i + " removeContentStyles' />" +
-    '    <br><span class="core-text">If dedicated candidate page exists, enter URL here:</span>' +
-    "    <input type='text' class='moreInfoURL-" + i + " weInfoText removeContentStyles' />" +
+    '    <br><span class="core-text" style="margin: 0; text-align: left;">If dedicated candidate page exists, enter URL here:</span>' +
+    '    <input type="text" class="moreInfoURL-' + i + ' weInfoText removeContentStyles" style="margin: 0; text-align: left;" />' +
     "    <span class='buttons'>";
   if (!detachedDialog) {
     markup += " <button type='button' class='revealLeft-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Reveal</button>";
