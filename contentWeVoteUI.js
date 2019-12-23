@@ -1,6 +1,5 @@
 const { $, chrome: { runtime } } = window;
-const defaultImage = 'https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png';
-// TODO:             'https://wevote.us/img/endorsement-extension/endorsement-icon48.png'
+const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
 let state = {
   voterGuidePossibilityId: '',
   organizationWeVoteId: '',
@@ -114,7 +113,6 @@ function signIn (showDialog) {
         err: err,
         name: voterName,
         photo: (!photoURL || photoURL.length < 10) ? 'https://wevote.us/img/global/icons/avatar-generic.png' : photoURL,
-        // TODO:                                             'https://wevote.us/img/endorsement-extension/avatar-generic-icon.png'
         voterId: weVoteId,
         email: voterEmail
       };
@@ -162,8 +160,7 @@ function signOut () {
 function topMenu () {
   let topMarkup = '' +
     '<div id="topMenuContainer" class="topMenuContainer">' +
-    '  <img id="orgLogo" class="gridOrgIcon" src="https://raw.githubusercontent.com/wevote/EndorsementExtension/develop/icon48.png" alt="">' +
-    // TODO:                                     'https://wevote.us/img/endorsement-extension/endorsement-icon48.png'
+    '  <img id="orgLogo" class="gridOrgIcon" src="https://wevote.us/img/endorsement-extension/endorsement-icon48.png" alt="">' +
     '  <div id="orgName" class="gridOrgName core-text"></div>' +
     '  <span class="gridSend">' +
     '    <span class="innerGridSend core-text">' +
@@ -432,7 +429,7 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
            supportButton(i, 'oppose', stance) +
            supportButton(i, 'info', stance) +
     '    </span>' +
-    "    <textarea rows='6' class='statementText-" + i + " removeContentStyles' />" +
+    "    <textarea rows='6' class='statementText-" + i + " removeContentStyles' style='margin: 0; text-align: left;'/>" +
     '    <br><span class="core-text" style="margin: 0; text-align: left;">If dedicated candidate page exists, enter URL here:</span>' +
     '    <input type="text" class="moreInfoURL-' + i + ' weInfoText removeContentStyles" style="margin: 0; text-align: left;" />' +
     "    <span class='buttons'>";
