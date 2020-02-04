@@ -80,13 +80,19 @@ function getVoterSignInInfo (sendResponse) {
   if (voterDeviceId && voterDeviceId.length > 0) {
     $.getJSON(apiURL, '', (res) => {
       debug&&console.log('get json from getVoterSignInInfo voterRetrieve API SUCCESS', res);
-      const {success, full_name: fullName, we_vote_id: weVoteId, voter_photo_url_medium: photoURL } = res;
+      const {success, full_name: fullName, we_vote_id: weVoteId, voter_photo_url_medium: photoURL, is_signed_in: isSignedIn,
+        signed_in_facebook: signedInFacebook, signed_in_google: signedInGoogle, signed_in_twitter: signedInTwitter, signed_in_with_email: signedInWithEmail } = res;
       data = {
-        success:  success,
+        success,
         error:    success ? '' : res.status,
-        fullName: fullName,
-        photoURL: photoURL,
-        weVoteId: weVoteId,
+        fullName,
+        photoURL,
+        weVoteId,
+        isSignedIn,
+        signedInFacebook,
+        signedInGoogle,
+        signedInTwitter,
+        signedInWithEmail
       };
       // console.log("get json from updateSignedInVoter photoURL" + photoURL);
       sendResponse({data: data});

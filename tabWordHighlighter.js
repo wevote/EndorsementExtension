@@ -40,7 +40,10 @@ var debug = false;
 // https://projects.sfchronicle.com/2018/voter-guide/endorsements-list/
 
 $(() => {
-  // console.log("tabWordHighlighter constructor");
+  console.log('tabWordHighlighter constructor');
+  console.log('Hack that sets debugLocal to true in place ------------------------------------');
+  window.debugLocal = true;
+
 
   if (window.location === window.parent.location) {
     //only listen for messages in the main page, not in iframes
@@ -180,7 +183,7 @@ function getWordsThenStartHighlighting () {
   }, function (response) {
     debug && console.log('Received response in getWordsThenStartHighlighting');
 
-    let lastError = chrome.runtime.lastError;
+    let {lastError} = chrome.runtime;
     if (lastError) {
       console.warn('chrome runtime sendMessage("getWords")',lastError.message);
       return;
@@ -332,7 +335,7 @@ function findWords () {
 
         let len = Object.keys(highlightMarkers).length;
         for (let i = 0; i < len; i++) {
-          let word = highlightMarkers[i].word;
+          let {word} = highlightMarkers[i];
           if (!uniqueNameMatches.includes(word)) {
             uniqueNameMatches.push(word);
           }
@@ -344,7 +347,7 @@ function findWords () {
           uniqueNames: uniqueNameMatches,
           altColor: uniqueNameMatches.length ? '' : 'darkgreen',
         }, function (response) {
-          let lastError = chrome.runtime.lastError;
+          let {lastError} = chrome.runtime;
           if (lastError) {
             console.warn(' chrome.runtime.sendMessage("showHighlightsCount")',lastError.message);
           }
@@ -356,7 +359,7 @@ function findWords () {
           uniqueNames: [],
           altColor: 'darkgreen',
         }, function (response) {
-          let lastError = chrome.runtime.lastError;
+          let {lastError} = chrome.runtime;
           if (lastError) {
             console.warn(' chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
           }
