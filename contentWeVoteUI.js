@@ -104,7 +104,7 @@ function signIn (showDialog) {
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
-      const { success, error, err, voterName, photoURL, weVoteId, voterEmail } = response.data;
+      const { success, error, err, voterName, photoURL, weVoteId, voterEmail, isSignedIn } = response.data;
       state.voterWeVoteId = weVoteId || '';
       debugLog('signIn response: ', response);
       let voterInfo = {
@@ -114,11 +114,12 @@ function signIn (showDialog) {
         name: voterName,
         photo: (!photoURL || photoURL.length < 10) ? 'https://wevote.us/img/global/icons/avatar-generic.png' : photoURL,
         voterId: weVoteId,
-        email: voterEmail
+        email: voterEmail,
+        isSignedIn
       };
       // Unfortunately /avatar-generic.png can't be "served" from the page, since file loading is relative to the endorsement page
 
-      if (voterInfo.success) {
+      if (voterInfo.success && voterInfo.isSignedIn) {
         $('#signIn').replaceWith(
           '<img id="signOut" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" src="' + voterInfo.photo + '" ' +
             'style="margin: 12px; width: 50px; height: 50px;" />');
@@ -134,13 +135,19 @@ function signIn (showDialog) {
         if (showDialog) {
           $('#loginPopUp').dialog({
             dialogClass: 'no-close',
-            width: 500,
+            width: 450,
             position: { my: 'right top', at: 'left bottom', of: '#signIn' },
             open: function () {
-              const markup = "<div style='text-align: center;'><br><b>Authenticate this \"We Vote Endorsement Tool\" Chrome extension,</b><br>" +
-                ' by logging into the We Vote WebApp (https://wevote.us) in another tab.<br><br>' +
-                'Once you have logged into the We Vote Web App, ' +
-                'navigate back to this tab and press the <b>SIGN IN</b> button again to authenticate the "We Vote Endorsement Tool" Chrome Extension.</div>';
+              $('.u2i-dialog-titlebar').css('background-color', '#2E3C5D');
+
+              const markup =
+                '<div>' +
+                '   <div style=\'margin-bottom: .75rem; padding-left: 10px;\'><b>To sign in</b></div>' +
+                '   <div style=\'margin-bottom: .5rem; padding-left: 20px;\'>1) Sign in at ' +
+                '     <a href="https://wevote.us" target="_blank" style="text-decoration: underline; color: #326891;">WeVote.us</a>' +
+                '   </div>' +
+                '   <div style=\'margin-bottom: .5rem; padding-left: 20px;\'>2) Return to this tab and click the "Sign In" button again</div>' +
+                '</div>';
               $(this).html(markup);
               setSideAreaStatus();
               setSideAreaStatus('No Candidate endorsements have been captured yet.');
