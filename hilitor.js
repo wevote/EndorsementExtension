@@ -9,6 +9,7 @@
 //  - stop the recursive search for words at the id weContainer (our menus)
 //  - stop at the id noDisplayPageBeforeFraming (the original dom, that becomes dormant and invisible, with a fresh copy in the new iframe)
 
+/* global $ */
 
 function Hilitor (id, tag) {
 
@@ -192,6 +193,7 @@ function Hilitor (id, tag) {
         }
 
         if (wordColor[wordfound] != undefined) {
+          let urlHref = '';  //WeVote
 
           if ((node.parentElement.tagName == hiliteTag && node.parentElement.className == hiliteClassname)) {
             //skip highlighting
@@ -217,6 +219,21 @@ function Hilitor (id, tag) {
             match.style.fontStyle = 'inherit';
 
             if (!inContentEditable || (inContentEditable && wordColor[wordfound].ShowInEditableFields)) {
+              // Begin modification for WeVote
+              // If the name is in a link tag, disable it.
+              if (node.parentNode.localName === 'a') {
+                urlHref = node.parentNode.href;
+                $(node.parentNode).css({
+                  'pointer-events': 'none',
+                  cursor: 'default'
+                });
+              }
+              // Icon within highlights in the DOM of the endorsement page
+              if(wordColor[word].Icon.length) {
+                $(match).prepend(wordColor[word].Icon);
+              }
+
+              // End of modification for WeVote
               var after = node.splitText(regs.index);
               after.nodeValue = after.nodeValue.substring(regs[0].length);
 
@@ -233,7 +250,9 @@ function Hilitor (id, tag) {
             'word': wordColor[wordfound].word,
             'offset': nodeAttributes.offset,
             'hidden': nodeAttributes.isInHidden,
-            'color': wordColor[wordfound].Color
+            'color': wordColor[wordfound].Color,
+            'href': encodeURI(urlHref)
+            // 'href': urlHref  STEVE STEVE yyyyyyyyyyyy  This stopped it from working 2/4/20 7pm
           };
 
           numberOfHighlights += 1;

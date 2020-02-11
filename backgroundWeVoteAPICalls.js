@@ -17,6 +17,13 @@ function getHighlightsListFromApiServer (locationHref, doReHighlight, sendRespon
     debug&&console.log('voterGuideHighlightsRetrieve API SUCCESS', res);
     let highlightsList = res['highlight_list'];
     let neverHighLightOn = res['never_highlight_on'];
+
+    // February 2020, these are temporary and can be removed once the iPhone server is updated
+    neverHighLightOn.push("blank");
+    neverHighLightOn.push("platform.twitter.com");
+    neverHighLightOn.push("s7.addthis.com");
+    neverHighLightOn.push("vars.hotjar.com");
+    neverHighLightOn.push("*.google.com");
     debug&&console.log('get json highlightsList: ', highlightsList);
     initializeHighlightsData(highlightsList, neverHighLightOn);
     if (doReHighlight) {

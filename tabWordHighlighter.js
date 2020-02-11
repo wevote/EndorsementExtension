@@ -35,7 +35,7 @@ let voterInfo = {};
 let uniqueNameMatches = [];
 let voterDeviceId = '';
 
-var debug = false;
+var debug = true;
 
 // https://projects.sfchronicle.com/2018/voter-guide/endorsements-list/
 
@@ -50,7 +50,7 @@ $(() => {
     chrome.runtime.onMessage.addListener(
       function (request, sender, sendResponse) {
         /* debug && */
-        console.log('got a message', request);
+        console.log('onMessage.addListener() intabWordHighlighter got a message: '+ request.command);
 
         if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
             sender.id === 'eofojjpbgfdogalmibgljcgdipkhoclc' ||
@@ -135,12 +135,13 @@ function reHighlight (words) {
   for (let group in words) {
     if (words[group].Enabled) {
       for (word in words[group].Words) {
-        debug&&console.log('reHighlight word = ' + word);
+        console.log('reHighlight word = ' + word);
         wordsArray.push({
           word: words[group].Words[word].toLowerCase(),
           'regex': globStringToRegex(words[group].Words[word]),
           'Color': words[group].Color,
           'Fcolor': words[group].Fcolor,
+          'Icon': words[group].Icon,
           'FindWords': words[group].FindWords,
           'ShowInEditableFields': words[group].ShowInEditableFields
         });
@@ -197,14 +198,16 @@ function getWordsThenStartHighlighting () {
     for (let group in response.words) {
       if (response.words[group].Enabled) {
         for (word in response.words[group].Words) {
-          debug&&console.log('getWords response, ' + word + ', group: ' + group + ', findWords: ' + response.words[group].FindWords);
+          debug&&console.log('getWords response, ' + word + ', group: ' + group + ', findWords: ' + response.words[group].FindWords + ' icon: ' + response.words[group].Icon);
           let wordText = response.words[group].Words[word];
           if (wordText) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
+            // console.log('getWordsThenStartHighlighting word = ' + word + ', wordText: ' + wordText + ', Icon: ' + response.words[group].Icon);
             wordsArray.push({
               word: response.words[group].Words[word].toLowerCase(),
               'regex': globStringToRegex(response.words[group].Words[word]),
               'Color': response.words[group].Color,
               'Fcolor': response.words[group].Fcolor,
+              'Icon': response.words[group].Icon,
               'FindWords': response.words[group].FindWords,
               'ShowInEditableFields': response.words[group].ShowInEditableFields
             });

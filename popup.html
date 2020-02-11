@@ -2,33 +2,53 @@
     <head>
         <script src="popup.js"></script>
         <script src="libs/jquery/jquery-3.4.0.min.js"></script>
+        <link rel="stylesheet" href="onOffSwitch.css" type="text/css">
         <link rel="stylesheet" href="application.css" type="text/css">
         <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
     </head>
     <body style="padding-bottom: 15px;">
-        <div class="header" id="header">
-            <span class="title"><span id="litTitle"></span> <span id="offDesc"></span></span>
-            <a id="settingsLink" ><i class="fa fa-cog" aria-hidden="true"></i></a>
-        </div>
 
-        <span class="switchRow">
-            <div class="switchTextLabel" >Enable Endorsement Tool On This Page</div>
-            <div class="onoffswitch">
-                <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="myonoffswitch" checked>
-                <label class="onoffswitch-label" for="myonoffswitch">
-                    <div class="onoffswitch-inner"></div>
-                    <div class="onoffswitch-switch"></div>
-                </label>
+        <div class="containerDiv">
+            <img id="orgLogo" class="gridOrgIcon" src="https://wevote.us/img/we-vote-logo-horizontal-color-dark-141x46.svg" alt="">
+
+            <div class="buttonDiv">
+                <button type='button' class='weButton weButtonBlue'>JUMP TO MY BALLOT</button>
             </div>
-        </span>
+            <div class="buttonDiv">
+                <button type='button' class='weButton'>ALL ENDORSEMENTS: SIERRA CLUB</button>
+            </div>
 
-        <div>
-            <table id="enabledURLs">
-                <tr>
-                    <th>Pages that are enabled for highlighting</th>
-                    <th>Action</th>
-                </tr>
-            </table>
+            <hr>
+
+            <div id="enableHighlighting" class="switchRow">
+                <div class="switchTextLabel" >Enable Highlighting</div>
+                <div class="onoffswitch">
+                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="enableHighlightingSwitch">
+                    <label class="onoffswitch-label" for="enableHighlightingSwitch"></label>
+                </div>
+            </div>
+
+            <div id="viewCandidatesThisTab" class="switchRow">
+                <div class="switchTextLabel" >Highlight Candidates on This Tab</div>
+                <div class="onoffswitch">
+                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="highlightCandidatesThisTabSwitch">
+                    <label class="onoffswitch-label" for="highlightCandidatesThisTabSwitch"></label>
+                </div>
+            </div>
+
+            <div id="viewCandidates" class="switchRow">
+                <div class="switchTextLabel" >Highlight Candidates on All Tabs</div>
+                <div class="onoffswitch">
+                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="highlightCandidatesOnAllTabsSwitch">
+                    <label class="onoffswitch-label" for="highlightCandidatesOnAllTabsSwitch"></label>
+                </div>
+            </div>
+
+            <div style="padding: 24px"></div>
+
+            <div class="buttonDiv">
+                <button type='button' id='openEditPanel' class='weButton'>OPEN EDIT PANEL</button>
+            </div>
         </div>
     </body>
 </html>

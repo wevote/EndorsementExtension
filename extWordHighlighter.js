@@ -90,7 +90,7 @@ function promoteAliasesThatArriveAsDefault (highlightsList) {
 }
 
 function initializeHighlightsData (highlightsList, neverHighLightOn) {
-  // console.log("START START START initializeHighlightsData");
+  console.log("START START START initializeHighlightsData");
   promoteAliasesThatArriveAsDefault(highlightsList);
 
   HighlightsData.Version = '12';
@@ -106,6 +106,7 @@ function initializeHighlightsData (highlightsList, neverHighLightOn) {
       'groupName': groupName,
       'Fcolor': getColor(groupName, true),
       'Color': getColor(groupName, false),
+      'Icon': getIcon(groupName),
       'ShowInEditableFields': false,
       'Enabled': true,
       'FindWords': true,
@@ -118,6 +119,7 @@ function initializeHighlightsData (highlightsList, neverHighLightOn) {
     debugE && console.log('groupName: ' + groupName + ', group: ' + group);
     HighlightsData.Groups.push(groupName, group);
   }
+  // I believe local storage of highlights data is a red herring, and it's not being used anymore
   localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
 
   printHighlights = HighlightsData.PrintHighlights;
@@ -159,6 +161,28 @@ function getColor (typeStance, foreground) {
   }
 }
 
+function getIcon (typeStance) {
+  switch (typeStance) {
+    case 'POSSIBILITY_SUPPORT':
+      return markupForThumbSvg('thumbIconSVGContent', 'endorse', getColor (typeStance, true));
+    case 'POSSIBILITY_OPPOSE':
+      return markupForThumbSvg('thumbIconSVGContent', 'oppose',  getColor (typeStance, true));
+    case 'POSSIBILITY_INFO':
+      return '';
+    case 'STORED_SUPPORT':
+      return markupForThumbSvg('thumbIconSVGContent', 'endorse', getColor (typeStance, true));
+    case 'STORED_OPPOSE':
+      return markupForThumbSvg('thumbIconSVGContent', 'oppose',  getColor (typeStance, true));
+    case 'STORED_INFO':
+      return '';
+    case 'DELETED':
+      return '';
+    case 'DEFAULT':
+    default:
+      return '';
+  }
+}
+
 function createSearchMenu (){
   /* debugE&& */
   console.log('createSearchMenu has been called');
@@ -185,7 +209,7 @@ function updateContextMenu (inUrl){
     removeAll();
     createSearchMenu();
     let contexts = ['selection'];
-    let filteredGroups=getWords(inUrl);  // Don't show highlights on pages that have been excluded
+    let filteredGroups=getWordsBackground(inUrl);  // Don't show highlights on pages that have been excluded
 
     let sortedByModified = [];
 
@@ -415,7 +439,7 @@ chrome.commands.onCommand.addListener(function (command) {
 
 chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {    // eslint-disable-line complexity
-    debugE && console.log('XXXXXX message received', request, sender, sender.tab.id);
+    debugE && console.log('XXXXXX message received -- ' + request.command + ': ', request, sender, sender.tab.id);
     //request=JSON.parse(evt.data);
     if (request.command === 'getTopMenuData') {
       getOrganizationFound(request.url, sendResponse);
@@ -440,7 +464,7 @@ chrome.runtime.onMessage.addListener(
         localStorage['voterDeviceId'] = request.id;     // Incoming voterDeviceId if we are viewing a wevote domain page.
       }
       sendResponse({
-        words:getWords(request.url),
+        words:getWordsBackground(request.url),
         storedDeviceId: localStorage['voterDeviceId'],  // Outgoing voterDeviceId for viewing all other pages
       });
     } else if (request.command==='updateVoterGuide') {
@@ -466,7 +490,8 @@ chrome.runtime.onMessage.addListener(
     } else if(request.command==='setPrintHighlights') {
       sendResponse({success:setPrintHighlights(request.state)});
     } else if(request.command==='addGroup') {
-      sendResponse({success:addGroup(request.group, request.color, request.fcolor, request.findwords, request.showon,
+      console.log('XXXXXXXXX NO LONGER CALLED XXXXXXXXXXX addGroup message received', request, sender, sender.tab.id);
+      sendResponse({success:addGroup(request.group, request.color, request.fcolor, request.icon, request.findwords, request.showon,
         request.dontshowon, request.words, request.groupType, request.remoteConfig, request.regex, request.showInEditableFields)});
     } else if(request.command==='removeWord') {
       sendResponse({success:removeWord(request.word)});
@@ -508,7 +533,7 @@ function requestReHighlight (){
       id = activeTabIdGlobal;
       url = activeUrlGlobal;
     }
-    chrome.tabs.sendMessage(id, {command: 'ReHighlight', words: getWords(url)});
+    chrome.tabs.sendMessage(id, {command: 'ReHighlight', words: getWordsBackground(url)});
   });
 }
 
@@ -529,9 +554,9 @@ function requestReHighlight (){
 //   return validated;
 // }
 
-function getWords (inUrl){
+function getWordsBackground (inUrl){
   let result={};
-  // console.log("getWords inURL: " + inUrl);
+  // console.log("getWordsBackground inURL: " + inUrl);
   for(let neverShowOn in HighlightsData.neverHighlightOn){
     if (inUrl.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))){
       return result;
@@ -555,7 +580,9 @@ function getWords (inUrl){
           returnHighlight=false;
         }
       }
-      if(returnHighlight){result[highlightData]=HighlightsData.Groups[highlightData];}
+      if (returnHighlight) {
+        result[highlightData]=HighlightsData.Groups[highlightData];
+      }
     }
   }
   return result;
@@ -677,16 +704,17 @@ function flipGroup (inGroup, inAction) {
   return true;
 }*/
 
-function setWords (inWords, inGroup, inColor, inFcolor, findwords, showon, dontshowon, newname, groupType, remoteConfig, regex, showInEditableFields) {
+function setWords (inWords, inGroup, inColor, inFcolor, inIcon, findwords, showon, dontshowon, newname, groupType, remoteConfig, regex, showInEditableFields) {
 
   for(word in inWords){
     inWords[word]=inWords[word].replace(/(\r\n|\n|\r)/gm,'');
   }
-
+  console.log('@@@@@@@@@@@@   NOT BEING CALLED @@@@@@@@@@ setWords ' + inWords + ', icon ' + inIcon);
   HighlightsData.Groups[inGroup].Words = inWords;
   HighlightsData.Groups[inGroup].Modified = Date.now();
   HighlightsData.Groups[inGroup].Color = inColor;
   HighlightsData.Groups[inGroup].Fcolor = inFcolor;
+  HighlightsData.Groups[inGroup].Icon = inIcon;
   HighlightsData.Groups[inGroup].ShowOn = showon;
   HighlightsData.Groups[inGroup].DontShowOn = dontshowon;
   HighlightsData.Groups[inGroup].FindWords = findwords;
