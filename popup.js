@@ -5,7 +5,7 @@ var onPageShown = false;
 // var Collapsed=true;
 // var enableSaveButton=false;
 var debug=false;
-// var HighlightsData = JSON.parse(localStorage["HighlightsData"]);
+// var HighlightsData = JSON.parse(localStorage['HighlightsData']);
 // var wordsToAdd = [];
 // const useProductionAPIs = true;
 // const rootApiURL = useProductionAPIs ? 'https://api.wevoteusa.org/apis/v1' : 'http://127.0.0.1:8000/apis/v1';
@@ -18,28 +18,31 @@ document.addEventListener('DOMContentLoaded', function () {
   let highlightCandidatesOnAllTabs = false;
   let editPanelOpenOnThisTab = false;
 
-  console.log('localStorage[\'highlightingEnabled\']', localStorage['highlightingEnabled']);
+  // chrome.extension.getBackgroundPage().highlighterEnabled = true;
+  // console.log('localStorage[\'highlightingEnabled\'] 11111 ', chrome.extension.getBackgroundPage().highlighterEnabled);
+  // chrome.extension.getBackgroundPage().highlighterEnabled = false;
+  console.log('chrome.extension.getBackgroundPage().highlighterEnabled: ' + chrome.extension.getBackgroundPage().highlighterEnabled);
   console.log('localStorage[\'highlightCandidatesOnThisTab\']', localStorage['highlightCandidatesOnThisTab']);
   console.log('localStorage[\'highlightCandidatesOnAllTabs\']', localStorage['highlightCandidatesOnAllTabs']);
-  if (localStorage['highlightingEnabled'] === undefined) {
-    localStorage['highlightingEnabled'] = highlightingEnabled;
+  if (chrome.extension.getBackgroundPage().highlighterEnabled === undefined) {
+    chrome.extension.getBackgroundPage().highlighterEnabled = highlightingEnabled;
     localStorage['highlightCandidatesOnThisTab'] = highlightCandidatesOnThisTab;
     localStorage['highlightCandidatesOnAllTabs'] = highlightCandidatesOnAllTabs;
     localStorage['editPanelOpenOnThisTab'] = editPanelOpenOnThisTab;
   } else {
-    highlightingEnabled = localStorage['highlightingEnabled'] === 'true';
+    highlightingEnabled = chrome.extension.getBackgroundPage().highlighterEnabled;
     highlightCandidatesOnThisTab = localStorage['highlightCandidatesOnThisTab'] === 'true';
     highlightCandidatesOnAllTabs = localStorage['highlightCandidatesOnAllTabs'] === 'true';
     editPanelOpenOnThisTab = localStorage['editPanelOpenOnThisTab'] === 'true';
   }
 
-  $('#enableHighlightingSwitch').prop('checked', highlightingEnabled).click(() => {
-    if ($('#enableHighlightingSwitch').is(':checked')) {
-      localStorage['highlightingEnabled'] = true;
-      $('#enableHighlightingSwitch').prop('checked', true);
+  $('#globalyEnableHighlightingSwitch').prop('checked', highlightingEnabled).click(() => {
+    if ($('#globalyEnableHighlightingSwitch').is(':checked')) {
+      chrome.extension.getBackgroundPage().highlighterEnabled = true;
+      $('#globalyEnableHighlightingSwitch').prop('checked', true);
     } else {
-      localStorage['highlightingEnabled'] = false;
-      $('#enableHighlightingSwitch').prop('checked', false);
+      chrome.extension.getBackgroundPage().highlighterEnabled = false;
+      $('#globalyEnableHighlightingSwitch').prop('checked', false);
       localStorage['highlightCandidatesOnThisTab'] = false;
       $('#highlightCandidatesThisTabSwitch').prop('checked', false);
       localStorage['highlightCandidatesOnAllTabs'] = false;
@@ -47,29 +50,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  $('#highlightCandidatesThisTabSwitch').prop('checked', highlightCandidatesOnThisTab).click(() => {
-    if ($('#highlightCandidatesThisTabSwitch').is(':checked')) {
-      localStorage['highlightingEnabled'] = true;
-      $('#enableHighlightingSwitch').prop('checked', true);
-      localStorage['highlightCandidatesOnThisTab'] = true;
-      $('#highlightCandidatesThisTabSwitch').prop('checked', true);
-      chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        console.log('enabling highlights on active tab -- popup.js');
-        chrome.extension.getBackgroundPage().enableForActiveTab(tabs[0], true);
-      });
-      this.timer = setTimeout(() => {
-        window.close();
-      }, 1000);
-
-    } else {
-      localStorage['highlightCandidatesOnThisTab'] = false;
-      $('#highlightCandidatesThisTabSwitch').prop('checked', false);
+  $('#highlightCandidatesThisTabSwitch').click((event) => {
+    if (!chrome.extension.getBackgroundPage().highlighterEnabled) {
+      chrome.extension.getBackgroundPage().highlighterEnabled = true;
     }
+    $('#enableHighlightingSwitch').prop('checked', chrome.extension.getBackgroundPage().highlighterEnabled);
+    // localStorage['highlightCandidatesOnThisTab'] = true;
+    chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+      console.log('enabling highlights on active tab -- popup.js tab.id: ' + tabs[0].id);
+      const enable = true;
+      const showEditMenu = false;
+      chrome.extension.getBackgroundPage().setEnableForActiveTab(enable, showEditMenu, tabs[0]);
+    });
+    event.timer = setTimeout(() => {
+      window.close();
+    }, 1000);
   });
 
   $('#highlightCandidatesOnAllTabsSwitch').prop('checked', highlightCandidatesOnAllTabs).click(() => {
     if ($('#highlightCandidatesOnAllTabsSwitch').is(':checked')) {
-      localStorage['highlightingEnabled'] = true;
+      chrome.extension.getBackgroundPage().highlighterEnabled = true;
       $('#enableHighlightingSwitch').prop('checked', true);
       localStorage['highlightCandidatesOnAllTabs'] = true;
       $('#highlightCandidatesOnAllTabsSwitch').prop('checked', true);
@@ -79,13 +79,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  $('#openEditPanel').click(() => {
-    console.log('openEditPanel button onClick -- popup.js');
+  $('#openEditPanelButton').click((event) => {
+    console.log('openEditPanelButton button onClick -- popup.js');
     chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-      console.log('enabling highlights on active tab from openEditPanel button -- popup.js');
-      chrome.extension.getBackgroundPage().enableForActiveTab(tabs[0], true);
+      console.log('enabling editor on active tab from openEditPanelButton button -- popup.js tab.id: ' + tabs[0].id);
+      const enable = true;
+      const showEditMenu = true;
+      chrome.extension.getBackgroundPage().setEnableForActiveTab(enable, showEditMenu, tabs[0]);
     });
-    this.timer = setTimeout(() => {
+    event.timer = setTimeout(() => {
       window.close();
     }, 1000);
   });

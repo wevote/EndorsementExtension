@@ -26,7 +26,7 @@ const colors = {
   STORED_INFO_BACKGROUND: '#dad8da',
   DELETED_FOREGROUND: '#aa0311',
   DELETED_BACKGROUND: '#f0c7c8',
-}
+};
 
 function markupForThumbSvg (classString, type, fillColor) {
   if (type === 'endorse' || type === 'oppose') {

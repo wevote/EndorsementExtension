@@ -18,7 +18,7 @@ function getHighlightsListFromApiServer (locationHref, doReHighlight, sendRespon
     let highlightsList = res['highlight_list'];
     let neverHighLightOn = res['never_highlight_on'];
 
-    // February 2020, these are temporary and can be removed once the iPhone server is updated
+    // February 2020, these are temporary and can be removed once the python server is updated
     neverHighLightOn.push("blank");
     neverHighLightOn.push("platform.twitter.com");
     neverHighLightOn.push("s7.addthis.com");

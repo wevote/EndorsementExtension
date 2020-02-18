@@ -11,15 +11,16 @@ let state = {
 };
 
 /**
- * Display (or remove) the we vote extension UI
- * @param {boolean} enabled - true to display the UI, false to remove it
- * @returns {boolean} - return true to indicate that we call the response function asynchronously
+ * Display (or remove) the highlighting on the endorsement page, and optionaly the editor
+ * @param {boolean} enabled - true to display the highlighting, false to remove it and the editor
+ * @param {boolean} showEditMenu - true to display the editor
+ * @returns {boolean} - return true to indicate that we want to call the response function asynchronously
  */
-function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
+function displayHighlightingAndPossiblyEditor (enabled, showEditMenu) {  // eslint-disable-line no-unused-vars
   try {
     if(enabled) {
-      console.log('Displaying WeVote UI --------------------------------');
-      getHighlights(true);   // Calls BuildUI when the API query completes
+      console.log('Displaying WeVote UI -------------------------------- showEditMenu: ' + showEditMenu);
+      getHighlights(showEditMenu);   // Calls displayEditPanes when the API query completes
     } else {
       // Disable UI (reload the page)
       console.log('Unloading WeVote UI --------------------------------');
@@ -31,7 +32,7 @@ function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
   return true;  // indicates that we call the response function asynchronously.  https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
 }
 
-function buildUI () {
+function displayEditPanes () {
   console.log('Building WeVote UI --------------------------------');
   let hr = window.location.href;
   let bod = $('body');
@@ -117,9 +118,11 @@ function signIn (showDialog) {
         email: voterEmail,
         isSignedIn
       };
-      // Unfortunately /avatar-generic.png can't be "served" from the page, since file loading is relative to the endorsement page
+      // Unfortunately /avatar-generic.png can't be "served" from the extension, since file loading is relative to the endorsement page
 
       if (voterInfo.success && voterInfo.isSignedIn) {
+        $('[role=dialog]').remove();
+        $('#loginPopUp').remove();
         $('#signIn').replaceWith(
           '<img id="signOut" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" src="' + voterInfo.photo + '" ' +
             'style="margin: 12px; width: 50px; height: 50px;" />');
@@ -137,9 +140,9 @@ function signIn (showDialog) {
             dialogClass: 'no-close',
             width: 450,
             position: { my: 'right top', at: 'left bottom', of: '#signIn' },
+            closeText: '',
             open: function () {
-              $('.u2i-dialog-titlebar').css('background-color', '#2E3C5D');
-
+              dialogTitlebarStyling();
               const markup =
                 '<div>' +
                 '   <div style=\'margin-bottom: .75rem; padding-left: 10px;\'><b>To sign in</b></div>' +
@@ -160,6 +163,21 @@ function signIn (showDialog) {
   return false;
 }
 
+function dialogTitlebarStyling () {
+  $('.u2i-dialog-titlebar').css('background-color', '#2E3C5D');
+  $('.u2i-icon-closethick').remove();
+  $('.u2i-dialog-titlebar-close').css({
+    'background-color': '#2E3C5D',
+    'color': 'white',
+    'border': '6px'
+  });
+  $('.u2i-button-icon-space').css({
+    'padding-right': '4px',
+  }).html('X&nbsp;');
+  $('.u2i-resizable-handle').css('display', 'none');
+  $('.u2i-dialog-title').addClass('createDlgTitle');
+}
+
 function signOut () {
   console.log('signOut has not been implemented.');
 }
@@ -177,7 +195,7 @@ function topMenu () {
     '      <button type="button" id="sendTopComment" class="sendTopComment weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">Send</button>' +
     '    </span>' +
     '  </span>' +
-    '  <button type="button" id="signIn" class="gridSignInTop  weButton removeContentStyles">SIGN IN</button>' +
+    '  <button type="button" id="signIn" class="gridSignInTop bareSignIn weButton removeContentStyles">SIGN IN</button>' +
     '  <span id="loginPopUp"></span>' +
     '  <div id="dlgAnchor"></div>' +
   '</div>';
@@ -191,7 +209,7 @@ function topMenu () {
 }
 
 // Get the href into the extension
-function getHighlights (doBuildUI) {
+function getHighlights (showEditMenu) {
   debugLog('getHighlights() called');
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: false },
@@ -204,9 +222,10 @@ function getHighlights (doBuildUI) {
 
       if (response) {
         debugLog('SUCCESS: getHighlights received a response', response);
-        if (doBuildUI) {
-          buildUI();
+        if (showEditMenu) {
+          displayEditPanes();
         }
+        getRefreshedHighlights();
       } else {
         console.log('ERROR: getHighlights received empty response');
       }
@@ -412,7 +431,6 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
     inLeftPane = $('*:contains(' + allNames[i] + ')').length > 0 ? true : inLeftPane;
   }
 
-
   const isStored = positionWeVoteId !== undefined && positionWeVoteId !== null && positionWeVoteId.length > 0;
   let markup =
     "<div class='candidateWe " + candNo + "'>" +
@@ -441,13 +459,18 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
     '    <input type="text" class="moreInfoURL-' + i + ' weInfoText removeContentStyles" style="margin: 0; text-align: left;" />' +
     "    <span class='buttons'>";
   if (!detachedDialog) {
-    markup += " <button type='button' class='revealLeft-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Reveal</button>";
+    markup +=
+    "      <button type='button' class='revealLeft-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>REVEAL</button>";
   }
-  markup += "   <button type='button' class='openInAdminApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Admin App</button>";
-  if (party !== undefined) {
-    markup += " <button type='button' class='openInWebApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>WeVote.US</button>";
+  markup +=
+    "      <button type='button' class='openInAdminApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>ADMIN APP</button>";
+  if (party !== undefined && detachedDialog) {
+    markup +=
+      "    <button type='button' class='openInWebApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>JUMP TO WE VOTE</button>";
   }
-  markup += "   <button type='button' class='saveButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Save</button>" +
+  markup +=
+    "      <button type='button' class='saveButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>SAVE</button>" +
+    "      <button type='button' class='deleteButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>DELETE</button>" +
     '    </span>' +
     '  </div>' +
     '</div>';
@@ -751,7 +774,7 @@ function openSuggestionPopUp (selection) {
     let candidate = {
       name: selection,
       office: '',
-      party:  undefined,
+      party: undefined,
       photo: defaultImage,
       comment: '',
       url: window.location.href,
@@ -762,22 +785,18 @@ function openSuggestionPopUp (selection) {
       show: true,
       width: 380,
       resizable: false,
-      fixedDimensions: true
+      fixedDimensions: true,
+      closeText: ''
     });
-    // Styles injected here preempt all others, especially those from the underlying endorsement page, which we do not control
-    $("button[title='Close']").css({
-      'font-size': '16px',
-      'float': 'right',
-      'padding-right': '2px',
-      'line-height': 'normal',
+    $('[role=dialog]').css({
+      '-webkit-box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)',
+      '-moz-box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)',
+      'box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)'
     });
-    $('.u2i-dialog-titlebar').css('height', '28px');
-    $('.u2i-resizable-handle').css('display', 'none');
-    $('.u2i-dialog-title').addClass('createDlgTitle');
+    dialogTitlebarStyling();
     $('#unfurlable-' + i).css('height', i === 1000 ? '80px' : '66px');
     const can = '.candidateWe.1000';
-    $(can).css({'background-color': '#FFFFF6', 'padding': '8px 0 8px 8px'});
-    $('#1000').removeClass();
+    $(can).css({'padding': '8px 0 8px 8px'});
     $('.candidateNameInput-1000').val(selection).css({
       width: '80%',
       height: '24px',

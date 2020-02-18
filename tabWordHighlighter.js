@@ -34,18 +34,45 @@ var printHighlights = true;
 let voterInfo = {};
 let uniqueNameMatches = [];
 let voterDeviceId = '';
-
-var debug = true;
+let tabId = -1;
+var debug = false;
 
 // https://projects.sfchronicle.com/2018/voter-guide/endorsements-list/
 
 $(() => {
-  console.log('tabWordHighlighter constructor');
+  chrome.runtime.sendMessage({
+    command: 'myTabId',
+  }, function (response) {
+    tabId = response.tabId;
+    console.log('tabWordHighlighter this tab.id: ' + tabId);
+  });
+
   console.log('Hack that sets debugLocal to true in place ------------------------------------');
   window.debugLocal = true;
 
 
+
   if (window.location === window.parent.location) {
+    if (window.location.host.indexOf('wevote.us') > -1) {
+      // Experiment February 19, 2020: get a new device ID on every new tab, on every access of the tab. Is this excessive, and does it have side effects?
+      const voterDeviceId = getVoterDeviceIdFromWeVoteDomainPage();
+      if (voterDeviceId.length) {
+        chrome.runtime.sendMessage({
+          command: 'storeDeviceId',
+          voterDeviceId
+        }, function (response) {
+          let {lastError} = chrome.runtime;
+          if (lastError) {
+            console.warn('chrome.runtime.sendMessage("storeDeviceId")', lastError.message);
+          }
+        });
+
+        // localStorage['voterDeviceId'] = getVoterDeviceIdFromWeVoteDomainPage();
+        console.log('getVoterDeviceIdFromWeVoteDomainPage ------------AFTER Storage--------------> ' + localStorage['voterDeviceId']);
+      } else {
+        console.log('getVoterDeviceIdFromWeVoteDomainPage ------------AFTER aborted Storage--------------> zero length devive id');
+      }
+    }
     //only listen for messages in the main page, not in iframes
     chrome.runtime.onMessage.addListener(
       function (request, sender, sendResponse) {
@@ -58,8 +85,8 @@ $(() => {
             sender.id === 'fgmbnmjmbjenlhbefngfibmjkpbcljaj' ||
             sender.id === 'highlightthis@deboel.eu') {
 
-          if (request.command === 'openWeMenus') {
-            displayWeVoteUI(request.enabled);
+          if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
+            displayHighlightingAndPossiblyEditor(request.enabled, request.showEditMenu);
             return false;
           } else if (request.command === 'ScrollHighlight') {
             jumpNext();
@@ -135,7 +162,7 @@ function reHighlight (words) {
   for (let group in words) {
     if (words[group].Enabled) {
       for (word in words[group].Words) {
-        console.log('reHighlight word = ' + word);
+        debug&&console.log('reHighlight word = ' + word);
         wordsArray.push({
           word: words[group].Words[word].toLowerCase(),
           'regex': globStringToRegex(words[group].Words[word]),
@@ -155,7 +182,9 @@ function getVoterDeviceIdFromWeVoteDomainPage () {
   // Capture the voter_device_id if we are on a wevote page
   const tag = 'voter_device_id';
   let b = document.cookie.match('(^|[^;]+)\\s*' + tag + '\\s*=\\s*([^;]+)');
-  return b ? b.pop() : '';
+  let id = b ? b.pop() : '';
+  console.log('getVoterDeviceIdFromWeVoteDomainPage ------------TE--------------> ' + id);
+  return id;
 }
 
 // this is just inline, so it gets executed on startup

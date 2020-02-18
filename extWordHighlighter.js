@@ -16,7 +16,7 @@ const { chrome: { runtime: { getPlatformInfo}, contextMenus: { create, removeAll
  */
 
 const debugE = false;
-let highlighterEnabled = false;  // Don't globally change var to let! see note above
+let highlighterEnabled = false;  // Don't globally change var to let! see note above.  This is changed from popup.js
 let showFoundWords = false;
 let printHighlights = true;
 let HighlightsData = {};
@@ -29,6 +29,8 @@ let uniqueNames = [];
 let activeTabIdGlobal;
 let activeUrlGlobal = '';
 let aliasNames = [];
+let highlightedTabs = [];
+let editorTabs = [];
 
 $(() => {
   console.log('extWordHighlighter constructor');
@@ -90,7 +92,7 @@ function promoteAliasesThatArriveAsDefault (highlightsList) {
 }
 
 function initializeHighlightsData (highlightsList, neverHighLightOn) {
-  console.log("START START START initializeHighlightsData");
+  console.log('START START START initializeHighlightsData');
   promoteAliasesThatArriveAsDefault(highlightsList);
 
   HighlightsData.Version = '12';
@@ -119,7 +121,6 @@ function initializeHighlightsData (highlightsList, neverHighLightOn) {
     debugE && console.log('groupName: ' + groupName + ', group: ' + group);
     HighlightsData.Groups.push(groupName, group);
   }
-  // I believe local storage of highlights data is a red herring, and it's not being used anymore
   localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
 
   printHighlights = HighlightsData.PrintHighlights;
@@ -188,15 +189,8 @@ function createSearchMenu (){
   console.log('createSearchMenu has been called');
   getPlatformInfo(
     function (i) {
-      let shortcut;
-      if (i.os === 'mac') {
-        shortcut = 'Shift+Cmd+Space';
-      }
-      else {
-        shortcut = 'Shift+Ctrl+Space';
-      }
       create({
-        'title': 'Jump to word (' + shortcut + ')',
+        'title': 'Select a Candidate\'s full name, then try again!',
         'id': 'Highlight'  // Is this causing?:  Unchecked runtime.lastError: Cannot create item with duplicate id Highlight
       });
     }
@@ -263,11 +257,13 @@ function updateContextMenu (inUrl){
       'contexts': [contexts[0]],
       'id': 'idContextMenuCreateNew'
     });
-    let idContextMenuRevealRight = create({
-      'title': 'Reveal in Candidate List',
-      'contexts': [contexts[0]],
-      'id': 'idContextMenuRevealRight'
-    });
+
+    // Feb 6, 2020 -- Removed so that there's a single choice on the right click dialog
+    // let idContextMenuRevealRight = create({
+    //   'title': 'Reveal in Candidate List',
+    //   'contexts': [contexts[0]],
+    //   'id': 'idContextMenuRevealRight'
+    // });
   }
 }
 
@@ -284,8 +280,92 @@ function processUniqueNames (uniqueNamesFromPage) {
   }
 }
 
-// Clicked the browser bar icon
-chrome.browserAction.onClicked.addListener((tab) => {
+// untested 2/15/20
+function enableHighlightsForAllTabs (enable) {
+  // Here we are telling all tabs to enable/disable highlighting
+  chrome.tabs.getAllInWindow(null, function (tabs) {
+    for (let i = 0; i < tabs.length; i++) {
+      const { id: tabId, url } = tabs[i];
+
+      let skip = false;  // Skip those tabs whose URLs are on the neverHighlightOn list
+      for(let neverShowOn in HighlightsData.neverHighlightOn){
+        if (url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
+          skip = true;
+          break;
+        }
+      }
+      if (!skip) {
+        chrome.tabs.sendMessage(tabId, {
+          command: 'displayHighlightsForTabAndPossiblyEditPanes',
+          enabled: highlighterEnabled,
+          tabId: tabId,
+        }, function (result) {
+          debugE && console.log('on click icon, response received to displayHighlightsForTabAndPossiblyEditPanes ', result);
+        });
+      }
+    }
+  });
+}
+
+// function setEnableForActiveTab (enable, showEditMenu, tab) {
+//   console.log('enabling highlights on active tab ', tab, ' ------- ext');
+//
+//   // Ignore if on a 'neverHighlightOn' page
+//   if (HighlightsData.neverHighlightOn === undefined) {
+//     HighlightsData.neverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org', 'localhost'];
+//   }
+//   for (let neverShowOn in HighlightsData.neverHighlightOn) {
+//     if (tab.url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
+//       showHighlightsCount('x', 'red', tab.id);
+//       setTimeout(function () {
+//         showHighlightsCount('', 'white', tab.id);
+//       }, 500);
+//       return;
+//     }
+//   }
+//
+//   // Need to deal with this, it acts like a toggle, and what I want is multi choice February 17, 2020
+//   highlighterEnabled = !highlighterEnabled;
+//   console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled + ', showEditMenu = ' + showEditMenu + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
+//
+//   // Here we are telling all tabs to enable/disable highlighting, and telling them all to open/close the 3 pane display
+//   // it would be possible to fall back to only having the currently displayed tab, show the 3 pane display, and the others
+//   // would only show the highlights
+//   chrome.tabs.getAllInWindow(null, function (tabs) {
+//     for (let i = 0; i < tabs.length; i++) {
+//       const { id: tabId, url } = tabs[i];
+//
+//       let skip = false;  // Skip those tabs whose URLs are on the neverHighlightOn list
+//       for(let neverShowOn in HighlightsData.neverHighlightOn){
+//         if (url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
+//           skip = true;
+//           break;
+//         }
+//       }
+//       if (!skip) {
+//         chrome.tabs.sendMessage(tabId, {
+//           command: 'displayHighlightsForTabAndPossiblyEditPanes',
+//           enabled: highlighterEnabled,
+//           showEditMenu: showEditMenu,
+//           tabId: tabId,
+//         }, function (result) {
+//           debugE && console.log('on click icon, response received to displayHighlightsForTabAndPossiblyEditPanes ', result);
+//         });
+//       }
+//     }
+//   });
+// }
+
+
+function arrayRemove (arr, value) {
+  return arr.filter(function (ele){
+    return ele != value;
+  });
+}
+
+function setEnableForActiveTab (enable, showEditMenu, tab) {
+  console.log('enabling highlights on active tab ', tab, ' ------- ext');
+
   // Ignore if on a 'neverHighlightOn' page
   if (HighlightsData.neverHighlightOn === undefined) {
     HighlightsData.neverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org', 'localhost'];
@@ -300,35 +380,35 @@ chrome.browserAction.onClicked.addListener((tab) => {
     }
   }
 
-  highlighterEnabled = !highlighterEnabled;
-  console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
-
-  // Here we are telling all tabs to enable/disable highlighting, and telling them all to open/close the 3 pane display
-  // it would be possible to fall back to only having the currently displayed tab, shoe the 3 pane display, and the others
-  // would only show the highlights
-  chrome.tabs.getAllInWindow(null, function (tabs) {
-    for (let i = 0; i < tabs.length; i++) {
-      const { id: tabId, url } = tabs[i];
-
-      let skip = false;  // Skip those tabs whose URLs are on the neverHighlightOn list
-      for(let neverShowOn in HighlightsData.neverHighlightOn){
-        if (url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
-          skip = true;
-          break;
-        }
-      }
-      if (!skip) {
-        chrome.tabs.sendMessage(tabId, {
-          command: 'openWeMenus',
-          enabled: highlighterEnabled,
-          tabId: tabId,
-        }, function (result) {
-          debugE && console.log('on click icon, response received to openWeMenus ', result);
-        });
-      }
+  if (enable) {
+    if (highlightedTabs.indexOf(tab.id) < 0) {
+      highlightedTabs.push(tab.id);
     }
+    if (showEditMenu && editorTabs.indexOf(tab.id) < 0){
+      editorTabs.push(tab.id);
+    }
+  } else {
+    highlightedTabs = arrayRemove(highlightedTabs, tab.id);
+    if (showEditMenu){
+      editorTabs = arrayRemove(editorTabs, tab.id);
+    }
+  }
+
+  // Outdated???????????? highlighterEnabled feb 2020
+  // highlighterEnabled = !highlighterEnabled;
+  console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled + ', showEditMenu = ' + showEditMenu + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
+  const { id: tabId, url } = tab;
+
+  chrome.tabs.sendMessage(tabId, {
+    command: 'displayHighlightsForTabAndPossiblyEditPanes',
+    enabled: enable,
+    showEditMenu,
+    tabId: tabId,
+  }, function (result) {
+    debugE && console.log('on click highlight this tab or edit this tab, response received from displayHighlightsForTabAndPossiblyEditPanes ', result);
   });
-});
+}
+
 
 chrome.tabs.onActivated.addListener(function (tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
@@ -373,45 +453,43 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
     }, function (result) {
       debugE&&console.log('contextMenus on click, response received to revealRight ', result);
     });
-  } else {
-    if (info.menuItemId.indexOf('AddTo_') > -1) {
-      groupName = info.menuItemId.replace('AddTo_', '');
-      let wordAlreadyAdded = false;
+  } else if (info.menuItemId.indexOf('AddTo_') > -1) {
+    groupName = info.menuItemId.replace('AddTo_', '');
+    let wordAlreadyAdded = false;
 
-      if (HighlightsData.Groups[groupName].Words.indexOf(info.selectionText)>-1) {
-        wordAlreadyAdded = true;
-      }
-      if (wordAlreadyAdded) {
-        chrome.notifications.create('1', {
-          'type': 'basic',
-          'iconUrl': 'Plugin96.png',
-          //"requireInteraction": false,
-          'title': 'Highlight This',
-          'message': info.selectionText + ' was already assigned to the word list'
-        });
-        //window.alert(info.selectionText + " was already assigned to the word list");
-      }
-      else {
-        HighlightsData.Groups[groupName].Words.push(info.selectionText);
-        HighlightsData.Groups[groupName].Modified = Date.now();
-        localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
-        chrome.notifications.create('1', {
-          'type': 'basic',
-          'iconUrl': 'Plugin96.png',
-          // "requireInteraction": false,
-          'title': 'Added new word',
-          'message': info.selectionText + ' has been added to ' + groupName + '.\nRefresh the page to see new highlights.'
-        });
-
-        updateContextMenu(tab.url);
-      }
-      if (info.menuItemId === 'Highlight') {
-        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-          chrome.tabs.sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
-        });
-      }
-      requestReHighlight();
+    if (HighlightsData.Groups[groupName].Words.indexOf(info.selectionText) > -1) {
+      wordAlreadyAdded = true;
     }
+    if (wordAlreadyAdded) {
+      chrome.notifications.create('1', {
+        'type': 'basic',
+        'iconUrl': 'Plugin96.png',
+        //"requireInteraction": false,
+        'title': 'Highlight This',
+        'message': info.selectionText + ' was already assigned to the word list'
+      });
+      //window.alert(info.selectionText + " was already assigned to the word list");
+    } else {
+      HighlightsData.Groups[groupName].Words.push(info.selectionText);
+      HighlightsData.Groups[groupName].Modified = Date.now();
+      // localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
+      chrome.notifications.create('1', {
+        'type': 'basic',
+        'iconUrl': 'Plugin96.png',
+        // "requireInteraction": false,
+        'title': 'Added new word',
+        'message': info.selectionText + ' has been added to ' + groupName + '.\nRefresh the page to see new highlights.'
+      });
+
+      updateContextMenu(tab.url);
+    }
+  } else if (info.menuItemId === 'Highlight') {
+    chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+      chrome.tabs.sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
+    });
+  //     }
+  //     requestReHighlight();
+  //   }
   }
 });
 
@@ -515,8 +593,20 @@ chrome.runtime.onMessage.addListener(
     } else if(request.command==='setWords') {
       sendResponse({success:setWords(request.words, request.group, request.color, request.fcolor, request.findwords,
         request.showon, request.dontshowon,  request.newname, request.groupType, request.remoteConfig,request.regex, request.showInEditableFields)});
+    } else if (request.command==='myTabId') {
+      // tabId will hold the sender tab's id value
+      const tabId = sender.tab.id;
+      sendResponse({ from: 'event', tabId });
+    } else if (request.command==='storeDeviceId') {
+      const tabId = sender.tab.id;
+      if(request.voterDeviceId.length) {
+        localStorage['voterDeviceId'] = request.voterDeviceId;
+        console.log('extWordHighlighter "storeDeviceId" received from tab: ' + tabId + ', voterDeviceId: ' + request.voterDevicedId);
+      }
+      sendResponse({ from: 'event', tabId });
+    } else {
+      console.error('extWordHighlighter received unknown command : ' + request.command);
     }
-
     return true;
   });
 
@@ -549,7 +639,7 @@ function requestReHighlight (){
 //   }
 //   if (validated === true){
 //     HighlightsData=upgradeVersion(temp);
-//     localStorage["HighlightsData"] = JSON.stringify(HighlightsData);
+//     localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
 //   }
 //   return validated;
 // }
@@ -588,7 +678,7 @@ function getWordsBackground (inUrl){
   return result;
 }
 
-function onPage (){
+function onPage () {
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     chrome.tabs.sendMessage(tabs[0].id, {command: 'getMarkers'}, function (result){
       if(result){
@@ -647,7 +737,7 @@ function setPrintHighlights (inState) {
 // function setNeverHighligthOn(inUrls){
 //   HighlightsData.neverHighlightOn=inUrls;
 //   neverHighlightOn=inUrls;
-//   localStorage["HighlightsData"]=JSON.stringify(HighlightsData);
+//   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 // }
 
 function addGroup (inGroup, color, fcolor, findwords, showon, dontshowon, inWords, groupType, remoteConfig, regex, showInEditableFields) {
@@ -694,7 +784,7 @@ function flipGroup (inGroup, inAction) {
 // }
 /*function addWords(inWords) {
   //HighlightsData.Words[inWord]="";
-	//localStorage['HighlightsData']=JSON.stringify(HighlightsData);
+	localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   for(let word in inWords) {
     inWord=inWords[word];
     HighlightsData.Words[inWord]="";
@@ -767,12 +857,12 @@ function syncWordList (list, notify, listname){
   debugE && console.log('syncing ' + list);
   let xhr = new XMLHttpRequest();
   switch(list.RemoteConfig.type) {
-  case 'pastebin':
-    getSitesUrl='https://pastebin.com/raw/'+list.RemoteConfig.id;
-    break;
-  case 'web':
-    getSitesUrl=list.RemoteConfig.url;
-    break;
+    case 'pastebin':
+      getSitesUrl='https://pastebin.com/raw/'+list.RemoteConfig.id;
+      break;
+    case 'web':
+      getSitesUrl=list.RemoteConfig.url;
+      break;
   }
   xhr.open('GET', getSitesUrl, true);
   xhr.onreadystatechange = function () {

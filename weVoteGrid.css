@@ -163,6 +163,14 @@
   font-weight: 600;
 }
 
+.bareSignIn {
+  color: rgb(6, 95, 212);
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: translate(-20px, 10px);
+}
+
 #topMenu input{
   margin: 0 0 0 10px;
   padding: 0 0 0 4px;

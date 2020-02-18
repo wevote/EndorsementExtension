@@ -23,18 +23,11 @@
             <div id="enableHighlighting" class="switchRow">
                 <div class="switchTextLabel" >Enable Highlighting</div>
                 <div class="onoffswitch">
-                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="enableHighlightingSwitch">
-                    <label class="onoffswitch-label" for="enableHighlightingSwitch"></label>
+                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="globalyEnableHighlightingSwitch">
+                    <label class="onoffswitch-label" for="globalyEnableHighlightingSwitch"></label>
                 </div>
             </div>
 
-            <div id="viewCandidatesThisTab" class="switchRow">
-                <div class="switchTextLabel" >Highlight Candidates on This Tab</div>
-                <div class="onoffswitch">
-                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="highlightCandidatesThisTabSwitch">
-                    <label class="onoffswitch-label" for="highlightCandidatesThisTabSwitch"></label>
-                </div>
-            </div>
 
             <div id="viewCandidates" class="switchRow">
                 <div class="switchTextLabel" >Highlight Candidates on All Tabs</div>
@@ -44,10 +37,26 @@
                 </div>
             </div>
 
-            <div style="padding: 24px"></div>
+<!--            <div id="viewCandidatesThisTab" class="switchRow">-->
+<!--                <div class="switchTextLabel" >Highlight Candidates on This Tab</div>-->
+<!--                <div class="onoffswitch">-->
+<!--                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="highlightCandidatesThisTabSwitch">-->
+<!--                    <label class="onoffswitch-label" for="highlightCandidatesThisTabSwitch"></label>-->
+<!--                </div>-->
+<!--            </div>-->
+
+            <hr>
+
+<!--            <div style="padding: 24px"></div>-->
 
             <div class="buttonDiv">
-                <button type='button' id='openEditPanel' class='weButton'>OPEN EDIT PANEL</button>
+                <button type='button' id='highlightCandidatesThisTabSwitch' class='weButton'>Highlight Candidates on This Tab</button>
+            </div>
+
+
+
+            <div class="buttonDiv">
+                <button type='button' id='openEditPanelButton' class='weButton'>Open Edit Panel for this Tab</button>
             </div>
         </div>
     </body>
