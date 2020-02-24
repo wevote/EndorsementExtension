@@ -12,13 +12,13 @@ let state = {
 
 /**
  * Display (or remove) the highlighting on the endorsement page, and optionaly the editor
- * @param {boolean} enabled - true to display the highlighting, false to remove it and the editor
+ * @param {boolean} showHighlights - true to display the highlighting, false to remove it and the editor
  * @param {boolean} showEditMenu - true to display the editor
  * @returns {boolean} - return true to indicate that we want to call the response function asynchronously
  */
-function displayHighlightingAndPossiblyEditor (enabled, showEditMenu) {  // eslint-disable-line no-unused-vars
+function displayHighlightingAndPossiblyEditor (showHighlights, showEditMenu) {  // eslint-disable-line no-unused-vars
   try {
-    if(enabled) {
+    if(showHighlights || showEditMenu) {
       console.log('Displaying WeVote UI -------------------------------- showEditMenu: ' + showEditMenu);
       getHighlights(showEditMenu);   // Calls displayEditPanes when the API query completes
     } else {
@@ -210,9 +210,10 @@ function topMenu () {
 
 // Get the href into the extension
 function getHighlights (showEditMenu) {
-  debugLog('getHighlights() called');
+  debugLog('BIGBIG getHighlights() called');
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: false },
+  //sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: showEditMenu },
     function (response) {
       let {lastError} = runtime;
       if (lastError) {
@@ -223,17 +224,20 @@ function getHighlights (showEditMenu) {
       if (response) {
         debugLog('SUCCESS: getHighlights received a response', response);
         if (showEditMenu) {
+          debugLog('getHighlights() CALLING displayEditPanes()');
           displayEditPanes();
+          getWordsThenStartHighlighting ();  // STEVE STEVE new 2/21 5pm ... does it work?
+        }else {
+          getRefreshedHighlights(showEditMenu);
         }
-        getRefreshedHighlights();
       } else {
         console.log('ERROR: getHighlights received empty response');
       }
     });
 }
 
-function getRefreshedHighlights () {
-  debugLog('getRefreshedHighlights called');
+function getRefreshedHighlights (showEditMenu) {
+  debugLog('BIGBIG getRefreshedHighlights called');
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: true },
     function (response) {
@@ -243,8 +247,8 @@ function getRefreshedHighlights () {
       }
       console.log('getRefreshedHighlights() response', response);
 
-      if (response) {
-        debugLog('SUCCESS: getRefreshedHighlights received a response', response);
+      if (response && showEditMenu) {
+        debugLog('BIGBIG SUCCESS: getRefreshedHighlights received a response', response);
         console.log('getRefreshedHighlights reloading iframe[0]');
         // eslint-disable-next-line prefer-destructuring
         let frame = $('iframe')[0];

@@ -22,6 +22,8 @@ var HighlightWarmup=300; // min time to wait before running a highlight executio
 var alreadyNotified = false;
 var wordsReceived = false;
 var highlighterEnabled = true;
+let highlighterEnabledThisTab = false;
+let editorEnabledThisTab = false;
 var searchEngines = {
   'google.com': 'q',
   'bing.com': 'q'
@@ -77,16 +79,20 @@ $(() => {
     chrome.runtime.onMessage.addListener(
       function (request, sender, sendResponse) {
         /* debug && */
-        console.log('onMessage.addListener() intabWordHighlighter got a message: '+ request.command);
+        console.log('onMessage.addListener() in tabWordHighlighter got a message: '+ request.command);
 
         if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
             sender.id === 'eofojjpbgfdogalmibgljcgdipkhoclc' ||
             sender.id === 'abcibokldhgkclhihipipbiaednfcpia' ||
             sender.id === 'fgmbnmjmbjenlhbefngfibmjkpbcljaj' ||
+            sender.id === 'cnkjigcefmbkoffbgljmkfocdpdlilln' ||
             sender.id === 'highlightthis@deboel.eu') {
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
-            displayHighlightingAndPossiblyEditor(request.enabled, request.showEditMenu);
+            highlighterEnabled = request.showHighlights || request.showEditMenu;
+            highlighterEnabledThisTab = request.showHighlights;
+            editorEnabledThisTab = request.showEditMenu;
+            displayHighlightingAndPossiblyEditor(request.showHighlights, request.showEditMenu);
             return false;
           } else if (request.command === 'ScrollHighlight') {
             jumpNext();
@@ -99,8 +105,8 @@ $(() => {
             highlightMarkers = {};
             return false;
           } else if (request.command === 'ReHighlight') {
-            // let testWords = request.words["Default Group"].Words;
-            // testWords.push("Dianne")
+            highlighterEnabled = true;
+            highlighterEnabledThisTab = true;
             reHighlight(request.words);
             return false;
           } else if (request.command === 'createEndorsement') {
@@ -109,8 +115,16 @@ $(() => {
           } else if (request.command === 'revealRight') {
             revealRightAction(request.selection, request.pageURL, request.tabId);
             return false;
+          } else if (request.command === 'getTabStatusValues') {
+            // const ret = getDisplayedTabStatus(request.tabId);
+            debug && console.log('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', editorEnabledThisTab: ' + editorEnabledThisTab);
+            sendResponse({ highlighterEnabledThisTab, editorEnabledThisTab });
+            return false;
+          } else if (request.command === 'disableExtension') {
+            enableHighlightsForAllTabs(false);
+            return false;
           } else  {
-            console.error('tabWordHighligher in chrome.runtime.onMessage.addListener received unknown command: ' + request.command);
+            console.error('tabWordHighlighter in chrome.runtime.onMessage.addListener received unknown command: ' + request.command);
             return false;
           }
         }
@@ -158,7 +172,7 @@ function showMarkers () {
 }
 
 function reHighlight (words) {
-  debug&&console.log('function reHighlight(words)');
+  console.log('BIGBIG function reHighlight(words)');
   for (let group in words) {
     if (words[group].Enabled) {
       for (word in words[group].Words) {
@@ -194,8 +208,9 @@ chrome.runtime.sendMessage({command: 'getStatus'}, function (response) {
     console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
     return;
   }
-  debug&&console.log('reponse from getStatus',window.location);
+  debug && console.log('reponse from getStatus',window.location);
   highlighterEnabled = response.status;
+  highlighterEnabledThisTab  = response.status;  // These start out identical, but this one is initialized us false
   printHighlights = response.printHighlights;
   if (highlighterEnabled) {
     debug&&console.log('about to get words',window.location);
@@ -205,7 +220,7 @@ chrome.runtime.sendMessage({command: 'getStatus'}, function (response) {
 });
 
 function getWordsThenStartHighlighting () {
-  debug && console.log('Called getWordsThenStartHighlighting()');
+  console.log('BIGBIG Called getWordsThenStartHighlighting() Only called by editor!');
   chrome.runtime.sendMessage({
     command: 'getWords',
     url: location.href.replace(location.protocol + '//', ''),
@@ -347,13 +362,14 @@ function findWords () {
     Highlight=false;
 
     setTimeout(function () {
-      debug && console.log('finding words',window.location);
+      console.log('BIGBIG finding words',window.location);
 
       ReadyToFindWords=false;
 
       var changed = false;
       var myHilitor = new Hilitor();
       var highlights = myHilitor.apply(wordsArray, printHighlights);
+      console.log('BIGBIG after myHilitor.apply num highlights: ' + highlights.numberOfHighlights);
       if (highlights.numberOfHighlights > 0) {
         highlightMarkers = highlights.markers;
         markerPositions = [];
@@ -416,6 +432,15 @@ function revealRightAction (selection, pageURL, tabId) {
       // inline: 'center'
     });
   }
+}
+
+// This allows the popup can find out if this tab is highlighted and/or editors are displayed
+function getDisplayedTabStatus(tabId) {
+  debug && console.log('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', editorEnabledThisTab: ' + editorEnabledThisTab);
+  return {
+    highlighterEnabledThisTab,
+    editorEnabledThisTab,
+  };
 }
 
 function globStringToRegex (str) {

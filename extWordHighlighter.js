@@ -280,7 +280,6 @@ function processUniqueNames (uniqueNamesFromPage) {
   }
 }
 
-// untested 2/15/20
 function enableHighlightsForAllTabs (enable) {
   // Here we are telling all tabs to enable/disable highlighting
   chrome.tabs.getAllInWindow(null, function (tabs) {
@@ -297,8 +296,8 @@ function enableHighlightsForAllTabs (enable) {
       if (!skip) {
         chrome.tabs.sendMessage(tabId, {
           command: 'displayHighlightsForTabAndPossiblyEditPanes',
-          enabled: highlighterEnabled,
-          tabId: tabId,
+          enabled: enable, // highlighterEnabled,
+          tabId,
         }, function (result) {
           debugE && console.log('on click icon, response received to displayHighlightsForTabAndPossiblyEditPanes ', result);
         });
@@ -363,7 +362,8 @@ function arrayRemove (arr, value) {
   });
 }
 
-function setEnableForActiveTab (enable, showEditMenu, tab) {
+// Called by the highlight this tab button on the pop up
+function setEnableForActiveTab (showHighlights, showEditMenu, tab) {
   console.log('enabling highlights on active tab ', tab, ' ------- ext');
 
   // Ignore if on a 'neverHighlightOn' page
@@ -380,28 +380,27 @@ function setEnableForActiveTab (enable, showEditMenu, tab) {
     }
   }
 
-  if (enable) {
-    if (highlightedTabs.indexOf(tab.id) < 0) {
-      highlightedTabs.push(tab.id);
-    }
-    if (showEditMenu && editorTabs.indexOf(tab.id) < 0){
-      editorTabs.push(tab.id);
-    }
-  } else {
-    highlightedTabs = arrayRemove(highlightedTabs, tab.id);
-    if (showEditMenu){
-      editorTabs = arrayRemove(editorTabs, tab.id);
-    }
-  }
+  // if (showHighlights || showEditMenu) {
+  //   if (highlightedTabs.indexOf(tab.id) < 0) {
+  //     highlightedTabs.push(tab.id);
+  //   }
+  //   if (showEditMenu && editorTabs.indexOf(tab.id) < 0){
+  //     editorTabs.push(tab.id);
+  //   }
+  // } else {
+  //   highlightedTabs = arrayRemove(highlightedTabs, tab.id);
+  //   if (showEditMenu){
+  //     editorTabs = arrayRemove(editorTabs, tab.id);
+  //   }
+  // }
 
-  // Outdated???????????? highlighterEnabled feb 2020
-  // highlighterEnabled = !highlighterEnabled;
-  console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled + ', showEditMenu = ' + showEditMenu + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
+
+  console.log('ENABLED STATE CHANGE, now showHighlights = ' + showHighlights + ', showEditMenu = ' + showEditMenu + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
   const { id: tabId, url } = tab;
 
   chrome.tabs.sendMessage(tabId, {
     command: 'displayHighlightsForTabAndPossiblyEditPanes',
-    enabled: enable,
+    showHighlights,
     showEditMenu,
     tabId: tabId,
   }, function (result) {
@@ -517,7 +516,7 @@ chrome.commands.onCommand.addListener(function (command) {
 
 chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {    // eslint-disable-line complexity
-    debugE && console.log('XXXXXX message received -- ' + request.command + ': ', request, sender, sender.tab.id);
+     console.log('XXXXXX message received -- ' + request.command + ': ', request, sender, sender.tab.id);
     //request=JSON.parse(evt.data);
     if (request.command === 'getTopMenuData') {
       getOrganizationFound(request.url, sendResponse);
@@ -612,16 +611,18 @@ chrome.runtime.onMessage.addListener(
 
 
 function requestReHighlight (){
-  console.log('requestReHighlight(){ called');
+  console.log('BIGBIG requestReHighlight() called');
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     let id = '';
     let url = '';
     if (tabs.length) {
       id = tabs[0].id;    // eslint-disable-line prefer-destructuring
       url = tabs[0].url;  // eslint-disable-line prefer-destructuring
+  console.log('requestReHighlight() called for tab id (1): '+id);
     } else {
       id = activeTabIdGlobal;
       url = activeUrlGlobal;
+  console.log('requestReHighlight() called for tab id (2): '+id);
     }
     chrome.tabs.sendMessage(id, {command: 'ReHighlight', words: getWordsBackground(url)});
   });
@@ -644,9 +645,9 @@ function requestReHighlight (){
 //   return validated;
 // }
 
-function getWordsBackground (inUrl){
+function getWordsBackground (inUrl){  // was getWords()
   let result={};
-  // console.log("getWordsBackground inURL: " + inUrl);
+  console.log("getWordsBackground inURL: " + inUrl);
   for(let neverShowOn in HighlightsData.neverHighlightOn){
     if (inUrl.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))){
       return result;

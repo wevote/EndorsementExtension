@@ -1,64 +1,79 @@
 /* global $ */
-// var Colors = ["#fff", "#000", "#ff6", "#a0ffff", "#0DD5FC", "#9f9", "#3DFF33", "#FF9933", "#f99", "#f6f"];
-// var FColors = ["#fff", "#000", "#ff6", "#a0ffff", "#0DD5FC", "#9f9", "#3DFF33", "#FF9933", "#f99", "#f6f"];
-var onPageShown = false;
-// var Collapsed=true;
-// var enableSaveButton=false;
+/* global chrome */
+// var onPageShown = false;
 var debug=false;
-// var HighlightsData = JSON.parse(localStorage['HighlightsData']);
-// var wordsToAdd = [];
-// const useProductionAPIs = true;
-// const rootApiURL = useProductionAPIs ? 'https://api.wevoteusa.org/apis/v1' : 'http://127.0.0.1:8000/apis/v1';
+const removeEditText = 'Remove Edit Panel From This Tab';
+const openEditText = 'Open Edit Panel for this Tab';
+const highlightThisText = 'Highlight Candidates on This Tab';
+const removeHighlightThisText = 'Remove Highlights From This Tab';
 
 console.log('onPage localStorage[enabledURLsData]: ', localStorage['enabledURLsData']);
 
 document.addEventListener('DOMContentLoaded', function () {
   let highlightingEnabled = false;
-  let highlightCandidatesOnThisTab = false;
-  let highlightCandidatesOnAllTabs = false;
-  let editPanelOpenOnThisTab = false;
+  let highlightCandidatesOnAllTabs = localStorage['highlightCandidatesOnAllTabs'] === 'true';
+  dumpTabStatus();
 
-  // chrome.extension.getBackgroundPage().highlighterEnabled = true;
-  // console.log('localStorage[\'highlightingEnabled\'] 11111 ', chrome.extension.getBackgroundPage().highlighterEnabled);
-  // chrome.extension.getBackgroundPage().highlighterEnabled = false;
   console.log('chrome.extension.getBackgroundPage().highlighterEnabled: ' + chrome.extension.getBackgroundPage().highlighterEnabled);
-  console.log('localStorage[\'highlightCandidatesOnThisTab\']', localStorage['highlightCandidatesOnThisTab']);
+  // console.log('localStorage[\'highlightCandidatesOnThisTab\']', localStorage['highlightCandidatesOnThisTab']);
   console.log('localStorage[\'highlightCandidatesOnAllTabs\']', localStorage['highlightCandidatesOnAllTabs']);
   if (chrome.extension.getBackgroundPage().highlighterEnabled === undefined) {
-    chrome.extension.getBackgroundPage().highlighterEnabled = highlightingEnabled;
-    localStorage['highlightCandidatesOnThisTab'] = highlightCandidatesOnThisTab;
-    localStorage['highlightCandidatesOnAllTabs'] = highlightCandidatesOnAllTabs;
-    localStorage['editPanelOpenOnThisTab'] = editPanelOpenOnThisTab;
+    chrome.extension.getBackgroundPage().highlighterEnabled = false;
+    localStorage['highlightCandidatesOnAllTabs'] = 'false';
   } else {
     highlightingEnabled = chrome.extension.getBackgroundPage().highlighterEnabled;
-    highlightCandidatesOnThisTab = localStorage['highlightCandidatesOnThisTab'] === 'true';
     highlightCandidatesOnAllTabs = localStorage['highlightCandidatesOnAllTabs'] === 'true';
-    editPanelOpenOnThisTab = localStorage['editPanelOpenOnThisTab'] === 'true';
   }
 
-  $('#globalyEnableHighlightingSwitch').prop('checked', highlightingEnabled).click(() => {
-    if ($('#globalyEnableHighlightingSwitch').is(':checked')) {
+  updateButtonState();
+
+  // Master switch "Enable Highlighting"
+  $('#highlightingMasterSwitch').prop('checked', highlightingEnabled).click(() => {
+    // We are turning off or turning on we want to reset the two bottom buttons
+    $('#highlightCandidatesThisTabSwitch').removeClass('weButtonRemove').text(highlightThisText);
+    $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
+
+    // If after the click the switch is now checked (flipped to right)...
+    if ($('#highlightingMasterSwitch').is(':checked')) {
       chrome.extension.getBackgroundPage().highlighterEnabled = true;
-      $('#globalyEnableHighlightingSwitch').prop('checked', true);
     } else {
       chrome.extension.getBackgroundPage().highlighterEnabled = false;
-      $('#globalyEnableHighlightingSwitch').prop('checked', false);
-      localStorage['highlightCandidatesOnThisTab'] = false;
-      $('#highlightCandidatesThisTabSwitch').prop('checked', false);
-      localStorage['highlightCandidatesOnAllTabs'] = false;
+      chrome.extension.getBackgroundPage().enableHighlightsForAllTabs(false);
+
+      localStorage['highlightCandidatesOnAllTabs'] = 'false';
       $('#highlightCandidatesOnAllTabsSwitch').prop('checked', false);
     }
   });
 
-  $('#highlightCandidatesThisTabSwitch').click((event) => {
-    if (!chrome.extension.getBackgroundPage().highlighterEnabled) {
+  // Not yet tested
+  $('#highlightCandidatesOnAllTabsSwitch').prop('checked', highlightCandidatesOnAllTabs).click(() => {
+    if ($('#highlightCandidatesOnAllTabsSwitch').is(':checked')) {
+      $('#highlightingMasterSwitch').prop('checked', true);
+      localStorage['highlightCandidatesOnAllTabs'] = 'true';
       chrome.extension.getBackgroundPage().highlighterEnabled = true;
+      chrome.extension.getBackgroundPage().enableHighlightsForAllTabs(true);
+    } else {
+      chrome.extension.getBackgroundPage().enableHighlightsForAllTabs(false);
+      localStorage['highlightCandidatesOnAllTabs'] = 'false';
     }
-    $('#enableHighlightingSwitch').prop('checked', chrome.extension.getBackgroundPage().highlighterEnabled);
-    // localStorage['highlightCandidatesOnThisTab'] = true;
+  });
+
+  $('#highlightCandidatesThisTabSwitch').click((event) => {
+    chrome.extension.getBackgroundPage().highlighterEnabled = true;
+    $('#highlightingMasterSwitch').prop('checked', true);
+
+    let enable = true;
+    // Need enable/disable logic here
+    if ($('#highlightCandidatesThisTabSwitch').hasClass('weButtonRemove')) {  // if pressing the button would do a remove...
+      $('#highlightCandidatesThisTabSwitch').removeClass('weButtonRemove').text(highlightThisText);
+      enable = false;
+    } else {
+      $('#highlightCandidatesThisTabSwitch').addClass('weButtonRemove').text(removeHighlightThisText);
+      enable = true;
+    }
+
     chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
       console.log('enabling highlights on active tab -- popup.js tab.id: ' + tabs[0].id);
-      const enable = true;
       const showEditMenu = false;
       chrome.extension.getBackgroundPage().setEnableForActiveTab(enable, showEditMenu, tabs[0]);
     });
@@ -67,25 +82,24 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 1000);
   });
 
-  $('#highlightCandidatesOnAllTabsSwitch').prop('checked', highlightCandidatesOnAllTabs).click(() => {
-    if ($('#highlightCandidatesOnAllTabsSwitch').is(':checked')) {
-      chrome.extension.getBackgroundPage().highlighterEnabled = true;
-      $('#enableHighlightingSwitch').prop('checked', true);
-      localStorage['highlightCandidatesOnAllTabs'] = true;
-      $('#highlightCandidatesOnAllTabsSwitch').prop('checked', true);
-    } else {
-      localStorage['highlightCandidatesOnAllTabs'] = false;
-      $('#highlightCandidatesOnAllTabsSwitch').prop('checked', false);
-    }
-  });
-
   $('#openEditPanelButton').click((event) => {
+    chrome.extension.getBackgroundPage().highlighterEnabled = true;
     console.log('openEditPanelButton button onClick -- popup.js');
+    $('#highlightingMasterSwitch').prop('checked', true);
+
+    let enable = true;
+    // Need enable/disable logic here
+    if ($('#openEditPanelButton').hasClass('weButtonRemove')) {  // if pressing the button would do a remove...
+      $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
+      enable = false;
+    } else {
+      $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);
+      enable = true;
+    }
+
     chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
       console.log('enabling editor on active tab from openEditPanelButton button -- popup.js tab.id: ' + tabs[0].id);
-      const enable = true;
-      const showEditMenu = true;
-      chrome.extension.getBackgroundPage().setEnableForActiveTab(enable, showEditMenu, tabs[0]);
+      chrome.extension.getBackgroundPage().setEnableForActiveTab(enable, enable, tabs[0]);
     });
     event.timer = setTimeout(() => {
       window.close();
@@ -100,25 +114,44 @@ document.addEventListener('DOMContentLoaded', function () {
   // }
 });
 
-function onOff () {
-  if (chrome.extension.getBackgroundPage().highlighterEnabled) {
-    chrome.extension.getBackgroundPage().highlighterEnabled = false;
-  }
-  else {
-    chrome.extension.getBackgroundPage().highlighterEnabled = true;
-  }
-  renderOnOff();
+function updateButtonState () {
+  chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+    chrome.tabs.sendMessage(tabs[0].id, {command: 'getTabStatusValues'}, function (result){
+      debug && console.log('getCurrentTabStatus() result: ', result);
+      if(result){
+        let {highlighterEnabledThisTab, editorEnabledThisTab} = result;
+        if (highlighterEnabledThisTab) {
+          $('#highlightCandidatesThisTabSwitch').addClass('weButtonRemove').text(removeHighlightThisText);
+        } else {
+          $('#highlightCandidatesThisTabSwitch').removeClass('weButtonRemove').text(highlightThisText);
+        }
+
+        if (editorEnabledThisTab) {
+          $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);
+        } else {
+          $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
+        }
+      }
+    });
+  });
 }
 
-function renderOnOff () {
-  document.getElementById('myonoffswitch').checked = chrome.extension.getBackgroundPage().highlighterEnabled;
-  if (!chrome.extension.getBackgroundPage().highlighterEnabled) {
-    document.getElementById('header').style.backgroundColor = 'grey';
-  }
-  else {
-    document.getElementById('offDesc').innerHTML = '';
-    document.getElementById('header').style.backgroundColor = '#0091EA';
-  }
+function dumpTabStatus () {
+  chrome.tabs.getAllInWindow(null, function (tabs) {
+    for (let i = 0; i < tabs.length; i++) {
+      const { id: tabId, url } = tabs[i];
+      chrome.tabs.sendMessage(tabId, {command: 'getTabStatusValues'}, function (result){
+        if (result) {
+          const {highlighterEnabledThisTab, editorEnabledThisTab} = result;
+          console.log('dumpTabStatus tabId: ' + tabId + ', highlight: ' + highlighterEnabledThisTab  + ', editor: ' + editorEnabledThisTab + ', url: ' + url);
+        } else {
+          console.log('dumpTabStatus NO RESULT tabId: ' + tabId + ', highlight: ' + highlighterEnabledThisTab  + ', editor: ' + editorEnabledThisTab + ', url: ' + url);
+        }
+      });
+    }
+
+  });
+
 }
 
 function clearHighlightsFromTab () {
@@ -127,6 +160,27 @@ function clearHighlightsFromTab () {
     chrome.tabs.sendMessage(tabs[0].id, {command: 'ClearHighlights'});
   });
 }
+
+// function onOff () {
+//   if (chrome.extension.getBackgroundPage().highlighterEnabled) {
+//     chrome.extension.getBackgroundPage().highlighterEnabled = false;
+//   }
+//   else {
+//     chrome.extension.getBackgroundPage().highlighterEnabled = true;
+//   }
+//   renderOnOff();
+// }
+//
+// function renderOnOff () {
+//   document.getElementById('myonoffswitch').checked = chrome.extension.getBackgroundPage().highlighterEnabled;
+//   if (!chrome.extension.getBackgroundPage().highlighterEnabled) {
+//     document.getElementById('header').style.backgroundColor = 'grey';
+//   }
+//   else {
+//     document.getElementById('offDesc').innerHTML = '';
+//     document.getElementById('header').style.backgroundColor = '#0091EA';
+//   }
+// }
 
 // function hintNonUnicodeChar (value){
 //   if(value.match(/[^a-zA-Z0-9_\s]/)){

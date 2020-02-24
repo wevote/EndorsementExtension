@@ -64,6 +64,8 @@ function Hilitor (id, tag) {
     });
 
     // --------------------------
+    console.log('BIGBIG duped sortedKeys.length ' + sortedKeys.length);
+
     debugH && console.log('duped sortedKeys.length ' + sortedKeys.length);
 
     let names = [];
@@ -78,6 +80,7 @@ function Hilitor (id, tag) {
         names.push(name);
       }
     }
+    console.log('BIGBIG deduped name list size ' + names.lengt);
     debugH && console.log('deduped name list size ' + names.length);
 
 
@@ -148,8 +151,9 @@ function Hilitor (id, tag) {
 
   // recursively apply word highlighting
   this.hiliteWords = function (node, printHighlights, inContentEditable) {
+    // console.log('BIGBIG this.hiliteWords');
 
-    if (node == undefined || !node) {return;}1
+    if (node == undefined || !node) {return;}
     if (!matchRegex) {return;}
 
     // Begin modification for WeVote
@@ -157,9 +161,13 @@ function Hilitor (id, tag) {
     if (skipTags.test(node.nodeName) ||
       skipClasses.test(node.className) ||
       node.id === 'noDisplayPageBeforeFraming' ||
-      node.id === 'weContainer') {
+      // node.id === 'weContainer') {
+      false) {
+      debugH && console.log('hiliteWords early recursive return node.id: ' + node.id);
       return;
     }
+    debugH && console.log('hiliteWords early recursive CONTINUE node.id: ' + node.id);
+    // console.log('BIGBIG before iterating Through every child node using highlight words cnt: ' + (node.hasChildNodes() ? node.childNodes.length : 0));
     // End of modification for WeVote
 
     if (node.hasChildNodes()) {
@@ -169,8 +177,8 @@ function Hilitor (id, tag) {
     }
 
     if (node.nodeType == 3) { // NODE_TEXT
-
       let nv = node.nodeValue;
+      // console.log('node.nodeType == 3', node);
       if(inContentEditable) {
         regs = matchRegexEditable.exec(nv);
       } else {
