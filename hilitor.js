@@ -9,6 +9,7 @@
 //  - stop the recursive search for words at the id weContainer (our menus)
 //  - stop at the id noDisplayPageBeforeFraming (the original dom, that becomes dormant and invisible, with a fresh copy in the new iframe)
 
+/* global $ */
 
 function Hilitor (id, tag) {
 
@@ -63,6 +64,8 @@ function Hilitor (id, tag) {
     });
 
     // --------------------------
+    console.log('BIGBIG duped sortedKeys.length ' + sortedKeys.length);
+
     debugH && console.log('duped sortedKeys.length ' + sortedKeys.length);
 
     let names = [];
@@ -77,6 +80,7 @@ function Hilitor (id, tag) {
         names.push(name);
       }
     }
+    console.log('BIGBIG deduped name list size ' + names.length);
     debugH && console.log('deduped name list size ' + names.length);
 
 
@@ -122,7 +126,7 @@ function Hilitor (id, tag) {
     debugH && console.log(matchRegex);
 
     //ContentEditable regex
-    var re = '';
+    re = '';
     if (wordsEditable.length > 1) {
       wordsEditable = wordsEditable.substring(0, wordsEditable.length - 1);
       re += '(' + wordsEditable + ')';
@@ -148,7 +152,7 @@ function Hilitor (id, tag) {
   // recursively apply word highlighting
   this.hiliteWords = function (node, printHighlights, inContentEditable) {
 
-    if (node == undefined || !node) {return;}1
+    if (node == undefined || !node) {return;}
     if (!matchRegex) {return;}
 
     // Begin modification for WeVote
@@ -157,8 +161,11 @@ function Hilitor (id, tag) {
       skipClasses.test(node.className) ||
       node.id === 'noDisplayPageBeforeFraming' ||
       node.id === 'weContainer') {
+      debugH && console.log('hiliteWords early recursive return node.id: ' + node.id);
       return;
     }
+    debugH && console.log('hiliteWords early recursive CONTINUE node.id: ' + node.id);
+    // console.log('BIGBIG before iterating Through every child node using highlight words cnt: ' + (node.hasChildNodes() ? node.childNodes.length : 0));
     // End of modification for WeVote
 
     if (node.hasChildNodes()) {
@@ -170,6 +177,7 @@ function Hilitor (id, tag) {
     if (node.nodeType == 3) { // NODE_TEXT
 
       let nv = node.nodeValue;
+      debugH && console.log('node.nodeValue: ', node.nodeValue);
       if(inContentEditable) {
         regs = matchRegexEditable.exec(nv);
       } else {
@@ -192,6 +200,7 @@ function Hilitor (id, tag) {
         }
 
         if (wordColor[wordfound] != undefined) {
+          let urlHref = '';  //WeVote
 
           if ((node.parentElement.tagName == hiliteTag && node.parentElement.className == hiliteClassname)) {
             //skip highlighting
@@ -217,6 +226,21 @@ function Hilitor (id, tag) {
             match.style.fontStyle = 'inherit';
 
             if (!inContentEditable || (inContentEditable && wordColor[wordfound].ShowInEditableFields)) {
+              // Begin modification for WeVote
+              // If the name is in a link tag, disable it.
+              if (node.parentNode.localName === 'a') {
+                urlHref = node.parentNode.href;
+                $(node.parentNode).css({
+                  'pointer-events': 'none',
+                  cursor: 'default'
+                });
+              }
+              // Icon within highlights in the DOM of the endorsement page
+              if(wordColor[word].Icon.length) {
+                $(match).prepend(wordColor[word].Icon);
+              }
+
+              // End of modification for WeVote
               var after = node.splitText(regs.index);
               after.nodeValue = after.nodeValue.substring(regs[0].length);
 
@@ -229,11 +253,13 @@ function Hilitor (id, tag) {
             'isInHidden': false
           });
 
+          debugH && console.log('WORD FOUND IN DOM: ', wordColor[wordfound].word);
           highlightMarkers[numberOfHighlights] = {
             'word': wordColor[wordfound].word,
             'offset': nodeAttributes.offset,
             'hidden': nodeAttributes.isInHidden,
-            'color': wordColor[wordfound].Color
+            'color': wordColor[wordfound].Color,
+            'href': encodeURI(urlHref)
           };
 
           numberOfHighlights += 1;

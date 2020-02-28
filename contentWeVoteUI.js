@@ -1,3 +1,6 @@
+/* global markupForThumbSvg */
+/* global colors */
+
 const { $, chrome: { runtime } } = window;
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
 let state = {
@@ -11,18 +14,21 @@ let state = {
 };
 
 /**
- * Display (or remove) the we vote extension UI
- * @param {boolean} enabled - true to display the UI, false to remove it
- * @returns {boolean} - return true to indicate that we call the response function asynchronously
+ * Display (or remove) the highlighting on the endorsement page, and optionaly the editor
+ * @param {boolean} showHighlights - true to display the highlighting, false to remove it and the editor
+ * @param {boolean} showEditor - true to display the editor
+ * @param {number} tabId - chromes tab number for currently displayed tab
+ * @returns {boolean} - return true to indicate that we want to call the response function asynchronously
  */
-function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
+function displayHighlightingAndPossiblyEditor (showHighlights, showEditor, tabId) {  // eslint-disable-line no-unused-vars
+  console.log('BIGBIG displayHighlightingAndPossiblyEditor showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', tabId);
   try {
-    if(enabled) {
-      console.log('Displaying WeVote UI --------------------------------');
-      getHighlights(true);   // Calls BuildUI when the API query completes
+    if(showHighlights || showEditor) {
+      console.log('displayHighlightingAndPossiblyEditor ----- for tab: ' + tabId);
+      getHighlights(showHighlights, showEditor, tabId);   // Calls BuildUI when the API query completes
     } else {
       // Disable UI (reload the page)
-      console.log('Unloading WeVote UI --------------------------------');
+      console.log('Unloading displayHighlightingAndPossiblyEditor ----- for tab: ' + tabId);
       location.reload();
     }
   } catch (err) {
@@ -31,7 +37,7 @@ function displayWeVoteUI (enabled) {  // eslint-disable-line no-unused-vars
   return true;  // indicates that we call the response function asynchronously.  https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
 }
 
-function buildUI () {
+function displayEditPanes () {
   console.log('Building WeVote UI --------------------------------');
   let hr = window.location.href;
   let bod = $('body');
@@ -51,7 +57,7 @@ function buildUI () {
   topMenu();
   updateTopMenu();
   signIn(false);                       // Calls updatePositionsPanel
-  initializeOrgChoiceList();           //  Does not display org choice list if not logged in, or have chosen an org
+  initializeOrgChoiceList();           //  Does not display an org choice list, if not logged in, or have not chosen an org
   greyAllPositionPanes(false);
 }
 
@@ -86,7 +92,7 @@ function debugWarn (...args) {
 
 /*
   May 16, 2019
-   For now if the API server gets swapped local/production you will need to get a new device ID.
+  For now if the API server gets swapped from local/production you will need to get a new device ID.
   With the extension running, go to the wevote.us or localhost:3000 page, and open the popup, and press the login button.
   Then when you navigate to some endorsement page. the device id will become available in local storage.
   Sept 10, 2019, you may have to clear localStorage['voterDeviceId'].  You will have to be running a local webapp, which
@@ -117,9 +123,11 @@ function signIn (showDialog) {
         email: voterEmail,
         isSignedIn
       };
-      // Unfortunately /avatar-generic.png can't be "served" from the page, since file loading is relative to the endorsement page
+      // Unfortunately /avatar-generic.png can't be "served" from the extension, since file loading is relative to the endorsement page
 
       if (voterInfo.success && voterInfo.isSignedIn) {
+        $('[role=dialog]').remove();
+        $('#loginPopUp').remove();
         $('#signIn').replaceWith(
           '<img id="signOut" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" src="' + voterInfo.photo + '" ' +
             'style="margin: 12px; width: 50px; height: 50px;" />');
@@ -137,9 +145,9 @@ function signIn (showDialog) {
             dialogClass: 'no-close',
             width: 450,
             position: { my: 'right top', at: 'left bottom', of: '#signIn' },
+            closeText: '',
             open: function () {
-              $('.u2i-dialog-titlebar').css('background-color', '#2E3C5D');
-
+              dialogTitlebarStyling();
               const markup =
                 '<div>' +
                 '   <div style=\'margin-bottom: .75rem; padding-left: 10px;\'><b>To sign in</b></div>' +
@@ -151,13 +159,28 @@ function signIn (showDialog) {
               $(this).html(markup);
               setSideAreaStatus();
               setSideAreaStatus('No Candidate endorsements have been captured yet.');
-              initializeOrgChoiceList();
+              initializeOrgChoiceList(); // ToDo: is this a dupe call 2/23/20?
             },
           });
         }
       }
     });
   return false;
+}
+
+function dialogTitlebarStyling () {
+  $('.u2i-dialog-titlebar').css('background-color', '#2E3C5D');
+  $('.u2i-icon-closethick').remove();
+  $('.u2i-dialog-titlebar-close').css({
+    'background-color': '#2E3C5D',
+    'color': 'white',
+    'border': '6px'
+  });
+  $('.u2i-button-icon-space').css({
+    'padding-right': '4px',
+  }).html('X&nbsp;');
+  $('.u2i-resizable-handle').css('display', 'none');
+  $('.u2i-dialog-title').addClass('createDlgTitle');
 }
 
 function signOut () {
@@ -173,11 +196,11 @@ function topMenu () {
     '    <span class="innerGridSend core-text">' +
     '      <span class="topCommentLabel core-text">Send us a comment about this page: </span>' +
     '      <input type="text" id="emailWe" class="core-text" name="email" placeholder="Your email" >' +
-    '      <input type="text" id="topComment" class="core-text"  sname="topComment" placeholder="Comment here..." >' +
+    '      <input type="text" id="topComment" class="core-text" name="topComment" placeholder="Comment here..." >' +
     '      <button type="button" id="sendTopComment" class="sendTopComment weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">Send</button>' +
     '    </span>' +
     '  </span>' +
-    '  <button type="button" id="signIn" class="gridSignInTop  weButton removeContentStyles">SIGN IN</button>' +
+    '  <button type="button" id="signIn" class="gridSignInTop bareSignIn weButton removeContentStyles">SIGN IN</button>' +
     '  <span id="loginPopUp"></span>' +
     '  <div id="dlgAnchor"></div>' +
   '</div>';
@@ -191,7 +214,7 @@ function topMenu () {
 }
 
 // Get the href into the extension
-function getHighlights (doBuildUI) {
+function getHighlights (showHighlights, showEditor, tabId) {
   debugLog('getHighlights() called');
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: false },
@@ -203,9 +226,15 @@ function getHighlights (doBuildUI) {
       debugLog('getHighlights() response', response);
 
       if (response) {
-        debugLog('SUCCESS: getHighlights received a response', response);
-        if (doBuildUI) {
-          buildUI();
+        debugLog('SUCCESS: getHighlights received a response: ', response, '  showEditor:', showEditor, ', tabId: ', tabId);
+        if (showEditor) {
+          debugLog('getHighlights() CALLING displayEditPanes()');
+          displayEditPanes();
+        } else {
+          // 2/23/20 6pm  This was what finally got highlighting and/or editor woking on command
+          // The same endorsement page, when opened in an iframe will immediately reload and must call sendGetStatus from that DOM, at that moment.
+          // See the call to sendGetStatus in the initialization code for tabWordHighlighter
+          sendGetStatus();
         }
       } else {
         console.log('ERROR: getHighlights received empty response');
@@ -220,7 +249,7 @@ function getRefreshedHighlights () {
     function (response) {
       let {lastError} = runtime;
       if (lastError) {
-        console.warn(' chrome.runtime.sendMessage("getHighlights")', lastError.message);
+        console.warn(' chrome.runtime.sendMessage("getHighlights") refresh ', lastError.message);
       }
       console.log('getRefreshedHighlights() response', response);
 
@@ -412,11 +441,10 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
     inLeftPane = $('*:contains(' + allNames[i] + ')').length > 0 ? true : inLeftPane;
   }
 
-
   const isStored = positionWeVoteId !== undefined && positionWeVoteId !== null && positionWeVoteId.length > 0;
   let markup =
     "<div class='candidateWe " + candNo + "'>" +
-    "  <div id='unfurlable-" + i + "' class='unfurlable' >" +
+    "  <div id='unfurlable-" + i + "' class='" + (detachedDialog ? 'unfurlableDetached' : 'unfurlable') + "'>" +
          unfurlableGrid(i, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, comment.trim().length > 0, false) +
     "    <input type='hidden' id='candidateName-" + i + "' value='" + name + "'>" +
     "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidateWeVoteId + "'>" +
@@ -441,19 +469,25 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
     '    <input type="text" class="moreInfoURL-' + i + ' weInfoText removeContentStyles" style="margin: 0; text-align: left;" />' +
     "    <span class='buttons'>";
   if (!detachedDialog) {
-    markup += " <button type='button' class='revealLeft-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Reveal</button>";
+    markup +=
+    "      <button type='button' class='revealLeft-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>REVEAL</button>";
   }
-  markup += "   <button type='button' class='openInAdminApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Admin App</button>";
-  if (party !== undefined) {
-    markup += " <button type='button' class='openInWebApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>WeVote.US</button>";
+  markup +=
+    "      <button type='button' class='openInAdminApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>ADMIN APP</button>";
+  if (party !== undefined && detachedDialog) {
+    markup +=
+      "    <button type='button' class='openInWebApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>JUMP TO WE VOTE</button>";
   }
-  markup += "   <button type='button' class='saveButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>Save</button>" +
+  markup +=
+    "      <button type='button' class='saveButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>SAVE</button>" +
+    "      <button type='button' class='deleteButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>DELETE</button>" +
     '    </span>' +
     '  </div>' +
     '</div>';
   return markup;
 }
 
+// eslint-disable-next-line complexity
 function unfurlableGrid (index, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, showComment, iconOnly) {
   let iconContainer = '';
 
@@ -499,7 +533,7 @@ function unfurlableGrid (index, name, photo, party, office, inLeftPane, detached
   }
 
   let markup =
-    '<div class="gridUnfurlableContainer core-text">' +
+    '<div class="' + (detachedDialog ? 'gridUnfurlableContainerDetached' : 'gridUnfurlableContainer') + ' core-text">' +
       '<div class="gridCandidatePhoto">' +
         '<img class="photoWe removeContentStyles" alt="candidateWe" src="' + photo + '">' +
       '</div>' +
@@ -518,6 +552,7 @@ function unfurlableGrid (index, name, photo, party, office, inLeftPane, detached
   return markup;
 }
 
+/* eslint-disable no-undef */
 function backgroundColor (stance, isStored) {
   if (stance === 'SUPPORT') {
     return isStored ? colors.STORED_SUPPORT_BACKGROUND : colors.POSS_SUPPORT_BACKGROUND;
@@ -531,6 +566,7 @@ function backgroundColor (stance, isStored) {
 
   return 'purple';
 }
+/* eslint-enable no-undef */
 
 function greyAllPositionPanes (booleanGreyIt) {
   if (booleanGreyIt) {
@@ -742,7 +778,7 @@ function deactivateActivePositionPane () {
   }
 }
 
-// The text they select, will need to be the full name that we send to the API, although they will have a chance to edit it before sending
+// The text they select, will need to be the full name that we send to the API, although they will have a chance to edit it, before sending
 // eslint-disable-next-line no-unused-vars
 function openSuggestionPopUp (selection) {
   const i = 1000;
@@ -751,7 +787,7 @@ function openSuggestionPopUp (selection) {
     let candidate = {
       name: selection,
       office: '',
-      party:  undefined,
+      party: undefined,
       photo: defaultImage,
       comment: '',
       url: window.location.href,
@@ -762,22 +798,18 @@ function openSuggestionPopUp (selection) {
       show: true,
       width: 380,
       resizable: false,
-      fixedDimensions: true
+      fixedDimensions: true,
+      closeText: ''
     });
-    // Styles injected here preempt all others, especially those from the underlying endorsement page, which we do not control
-    $("button[title='Close']").css({
-      'font-size': '16px',
-      'float': 'right',
-      'padding-right': '2px',
-      'line-height': 'normal',
+    $('[role=dialog]').css({
+      '-webkit-box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)',
+      '-moz-box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)',
+      'box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)'
     });
-    $('.u2i-dialog-titlebar').css('height', '28px');
-    $('.u2i-resizable-handle').css('display', 'none');
-    $('.u2i-dialog-title').addClass('createDlgTitle');
+    dialogTitlebarStyling();
     $('#unfurlable-' + i).css('height', i === 1000 ? '80px' : '66px');
     const can = '.candidateWe.1000';
-    $(can).css({'background-color': '#FFFFF6', 'padding': '8px 0 8px 8px'});
-    $('#1000').removeClass();
+    $(can).css({'padding': '8px 0 8px 8px'});
     $('.candidateNameInput-1000').val(selection).css({
       width: '80%',
       height: '24px',
@@ -860,25 +892,6 @@ function supportButton (i, type, stance) {
   markup += "<span class='" + textClass + "'>" + buttonText + '</span></button>';
 
   return markup;
-}
-
-function markupForThumbSvg (classString, type, fillColor) {
-  if (type === 'endorse' || type === 'oppose') {
-    let markup = "<svg class='" + classString + "' style='margin-top:3px'>";
-
-    if (type === 'endorse') {
-      markup += "<path fill='" + fillColor + "' d='M6,16.8181818 L8.36363636,16.8181818 L8.36363636,9.72727273 L6,9.72727273 L6,16.8181818 L6,16.8181818 Z M19,10.3181818 C19,9.66818182 18.4681818,9.13636364 17.8181818,9.13636364 L14.0895455,9.13636364 L14.6509091,6.43590909 L14.6686364,6.24681818 C14.6686364,6.00454545 14.5681818,5.78 14.4086364,5.62045455 L13.7822727,5 L9.89409091,8.89409091 C9.67545455,9.10681818 9.54545455,9.40227273 9.54545455,9.72727273 L9.54545455,15.6363636 C9.54545455,16.2863636 10.0772727,16.8181818 10.7272727,16.8181818 L16.0454545,16.8181818 C16.5359091,16.8181818 16.9554545,16.5227273 17.1327273,16.0972727 L18.9172727,11.9313636 C18.9704545,11.7954545 19,11.6536364 19,11.5 L19,10.3713636 L18.9940909,10.3654545 L19,10.3181818 L19,10.3181818 Z'/>" +
-        "<path d='M0 0h24v24H0z' fill='none'/>";
-    } else if (type === 'oppose') {
-      markup += "<path fill='" + fillColor + "' d='M5,18.8199997 L7.36399994,18.8199997 L7.36399994,11.7279999 L5,11.7279999 L5,18.8199997 L5,18.8199997 Z M18.0019997,12.3189999 C18.0019997,11.6688999 17.4700997,11.1369999 16.8199997,11.1369999 L13.0907898,11.1369999 L13.6522398,8.43612996 L13.6699698,8.24700997 C13.6699698,8.00469997 13.5694998,7.78011998 13.4099298,7.62054998 L12.7834698,7 L8.8946899,10.8946899 C8.67601991,11.1074499 8.54599991,11.4029499 8.54599991,11.7279999 L8.54599991,17.6379997 C8.54599991,18.2880997 9.07789989,18.8199997 9.72799988,18.8199997 L15.0469997,18.8199997 C15.5375297,18.8199997 15.9571397,18.5244997 16.1344397,18.0989797 L17.9192597,13.9324298 C17.9724497,13.7964998 18.0019997,13.6546598 18.0019997,13.5009998 L18.0019997,12.3721899 L17.9960897,12.3662799 L18.0019997,12.3189999 L18.0019997,12.3189999 Z' transform='rotate(-180 11.501 12.91)'/>" +
-        "<path d='M0 0h24v24H0z' fill='none'/>";
-    }
-
-    markup += '</svg>';
-
-    return markup;
-  }
-  return '';
 }
 
 function toggleSupportButton (button, i, type, stance) {
