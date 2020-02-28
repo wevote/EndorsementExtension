@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Master switch "Enable Highlighting"
   $('#highlightingMasterSwitch').prop('checked', highlightingEnabled).click(() => {
     // We are turning off or turning on we want to reset the two bottom buttons
-    $('#highlightCandidatesThisTabSwitch').removeClass('weButtonRemove').text(highlightThisText);
+    $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').text(highlightThisText);
     $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
 
     // If after the click the switch is now checked (flipped to right)...
@@ -58,48 +58,50 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  $('#highlightCandidatesThisTabSwitch').click((event) => {
+  let showHighlights = false;
+  $('#highlightCandidatesThisTabButton').click((event) => {
     chrome.extension.getBackgroundPage().highlighterEnabled = true;
     $('#highlightingMasterSwitch').prop('checked', true);
 
-    let enable = true;
     // Need enable/disable logic here
-    if ($('#highlightCandidatesThisTabSwitch').hasClass('weButtonRemove')) {  // if pressing the button would do a remove...
-      $('#highlightCandidatesThisTabSwitch').removeClass('weButtonRemove').text(highlightThisText);
-      enable = false;
+    if ($('#highlightCandidatesThisTabButton').hasClass('weButtonRemove')) {  // if pressing the button would do a remove...
+      $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').text(highlightThisText);
+      showHighlights = false;
     } else {
-      $('#highlightCandidatesThisTabSwitch').addClass('weButtonRemove').text(removeHighlightThisText);
-      enable = true;
+      $('#highlightCandidatesThisTabButton').addClass('weButtonRemove').text(removeHighlightThisText);
+      showHighlights = true;
     }
 
     chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
       console.log('enabling highlights on active tab -- popup.js tab.id: ' + tabs[0].id);
-      const showEditMenu = false;
-      chrome.extension.getBackgroundPage().setEnableForActiveTab(enable, showEditMenu, tabs[0]);
+      const showEditor = false;
+      chrome.extension.getBackgroundPage().setEnableForActiveTab(showHighlights, showEditor, tabs[0]);
     });
     event.timer = setTimeout(() => {
       window.close();
     }, 1000);
   });
 
+  let showEditor = false;
   $('#openEditPanelButton').click((event) => {
     chrome.extension.getBackgroundPage().highlighterEnabled = true;
     console.log('openEditPanelButton button onClick -- popup.js');
     $('#highlightingMasterSwitch').prop('checked', true);
 
-    let enable = true;
     // Need enable/disable logic here
     if ($('#openEditPanelButton').hasClass('weButtonRemove')) {  // if pressing the button would do a remove...
       $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
-      enable = false;
+      showEditor = false;
     } else {
       $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);
-      enable = true;
+      showEditor = true;
+      showHighlights = true;
     }
 
     chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
       console.log('enabling editor on active tab from openEditPanelButton button -- popup.js tab.id: ' + tabs[0].id);
-      chrome.extension.getBackgroundPage().setEnableForActiveTab(enable, enable, tabs[0]);
+      chrome.extension.getBackgroundPage().setEnableForActiveTab(showHighlights, showEditor, tabs[0]);
+      // chrome.extension.getBackgroundPage().hackoTurnOnHandE(showHighlights, showEditor, tabs[0]);
     });
     event.timer = setTimeout(() => {
       window.close();
@@ -121,9 +123,9 @@ function updateButtonState () {
       if(result){
         let {highlighterEnabledThisTab, editorEnabledThisTab} = result;
         if (highlighterEnabledThisTab) {
-          $('#highlightCandidatesThisTabSwitch').addClass('weButtonRemove').text(removeHighlightThisText);
+          $('#highlightCandidatesThisTabButton').addClass('weButtonRemove').text(removeHighlightThisText);
         } else {
-          $('#highlightCandidatesThisTabSwitch').removeClass('weButtonRemove').text(highlightThisText);
+          $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').text(highlightThisText);
         }
 
         if (editorEnabledThisTab) {
@@ -145,22 +147,20 @@ function dumpTabStatus () {
           const {highlighterEnabledThisTab, editorEnabledThisTab} = result;
           console.log('dumpTabStatus tabId: ' + tabId + ', highlight: ' + highlighterEnabledThisTab  + ', editor: ' + editorEnabledThisTab + ', url: ' + url);
         } else {
-          console.log('dumpTabStatus NO RESULT tabId: ' + tabId + ', highlight: ' + highlighterEnabledThisTab  + ', editor: ' + editorEnabledThisTab + ', url: ' + url);
+          console.log('dumpTabStatus NO RESULT tabId: ' + tabId + ', url: ' + url);
         }
       });
     }
-
-  });
-
-}
-
-function clearHighlightsFromTab () {
-  chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    debug&&('clearing highlights from tab');
-    chrome.tabs.sendMessage(tabs[0].id, {command: 'ClearHighlights'});
   });
 }
 
+// function clearHighlightsFromTab () {
+//   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+//     debug&&('clearing highlights from tab');
+//     chrome.tabs.sendMessage(tabs[0].id, {command: 'ClearHighlights'});
+//   });
+// }
+//
 // function onOff () {
 //   if (chrome.extension.getBackgroundPage().highlighterEnabled) {
 //     chrome.extension.getBackgroundPage().highlighterEnabled = false;
@@ -237,9 +237,6 @@ function clearHighlightsFromTab () {
 //
 //   drawInterface();
 // }
-
-
-
 
 // function drawInterface () {
 //   HighlightsData = JSON.parse(localStorage['HighlightsData']);

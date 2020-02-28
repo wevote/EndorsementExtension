@@ -1,3 +1,6 @@
+/* global markupForThumbSvg */
+/* global colors */
+
 const { $, chrome: { runtime } } = window;
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
 let state = {
@@ -13,17 +16,19 @@ let state = {
 /**
  * Display (or remove) the highlighting on the endorsement page, and optionaly the editor
  * @param {boolean} showHighlights - true to display the highlighting, false to remove it and the editor
- * @param {boolean} showEditMenu - true to display the editor
+ * @param {boolean} showEditor - true to display the editor
+ * @param {number} tabId - chromes tab number for currently displayed tab
  * @returns {boolean} - return true to indicate that we want to call the response function asynchronously
  */
-function displayHighlightingAndPossiblyEditor (showHighlights, showEditMenu) {  // eslint-disable-line no-unused-vars
+function displayHighlightingAndPossiblyEditor (showHighlights, showEditor, tabId) {  // eslint-disable-line no-unused-vars
+  console.log('BIGBIG displayHighlightingAndPossiblyEditor showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', tabId);
   try {
-    if(showHighlights || showEditMenu) {
-      console.log('Displaying WeVote UI -------------------------------- showEditMenu: ' + showEditMenu);
-      getHighlights(showEditMenu);   // Calls displayEditPanes when the API query completes
+    if(showHighlights || showEditor) {
+      console.log('displayHighlightingAndPossiblyEditor ----- for tab: ' + tabId);
+      getHighlights(showHighlights, showEditor, tabId);   // Calls BuildUI when the API query completes
     } else {
       // Disable UI (reload the page)
-      console.log('Unloading WeVote UI --------------------------------');
+      console.log('Unloading displayHighlightingAndPossiblyEditor ----- for tab: ' + tabId);
       location.reload();
     }
   } catch (err) {
@@ -52,7 +57,7 @@ function displayEditPanes () {
   topMenu();
   updateTopMenu();
   signIn(false);                       // Calls updatePositionsPanel
-  initializeOrgChoiceList();           //  Does not display org choice list if not logged in, or have chosen an org
+  initializeOrgChoiceList();           //  Does not display an org choice list, if not logged in, or have not chosen an org
   greyAllPositionPanes(false);
 }
 
@@ -87,7 +92,7 @@ function debugWarn (...args) {
 
 /*
   May 16, 2019
-   For now if the API server gets swapped local/production you will need to get a new device ID.
+  For now if the API server gets swapped from local/production you will need to get a new device ID.
   With the extension running, go to the wevote.us or localhost:3000 page, and open the popup, and press the login button.
   Then when you navigate to some endorsement page. the device id will become available in local storage.
   Sept 10, 2019, you may have to clear localStorage['voterDeviceId'].  You will have to be running a local webapp, which
@@ -154,7 +159,7 @@ function signIn (showDialog) {
               $(this).html(markup);
               setSideAreaStatus();
               setSideAreaStatus('No Candidate endorsements have been captured yet.');
-              initializeOrgChoiceList();
+              initializeOrgChoiceList(); // ToDo: is this a dupe call 2/23/20?
             },
           });
         }
@@ -191,7 +196,7 @@ function topMenu () {
     '    <span class="innerGridSend core-text">' +
     '      <span class="topCommentLabel core-text">Send us a comment about this page: </span>' +
     '      <input type="text" id="emailWe" class="core-text" name="email" placeholder="Your email" >' +
-    '      <input type="text" id="topComment" class="core-text"  sname="topComment" placeholder="Comment here..." >' +
+    '      <input type="text" id="topComment" class="core-text" name="topComment" placeholder="Comment here..." >' +
     '      <button type="button" id="sendTopComment" class="sendTopComment weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">Send</button>' +
     '    </span>' +
     '  </span>' +
@@ -209,11 +214,10 @@ function topMenu () {
 }
 
 // Get the href into the extension
-function getHighlights (showEditMenu) {
-  debugLog('BIGBIG getHighlights() called');
+function getHighlights (showHighlights, showEditor, tabId) {
+  debugLog('getHighlights() called');
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: false },
-  //sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: showEditMenu },
     function (response) {
       let {lastError} = runtime;
       if (lastError) {
@@ -222,13 +226,15 @@ function getHighlights (showEditMenu) {
       debugLog('getHighlights() response', response);
 
       if (response) {
-        debugLog('SUCCESS: getHighlights received a response', response);
-        if (showEditMenu) {
+        debugLog('SUCCESS: getHighlights received a response: ', response, '  showEditor:', showEditor, ', tabId: ', tabId);
+        if (showEditor) {
           debugLog('getHighlights() CALLING displayEditPanes()');
           displayEditPanes();
-          getWordsThenStartHighlighting ();  // STEVE STEVE new 2/21 5pm ... does it work?
-        }else {
-          getRefreshedHighlights(showEditMenu);
+        } else {
+          // 2/23/20 6pm  This was what finally got highlighting and/or editor woking on command
+          // The same endorsement page, when opened in an iframe will immediately reload and must call sendGetStatus from that DOM, at that moment.
+          // See the call to sendGetStatus in the initialization code for tabWordHighlighter
+          sendGetStatus();
         }
       } else {
         console.log('ERROR: getHighlights received empty response');
@@ -236,8 +242,8 @@ function getHighlights (showEditMenu) {
     });
 }
 
-function getRefreshedHighlights (showEditMenu) {
-  debugLog('BIGBIG getRefreshedHighlights called');
+function getRefreshedHighlights () {
+  debugLog('getRefreshedHighlights called');
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: true },
     function (response) {
@@ -247,8 +253,8 @@ function getRefreshedHighlights (showEditMenu) {
       }
       console.log('getRefreshedHighlights() response', response);
 
-      if (response && showEditMenu) {
-        debugLog('BIGBIG SUCCESS: getRefreshedHighlights received a response', response);
+      if (response) {
+        debugLog('SUCCESS: getRefreshedHighlights received a response', response);
         console.log('getRefreshedHighlights reloading iframe[0]');
         // eslint-disable-next-line prefer-destructuring
         let frame = $('iframe')[0];
@@ -438,7 +444,7 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
   const isStored = positionWeVoteId !== undefined && positionWeVoteId !== null && positionWeVoteId.length > 0;
   let markup =
     "<div class='candidateWe " + candNo + "'>" +
-    "  <div id='unfurlable-" + i + "' class='unfurlable' >" +
+    "  <div id='unfurlable-" + i + "' class='" + (detachedDialog ? 'unfurlableDetached' : 'unfurlable') + "'>" +
          unfurlableGrid(i, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, comment.trim().length > 0, false) +
     "    <input type='hidden' id='candidateName-" + i + "' value='" + name + "'>" +
     "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidateWeVoteId + "'>" +
@@ -481,6 +487,7 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
   return markup;
 }
 
+// eslint-disable-next-line complexity
 function unfurlableGrid (index, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, showComment, iconOnly) {
   let iconContainer = '';
 
@@ -526,7 +533,7 @@ function unfurlableGrid (index, name, photo, party, office, inLeftPane, detached
   }
 
   let markup =
-    '<div class="gridUnfurlableContainer core-text">' +
+    '<div class="' + (detachedDialog ? 'gridUnfurlableContainerDetached' : 'gridUnfurlableContainer') + ' core-text">' +
       '<div class="gridCandidatePhoto">' +
         '<img class="photoWe removeContentStyles" alt="candidateWe" src="' + photo + '">' +
       '</div>' +
@@ -545,6 +552,7 @@ function unfurlableGrid (index, name, photo, party, office, inLeftPane, detached
   return markup;
 }
 
+/* eslint-disable no-undef */
 function backgroundColor (stance, isStored) {
   if (stance === 'SUPPORT') {
     return isStored ? colors.STORED_SUPPORT_BACKGROUND : colors.POSS_SUPPORT_BACKGROUND;
@@ -558,6 +566,7 @@ function backgroundColor (stance, isStored) {
 
   return 'purple';
 }
+/* eslint-enable no-undef */
 
 function greyAllPositionPanes (booleanGreyIt) {
   if (booleanGreyIt) {
@@ -769,7 +778,7 @@ function deactivateActivePositionPane () {
   }
 }
 
-// The text they select, will need to be the full name that we send to the API, although they will have a chance to edit it before sending
+// The text they select, will need to be the full name that we send to the API, although they will have a chance to edit it, before sending
 // eslint-disable-next-line no-unused-vars
 function openSuggestionPopUp (selection) {
   const i = 1000;

@@ -46,4 +46,3 @@ function markupForThumbSvg (classString, type, fillColor) {
   }
   return '';
 }
-

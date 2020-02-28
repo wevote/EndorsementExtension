@@ -1,4 +1,4 @@
-const $ = window.$;
+const {$} = window;
 const useProductionAPIs = true;
 const rootApiURL = useProductionAPIs ? 'https://api.wevoteusa.org/apis/v1' : 'http://127.0.0.1:8000/apis/v1';
 let debug = false;
@@ -12,19 +12,19 @@ function getHighlightsListFromApiServer (locationHref, doReHighlight, sendRespon
 
   const hrefEncoded = encodeURIComponent(locationHref); //'https://www.emilyslist.org/pages/entry/state-and-local-candidates');
   const apiURL = `${rootApiURL}/voterGuidePossibilityHighlightsRetrieve?voter_device_id=${localStorage['voterDeviceId']}&url_to_scan=${hrefEncoded}`;
-  debug&&console.log('getHighlightsListFromApiServer: ' + apiURL);
+  debug && console.log('getHighlightsListFromApiServer: ' + apiURL);
   $.getJSON(apiURL, '', (res) => {
-    debug&&console.log('voterGuideHighlightsRetrieve API SUCCESS', res);
+    debug && console.log('voterGuideHighlightsRetrieve API SUCCESS', res);
     let highlightsList = res['highlight_list'];
     let neverHighLightOn = res['never_highlight_on'];
 
     // February 2020, these are temporary and can be removed once the python server is updated
-    neverHighLightOn.push("blank");
-    neverHighLightOn.push("platform.twitter.com");
-    neverHighLightOn.push("s7.addthis.com");
-    neverHighLightOn.push("vars.hotjar.com");
-    neverHighLightOn.push("*.google.com");
-    debug&&console.log('get json highlightsList: ', highlightsList);
+    neverHighLightOn.push('blank');
+    neverHighLightOn.push('platform.twitter.com');
+    neverHighLightOn.push('s7.addthis.com');
+    neverHighLightOn.push('vars.hotjar.com');
+    neverHighLightOn.push('*.google.com');
+    debug && console.log('get json highlightsList: ', highlightsList);
     initializeHighlightsData(highlightsList, neverHighLightOn);
     if (doReHighlight) {
       requestReHighlight();
@@ -86,7 +86,7 @@ function getVoterSignInInfo (sendResponse) {
 
   if (voterDeviceId && voterDeviceId.length > 0) {
     $.getJSON(apiURL, '', (res) => {
-      debug&&console.log('get json from getVoterSignInInfo voterRetrieve API SUCCESS', res);
+      debug && console.log('get json from getVoterSignInInfo voterRetrieve API SUCCESS', res);
       const {success, full_name: fullName, we_vote_id: weVoteId, voter_photo_url_medium: photoURL, is_signed_in: isSignedIn,
         signed_in_facebook: signedInFacebook, signed_in_google: signedInGoogle, signed_in_twitter: signedInTwitter, signed_in_with_email: signedInWithEmail } = res;
       data = {
@@ -143,15 +143,15 @@ function getPossiblePositions (possibilityId, sendResponse) {
 
 function updatePossibleVoterGuide (voterGuidePossibilityId, orgName, orgTwitter, orgState, comments, sendResponse) {
   let voterDeviceId = localStorage['voterDeviceId'];
-  debug&&console.log('updatePossibleVoterGuide voterGuidePossibilitySave voterGuidePossibilityId: ' + voterGuidePossibilityId);
+  debug && console.log('updatePossibleVoterGuide voterGuidePossibilitySave voterGuidePossibilityId: ' + voterGuidePossibilityId);
   if (voterDeviceId && voterDeviceId.length > 0) {
     const apiURL = `${rootApiURL}/voterGuidePossibilitySave/?voter_device_id=${voterDeviceId}&voter_guide_possibility_id=${voterGuidePossibilityId}` +
       `&possible_organization_name=${encodeURIComponent(orgName ? orgName.trim() : '')}` +
       `&possible_organization_twitter_handle=${encodeURIComponent(orgTwitter ? orgTwitter.trim() : '')}` +
       `&contributor_comments=${encodeURIComponent(comments)}&limit_to_this_state_code=${orgState ? orgState.trim(): ''}`;
-    debug&&console.log('voterGuidePossibilitySave: ' + apiURL);
+    debug && console.log('voterGuidePossibilitySave: ' + apiURL);
     $.getJSON(apiURL, '', (res) => {
-      debug&&console.log('get json from voterGuidePossibilitySave API SUCCESS', res);
+      debug && console.log('get json from voterGuidePossibilitySave API SUCCESS', res);
       const { possible_organization_name: orgName, contributor_comments: comments } = res;
       let data = {
         orgName: orgName,
@@ -171,7 +171,7 @@ function voterGuidePossibilityPositionSave (itemName, voterGuidePossibilityId, v
   //  Do not send empty values on the url, since that might clear out good data on the Python side
   //  Steve: voter_guide_possibility_position_id completely specifies the possibility and nothing else is needed for the search/match
   let voterDeviceId = localStorage['voterDeviceId'];
-  debug&&console.log('voterGuidePossibilityPositionSave voterGuidePossibilityPositionId: ' + voterGuidePossibilityPositionId);
+  debug && console.log('voterGuidePossibilityPositionSave voterGuidePossibilityPositionId: ' + voterGuidePossibilityPositionId);
   if (voterDeviceId && voterDeviceId.length > 0) {
     let apiURL = `${rootApiURL}/voterGuidePossibilityPositionSave/?voter_device_id=${voterDeviceId}` +
       `&voter_guide_possibility_id=${voterGuidePossibilityId}&voter_guide_possibility_position_id=${voterGuidePossibilityPositionId}` +
@@ -185,9 +185,9 @@ function voterGuidePossibilityPositionSave (itemName, voterGuidePossibilityId, v
     if (moreInfoURL.length > 0) {
       apiURL += `&more_info_url=${encodeURIComponent(moreInfoURL)}`;
     }
-    debug&&console.log('voterGuidePossibilityPositionSave: ' + apiURL);
+    debug && console.log('voterGuidePossibilityPositionSave: ' + apiURL);
     $.getJSON(apiURL, '', (res) => {
-      debug&&console.log('get json from voterGuidePossibilityPositionSave API SUCCESS', res);
+      debug && console.log('get json from voterGuidePossibilityPositionSave API SUCCESS', res);
       sendResponse({res});
     }).fail((err) => {
       console.log('voterGuidePossibilityPositionSave error', err);

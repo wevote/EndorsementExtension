@@ -50,6 +50,10 @@
   width: 428px;
 }
 
+.unfurlableDetached {
+  display: grid;
+}
+
 .candidateWe {
   background-color: white;
   padding-bottom: 6px;

@@ -29,8 +29,6 @@ let uniqueNames = [];
 let activeTabIdGlobal;
 let activeUrlGlobal = '';
 let aliasNames = [];
-let highlightedTabs = [];
-let editorTabs = [];
 
 $(() => {
   console.log('extWordHighlighter constructor');
@@ -188,7 +186,7 @@ function createSearchMenu (){
   /* debugE&& */
   console.log('createSearchMenu has been called');
   getPlatformInfo(
-    function (i) {
+    function () {
       create({
         'title': 'Select a Candidate\'s full name, then try again!',
         'id': 'Highlight'  // Is this causing?:  Unchecked runtime.lastError: Cannot create item with duplicate id Highlight
@@ -280,90 +278,9 @@ function processUniqueNames (uniqueNamesFromPage) {
   }
 }
 
-function enableHighlightsForAllTabs (enable) {
-  // Here we are telling all tabs to enable/disable highlighting
-  chrome.tabs.getAllInWindow(null, function (tabs) {
-    for (let i = 0; i < tabs.length; i++) {
-      const { id: tabId, url } = tabs[i];
-
-      let skip = false;  // Skip those tabs whose URLs are on the neverHighlightOn list
-      for(let neverShowOn in HighlightsData.neverHighlightOn){
-        if (url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
-          skip = true;
-          break;
-        }
-      }
-      if (!skip) {
-        chrome.tabs.sendMessage(tabId, {
-          command: 'displayHighlightsForTabAndPossiblyEditPanes',
-          enabled: enable, // highlighterEnabled,
-          tabId,
-        }, function (result) {
-          debugE && console.log('on click icon, response received to displayHighlightsForTabAndPossiblyEditPanes ', result);
-        });
-      }
-    }
-  });
-}
-
-// function setEnableForActiveTab (enable, showEditMenu, tab) {
-//   console.log('enabling highlights on active tab ', tab, ' ------- ext');
-//
-//   // Ignore if on a 'neverHighlightOn' page
-//   if (HighlightsData.neverHighlightOn === undefined) {
-//     HighlightsData.neverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org', 'localhost'];
-//   }
-//   for (let neverShowOn in HighlightsData.neverHighlightOn) {
-//     if (tab.url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
-//       showHighlightsCount('x', 'red', tab.id);
-//       setTimeout(function () {
-//         showHighlightsCount('', 'white', tab.id);
-//       }, 500);
-//       return;
-//     }
-//   }
-//
-//   // Need to deal with this, it acts like a toggle, and what I want is multi choice February 17, 2020
-//   highlighterEnabled = !highlighterEnabled;
-//   console.log('ENABLED STATE CHANGE, now highlighterEnabled = ' + highlighterEnabled + ', showEditMenu = ' + showEditMenu + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
-//
-//   // Here we are telling all tabs to enable/disable highlighting, and telling them all to open/close the 3 pane display
-//   // it would be possible to fall back to only having the currently displayed tab, show the 3 pane display, and the others
-//   // would only show the highlights
-//   chrome.tabs.getAllInWindow(null, function (tabs) {
-//     for (let i = 0; i < tabs.length; i++) {
-//       const { id: tabId, url } = tabs[i];
-//
-//       let skip = false;  // Skip those tabs whose URLs are on the neverHighlightOn list
-//       for(let neverShowOn in HighlightsData.neverHighlightOn){
-//         if (url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
-//           skip = true;
-//           break;
-//         }
-//       }
-//       if (!skip) {
-//         chrome.tabs.sendMessage(tabId, {
-//           command: 'displayHighlightsForTabAndPossiblyEditPanes',
-//           enabled: highlighterEnabled,
-//           showEditMenu: showEditMenu,
-//           tabId: tabId,
-//         }, function (result) {
-//           debugE && console.log('on click icon, response received to displayHighlightsForTabAndPossiblyEditPanes ', result);
-//         });
-//       }
-//     }
-//   });
-// }
-
-
-function arrayRemove (arr, value) {
-  return arr.filter(function (ele){
-    return ele != value;
-  });
-}
-
-// Called by the highlight this tab button on the pop up
-function setEnableForActiveTab (showHighlights, showEditMenu, tab) {
+// Called by the "highlight this tab" button on the popup
+// This receives the tab not the tabid!
+function setEnableForActiveTab (showHighlights, showEditor, tab) {
   console.log('enabling highlights on active tab ', tab, ' ------- ext');
 
   // Ignore if on a 'neverHighlightOn' page
@@ -380,34 +297,51 @@ function setEnableForActiveTab (showHighlights, showEditMenu, tab) {
     }
   }
 
-  // if (showHighlights || showEditMenu) {
-  //   if (highlightedTabs.indexOf(tab.id) < 0) {
-  //     highlightedTabs.push(tab.id);
-  //   }
-  //   if (showEditMenu && editorTabs.indexOf(tab.id) < 0){
-  //     editorTabs.push(tab.id);
-  //   }
-  // } else {
-  //   highlightedTabs = arrayRemove(highlightedTabs, tab.id);
-  //   if (showEditMenu){
-  //     editorTabs = arrayRemove(editorTabs, tab.id);
-  //   }
-  // }
-
-
-  console.log('ENABLED STATE CHANGE, now showHighlights = ' + showHighlights + ', showEditMenu = ' + showEditMenu + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
+  console.log('ENABLED STATE CHANGE, now showHighlights = ' + showHighlights + ', showEditor = ' + showEditor + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
   const { id: tabId, url } = tab;
+
+  // Shouldn't be necessary ... Feb 27, 2019
+  if (showHighlights || showEditor) {
+    highlighterEnabled = true;
+  }
 
   chrome.tabs.sendMessage(tabId, {
     command: 'displayHighlightsForTabAndPossiblyEditPanes',
     showHighlights,
-    showEditMenu,
-    tabId: tabId,
+    showEditor,
+    tabId,
   }, function (result) {
     debugE && console.log('on click highlight this tab or edit this tab, response received from displayHighlightsForTabAndPossiblyEditPanes ', result);
   });
 }
 
+// untested 2/15/20
+function enableHighlightsForAllTabs (showHighlights) {
+  // Here we are telling all tabs to enable/disable highlighting
+  chrome.tabs.getAllInWindow(null, function (tabs) {
+    for (let i = 0; i < tabs.length; i++) {
+      const { id: tabId, url } = tabs[i];
+
+      let skip = false;  // Skip those tabs whose URLs are on the neverHighlightOn list
+      for(let neverShowOn in HighlightsData.neverHighlightOn){
+        if (url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
+          skip = true;
+          break;
+        }
+      }
+      if (!skip) {
+        chrome.tabs.sendMessage(tabId, {
+          command: 'displayHighlightsForTabAndPossiblyEditPanes',
+          showHighlights,
+          showEditor: false,          // todo:  See if editor is already enabled and then send that value
+          tabId,
+        }, function (result) {
+          debugE && console.log('on click icon, response received to displayHighlightsForTabAndPossiblyEditPanes ', result);
+        });
+      }
+    }
+  });
+}
 
 chrome.tabs.onActivated.addListener(function (tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
@@ -471,7 +405,7 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
     } else {
       HighlightsData.Groups[groupName].Words.push(info.selectionText);
       HighlightsData.Groups[groupName].Modified = Date.now();
-      // localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
+      localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
       chrome.notifications.create('1', {
         'type': 'basic',
         'iconUrl': 'Plugin96.png',
@@ -516,7 +450,7 @@ chrome.commands.onCommand.addListener(function (command) {
 
 chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {    // eslint-disable-line complexity
-     console.log('XXXXXX message received -- ' + request.command + ': ', request, sender, sender.tab.id);
+    debugE && console.log('XXXXXX message received -- ' + request.command + ': ', request, sender, sender.tab.id);
     //request=JSON.parse(evt.data);
     if (request.command === 'getTopMenuData') {
       getOrganizationFound(request.url, sendResponse);
@@ -575,7 +509,8 @@ chrome.runtime.onMessage.addListener(
     } else if(request.command==='beep') {
       document.body.innerHTML += '<audio src="beep.wav" autoplay="autoplay"/>';
     } else if(request.command==='getStatus') {
-      sendResponse({status:highlighterEnabled, printHighlights: printHighlights});
+      console.log('BIGBIG if(request.command===\'getStatus\') highlighterEnabled: ', highlighterEnabled);
+      sendResponse({highlighterEnabled});
     } else if(request.command==='updateContextMenu'){
       updateContextMenu(request.url);
       sendResponse({success: 'ok'});
@@ -618,11 +553,11 @@ function requestReHighlight (){
     if (tabs.length) {
       id = tabs[0].id;    // eslint-disable-line prefer-destructuring
       url = tabs[0].url;  // eslint-disable-line prefer-destructuring
-  console.log('requestReHighlight() called for tab id (1): '+id);
+      console.log('requestReHighlight() called for tab id (1): '+id);
     } else {
       id = activeTabIdGlobal;
       url = activeUrlGlobal;
-  console.log('requestReHighlight() called for tab id (2): '+id);
+      console.log('requestReHighlight() called for tab id (2): '+id);
     }
     chrome.tabs.sendMessage(id, {command: 'ReHighlight', words: getWordsBackground(url)});
   });
@@ -645,7 +580,7 @@ function requestReHighlight (){
 //   return validated;
 // }
 
-function getWordsBackground (inUrl){  // was getWords()
+function getWordsBackground (inUrl) {
   let result={};
   console.log("getWordsBackground inURL: " + inUrl);
   for(let neverShowOn in HighlightsData.neverHighlightOn){
@@ -672,7 +607,7 @@ function getWordsBackground (inUrl){  // was getWords()
         }
       }
       if (returnHighlight) {
-        result[highlightData]=HighlightsData.Groups[highlightData];
+        result[highlightData] = HighlightsData.Groups[highlightData];
       }
     }
   }
@@ -785,7 +720,7 @@ function flipGroup (inGroup, inAction) {
 // }
 /*function addWords(inWords) {
   //HighlightsData.Words[inWord]="";
-	localStorage['HighlightsData']=JSON.stringify(HighlightsData);
+	//localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   for(let word in inWords) {
     inWord=inWords[word];
     HighlightsData.Words[inWord]="";

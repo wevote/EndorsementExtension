@@ -1,5 +1,9 @@
-// Content scripts are the only component of an extension that has access to the web-page's DOM. (this js file!)
-// Logs to the console of the page in the browser, not the one you open from the extensions page
+// Content scripts are the only component of an extension that has access to the web-page's DOM. (this js file and contentWeVoteUI!)
+// Chrome extensions Treat these as the contact script, and create nn instance of a pair of them, for every tab which the background Scripps communicate.
+// As far as loging and access is concerned, these are part of the DOM and JavaScript of the endorsement page.
+// These log to the console of the endorsement page (like sierraclub.org) in the browser, Aand communicate with the background script via chrome extension messages that are sent.
+// When the endorsement page is re-opened in an iframe, access to that DOM is greatly limited.
+
 
 /* eslint no-unused-vars: 0 */
 /* eslint init-declarations: 0 */
@@ -39,19 +43,17 @@ let voterDeviceId = '';
 let tabId = -1;
 var debug = false;
 
-// https://projects.sfchronicle.com/2018/voter-guide/endorsements-list/
 
 $(() => {
   chrome.runtime.sendMessage({
     command: 'myTabId',
   }, function (response) {
-    tabId = response.tabId;
+    const { tabId } = response;
     console.log('tabWordHighlighter this tab.id: ' + tabId);
   });
 
   console.log('Hack that sets debugLocal to true in place ------------------------------------');
   window.debugLocal = true;
-
 
 
   if (window.location === window.parent.location) {
@@ -89,10 +91,13 @@ $(() => {
             sender.id === 'highlightthis@deboel.eu') {
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
-            highlighterEnabled = request.showHighlights || request.showEditMenu;
+            console.log('displayHighlightsForTabAndPossiblyEditPanes request.showHighlights ', request.showHighlights, ', request.showEditor: ', request.showEditor, ', tabId: ' + request.tabId);
+            if (request.showHighlights || request.showEditor) {
+              highlighterEnabled = true;
+            }
             highlighterEnabledThisTab = request.showHighlights;
-            editorEnabledThisTab = request.showEditMenu;
-            displayHighlightingAndPossiblyEditor(request.showHighlights, request.showEditMenu);
+            editorEnabledThisTab = request.showEditor;
+            displayHighlightingAndPossiblyEditor(request.showHighlights, request.showEditor, request.tabId );
             return false;
           } else if (request.command === 'ScrollHighlight') {
             jumpNext();
@@ -133,6 +138,11 @@ $(() => {
   } else {
     debug && console.log('not in main page', window.location)
   }
+
+  if (window.self !== window.top) {
+    // If this page has been loaded in an iFrame, call sendGetStatus() to initiate the highlighting
+    sendGetStatus ();
+  }
 });
 
 function jumpNext () {
@@ -145,7 +155,7 @@ function jumpNext () {
 }
 
 function showMarkers () {
-  debug&&console.log('Steve, background showMarkers');
+  debug && console.log('STEVE, background showMarkers');
   var element = document.getElementById('HighlightThisMarkers');
   if (element) {
     element.parentNode.removeChild(element);
@@ -176,7 +186,7 @@ function reHighlight (words) {
   for (let group in words) {
     if (words[group].Enabled) {
       for (word in words[group].Words) {
-        debug&&console.log('reHighlight word = ' + word);
+        debug && console.log('reHighlight word = ' + word);
         wordsArray.push({
           word: words[group].Words[word].toLowerCase(),
           'regex': globStringToRegex(words[group].Words[word]),
@@ -201,26 +211,30 @@ function getVoterDeviceIdFromWeVoteDomainPage () {
   return id;
 }
 
-// this is just inline, so it gets executed on startup
-chrome.runtime.sendMessage({command: 'getStatus'}, function (response) {
-  let { lastError } = chrome.runtime;
-  if (lastError) {
-    console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
-    return;
-  }
-  debug && console.log('reponse from getStatus',window.location);
-  highlighterEnabled = response.status;
-  highlighterEnabledThisTab  = response.status;  // These start out identical, but this one is initialized us false
-  printHighlights = response.printHighlights;
-  if (highlighterEnabled) {
-    debug&&console.log('about to get words',window.location);
-
-    getWordsThenStartHighlighting();
-  }
-});
+// When a tab sends the getStatus message, it starts a whole sequence of events and other messages, that go to the API server
+// and retrieves the appropriate candidate names, brings them back to the extension, and then starts highlighting the candidate names
+// on the endorsement page that is displayed in the tab (for example, https://www.sierraclub.org/california/2020-endorsements/).
+function sendGetStatus () {
+  chrome.runtime.sendMessage({command: 'getStatus'}, function (response) {
+    console.log('BIGBIG chrome.runtime.sendMessage({command: \'getStatus\'}');
+    let {lastError} = chrome.runtime;
+    if (lastError) {
+      console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
+      return;
+    }
+    debug && console.log('reponse from getStatus', window.location);
+    highlighterEnabled = response.highlighterEnabled;
+    highlighterEnabledThisTab  = response.highlighterEnabled;  // These start out identical, but this one is initialized us false
+    console.log('BIGBIG response from sendStatus highlighterEnabled: ', highlighterEnabled, ', highlighterEnabledThisTab: ', highlighterEnabledThisTab);
+    if (highlighterEnabled) {
+      debug && console.log('about to get words', window.location);
+      getWordsThenStartHighlighting();
+    }
+  });
+}
 
 function getWordsThenStartHighlighting () {
-  console.log('BIGBIG Called getWordsThenStartHighlighting() Only called by editor!');
+  console.log('BIGBIG Called getWordsThenStartHighlighting()');
   chrome.runtime.sendMessage({
     command: 'getWords',
     url: location.href.replace(location.protocol + '//', ''),
@@ -233,7 +247,7 @@ function getWordsThenStartHighlighting () {
       console.warn('chrome runtime sendMessage("getWords")',lastError.message);
       return;
     }
-    debug&&console.log('got words response: ', response);
+    debug && console.log('got words response: ', response);
     const id = response.storedDeviceId ? response.storedDeviceId : '';
     if (response.storedDeviceId && response.storedDeviceId.length > 0) {
       voterDeviceId = id;
@@ -242,7 +256,7 @@ function getWordsThenStartHighlighting () {
     for (let group in response.words) {
       if (response.words[group].Enabled) {
         for (word in response.words[group].Words) {
-          debug&&console.log('getWords response, ' + word + ', group: ' + group + ', findWords: ' + response.words[group].FindWords + ' icon: ' + response.words[group].Icon);
+          debug && console.log('getWords response, ' + word + ', group: ' + group + ', findWords: ' + response.words[group].FindWords + ' icon: ' + response.words[group].Icon);
           let wordText = response.words[group].Words[word];
           if (wordText) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
             // console.log('getWordsThenStartHighlighting word = ' + word + ', wordText: ' + wordText + ', Icon: ' + response.words[group].Icon);
@@ -259,7 +273,7 @@ function getWordsThenStartHighlighting () {
         }
       }
     }
-    debug&&console.log('processed words');
+    debug && console.log('processed words');
     wordsReceived = true;
 
     //start the highlight loop
@@ -317,7 +331,7 @@ function getSearchParameter (n) {
     }
     else {
         setTimeout(function () {
-            debug&&console.log('waiting for words');
+            debug && console.log('waiting for words');
             start();
         }, 250);
     }
@@ -362,7 +376,7 @@ function findWords () {
     Highlight=false;
 
     setTimeout(function () {
-      console.log('BIGBIG finding words',window.location);
+      /*debug &&*/ console.log('BIGBIG finding words',window.location);
 
       ReadyToFindWords=false;
 
@@ -419,8 +433,8 @@ function findWords () {
     }, HighlightWarmup);
   }
 
-  // This next log line floods the log, and slow things down -- use sparingly while debugging
-  // debug&&console.log('finished finding words');
+  // This following log line floods the log, and slow things down -- use sparingly while debugging
+  // debug && console.log('finished finding words');
 }
 
 function revealRightAction (selection, pageURL, tabId) {
@@ -434,7 +448,7 @@ function revealRightAction (selection, pageURL, tabId) {
   }
 }
 
-// This allows the popup can find out if this tab is highlighted and/or editors are displayed
+// This allows the popup to find out if this tab is highlighted and/or editors are displayed
 function getDisplayedTabStatus(tabId) {
   debug && console.log('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', editorEnabledThisTab: ' + editorEnabledThisTab);
   return {

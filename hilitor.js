@@ -80,7 +80,7 @@ function Hilitor (id, tag) {
         names.push(name);
       }
     }
-    console.log('BIGBIG deduped name list size ' + names.lengt);
+    console.log('BIGBIG deduped name list size ' + names.length);
     debugH && console.log('deduped name list size ' + names.length);
 
 
@@ -126,7 +126,7 @@ function Hilitor (id, tag) {
     debugH && console.log(matchRegex);
 
     //ContentEditable regex
-    var re = '';
+    re = '';
     if (wordsEditable.length > 1) {
       wordsEditable = wordsEditable.substring(0, wordsEditable.length - 1);
       re += '(' + wordsEditable + ')';
@@ -151,7 +151,6 @@ function Hilitor (id, tag) {
 
   // recursively apply word highlighting
   this.hiliteWords = function (node, printHighlights, inContentEditable) {
-    // console.log('BIGBIG this.hiliteWords');
 
     if (node == undefined || !node) {return;}
     if (!matchRegex) {return;}
@@ -161,8 +160,7 @@ function Hilitor (id, tag) {
     if (skipTags.test(node.nodeName) ||
       skipClasses.test(node.className) ||
       node.id === 'noDisplayPageBeforeFraming' ||
-      // node.id === 'weContainer') {
-      false) {
+      node.id === 'weContainer') {
       debugH && console.log('hiliteWords early recursive return node.id: ' + node.id);
       return;
     }
@@ -177,8 +175,9 @@ function Hilitor (id, tag) {
     }
 
     if (node.nodeType == 3) { // NODE_TEXT
+
       let nv = node.nodeValue;
-      // console.log('node.nodeType == 3', node);
+      debugH && console.log('node.nodeValue: ', node.nodeValue);
       if(inContentEditable) {
         regs = matchRegexEditable.exec(nv);
       } else {
@@ -254,13 +253,13 @@ function Hilitor (id, tag) {
             'isInHidden': false
           });
 
+          debugH && console.log('WORD FOUND IN DOM: ', wordColor[wordfound].word);
           highlightMarkers[numberOfHighlights] = {
             'word': wordColor[wordfound].word,
             'offset': nodeAttributes.offset,
             'hidden': nodeAttributes.isInHidden,
             'color': wordColor[wordfound].Color,
             'href': encodeURI(urlHref)
-            // 'href': urlHref  STEVE STEVE yyyyyyyyyyyy  This stopped it from working 2/4/20 7pm
           };
 
           numberOfHighlights += 1;
