@@ -29,6 +29,7 @@ let uniqueNames = [];
 let activeTabIdGlobal;
 let activeUrlGlobal = '';
 let aliasNames = [];
+let nameToIdMap = {};
 
 $(() => {
   console.log('extWordHighlighter constructor');
@@ -61,9 +62,11 @@ function getWordsInGroup (groupName, highlightsList) {
 // Unfortunately aliases all are sent by the server as DEFAULTS, fix the data here
 function promoteAliasesThatArriveAsDefault (highlightsList) {
   aliasNames = [];
+  nameToIdMap = {};
   for (let i = 0; i < highlightsList.length; i++) {
     let highlight = highlightsList[i];
     const {display, we_vote_id: weVoteId, name} = highlight;
+    nameToIdMap[name.toLowerCase()] = weVoteId;
     if (display === 'DEFAULT') {
       let match = highlightsList.find(function (possibleAlias) {
         return possibleAlias.we_vote_id === weVoteId;
@@ -119,7 +122,7 @@ function initializeHighlightsData (highlightsList, neverHighLightOn) {
     debugE && console.log('groupName: ' + groupName + ', group: ' + group);
     HighlightsData.Groups.push(groupName, group);
   }
-  localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
+  // localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
 
   printHighlights = HighlightsData.PrintHighlights;
   // console.log("END END END initializeHighlightsData");
@@ -405,7 +408,7 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
     } else {
       HighlightsData.Groups[groupName].Words.push(info.selectionText);
       HighlightsData.Groups[groupName].Modified = Date.now();
-      localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
+      // localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
       chrome.notifications.create('1', {
         'type': 'basic',
         'iconUrl': 'Plugin96.png',
@@ -468,6 +471,8 @@ chrome.runtime.onMessage.addListener(
         request.statementText,
         request.moreInfoURL.trim(),
         sendResponse);
+    } else if(request.command==='getCandidate') {
+      getCandidate (request.candidateWeVoteId, sendResponse);
     } else if(request.command==='getVoterInfo') {
       getVoterSignInInfo (sendResponse);
     } else if(request.command==='getWords') {
@@ -638,14 +643,14 @@ function showHighlightsCount (label, altColor, tabId)
 
 /*function addWord(inWord) {
   HighlightsData.Words[inWord]="";
-	localStorage['HighlightsData']=JSON.stringify(HighlightsData);
+	// localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   return true;
 }*/
 
 function showWordsFound (inState) {
   HighlightsData.ShowFoundWords=inState;
   showFoundWords=inState;
-  localStorage['HighlightsData']=JSON.stringify(HighlightsData);
+  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 }
 
 // function showDonate(){
@@ -667,7 +672,7 @@ function showWordsFound (inState) {
 function setPrintHighlights (inState) {
   HighlightsData.PrintHighlights=inState;
   printHighlights=inState;
-  localStorage['HighlightsData']=JSON.stringify(HighlightsData);
+  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 }
 
 // function setNeverHighligthOn(inUrls){
@@ -688,7 +693,7 @@ function addGroup (inGroup, color, fcolor, findwords, showon, dontshowon, inWord
     HighlightsData.Groups[inGroup].Regex=regex;
   }
 
-  localStorage['HighlightsData']=JSON.stringify(HighlightsData);
+  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   setWords(inWords, inGroup, color, fcolor, findwords, showon, dontshowon, inGroup);
   requestReHighlight();
   return true;
@@ -696,13 +701,13 @@ function addGroup (inGroup, color, fcolor, findwords, showon, dontshowon, inWord
 
 function deleteGroup (inGroup) {
   delete HighlightsData.Groups[inGroup];
-  localStorage['HighlightsData']=JSON.stringify(HighlightsData);
+  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   requestReHighlight();
   return true;
 }
 function flipGroup (inGroup, inAction) {
   HighlightsData.Groups[inGroup].Enabled = inAction === 'enable';
-  localStorage['HighlightsData']=JSON.stringify(HighlightsData);
+  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   requestReHighlight();
   return true;
 }
@@ -725,7 +730,7 @@ function flipGroup (inGroup, inAction) {
     inWord=inWords[word];
     HighlightsData.Words[inWord]="";
   }
-  localStorage['HighlightsData']=JSON.stringify(HighlightsData);
+  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 
   return true;
 }*/
@@ -762,7 +767,7 @@ function setWords (inWords, inGroup, inColor, inFcolor, inIcon, findwords, showo
     HighlightsData.Groups[newname] = HighlightsData.Groups[inGroup];
     delete HighlightsData.Groups[inGroup];
   }
-  localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
+  // localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
 
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     updateContextMenu(tabs.url);
@@ -812,7 +817,7 @@ function syncWordList (list, notify, listname){
       }
       list.Words=wordsToAdd;
       list.RemoteConfig.lastUpdated=Date.now();
-      localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
+      // localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
       if(notify){
         chrome.notifications.create('1', {
           'type': 'basic',
