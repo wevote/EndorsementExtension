@@ -159,6 +159,7 @@ function Hilitor (id, tag) {
     // Before change this was...  if (skipTags.test(node.nodeName)||skipClasses.test(node.className)) {return;}
     if (skipTags.test(node.nodeName) ||
       skipClasses.test(node.className) ||
+      node.id === 'u2i-id-1' ||                         // jQuery UI Dialogs
       node.id === 'noDisplayPageBeforeFraming' ||
       node.id === 'weContainer') {
       debugH && console.log('hiliteWords early recursive return node.id: ' + node.id);
@@ -234,6 +235,7 @@ function Hilitor (id, tag) {
                   'pointer-events': 'none',
                   cursor: 'default'
                 });
+                urlsForHighlights[$(node.parentNode).text().toLowerCase()] = $(node.parentNode).attr('href');
               }
               // Icon within highlights in the DOM of the endorsement page
               if(wordColor[word].Icon.length) {

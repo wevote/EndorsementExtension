@@ -42,6 +42,8 @@ let uniqueNameMatches = [];
 let voterDeviceId = '';
 let tabId = -1;
 var debug = false;
+let urlsForHighlights = {};
+let nameToIdMap = {};
 
 
 $(() => {
@@ -97,7 +99,7 @@ $(() => {
             }
             highlighterEnabledThisTab = request.showHighlights;
             editorEnabledThisTab = request.showEditor;
-            displayHighlightingAndPossiblyEditor(request.showHighlights, request.showEditor, request.tabId );
+            displayHighlightingAndPossiblyEditor(request.showHighlights, request.showEditor, request.tabId);
             return false;
           } else if (request.command === 'ScrollHighlight') {
             jumpNext();
@@ -121,9 +123,9 @@ $(() => {
             revealRightAction(request.selection, request.pageURL, request.tabId);
             return false;
           } else if (request.command === 'getTabStatusValues') {
-            // const ret = getDisplayedTabStatus(request.tabId);
-            debug && console.log('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', editorEnabledThisTab: ' + editorEnabledThisTab);
-            sendResponse({ highlighterEnabledThisTab, editorEnabledThisTab });
+            const {orgName, organizationWeVoteId, organizationTwitterHandle} = state;
+            debug && console.log('getTabStatusValues tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', editorEnabledThisTab: ' + editorEnabledThisTab);
+            sendResponse({ highlighterEnabledThisTab, editorEnabledThisTab, orgName, organizationWeVoteId, organizationTwitterHandle });
             return false;
           } else if (request.command === 'disableExtension') {
             enableHighlightsForAllTabs(false);

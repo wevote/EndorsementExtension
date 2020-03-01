@@ -7,8 +7,6 @@ const openEditText = 'Open Edit Panel for this Tab';
 const highlightThisText = 'Highlight Candidates on This Tab';
 const removeHighlightThisText = 'Remove Highlights From This Tab';
 
-console.log('onPage localStorage[enabledURLsData]: ', localStorage['enabledURLsData']);
-
 document.addEventListener('DOMContentLoaded', function () {
   let highlightingEnabled = false;
   let highlightCandidatesOnAllTabs = localStorage['highlightCandidatesOnAllTabs'] === 'true';
@@ -120,8 +118,8 @@ function updateButtonState () {
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     chrome.tabs.sendMessage(tabs[0].id, {command: 'getTabStatusValues'}, function (result){
       debug && console.log('getCurrentTabStatus() result: ', result);
-      if(result){
-        let {highlighterEnabledThisTab, editorEnabledThisTab} = result;
+      if(result) {
+        let {highlighterEnabledThisTab, editorEnabledThisTab, orgName, organizationWeVoteId, organizationTwitterHandle} = result;
         if (highlighterEnabledThisTab) {
           $('#highlightCandidatesThisTabButton').addClass('weButtonRemove').text(removeHighlightThisText);
         } else {
@@ -132,6 +130,21 @@ function updateButtonState () {
           $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);
         } else {
           $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
+        }
+
+        if (organizationWeVoteId || organizationTwitterHandle) {
+          const url = organizationTwitterHandle ? 'https://wevote.us/' + organizationTwitterHandle : 'https://wevote.us/voterguide/' + organizationWeVoteId;
+          $('#allEndorsementsButton').
+            text('ENDORSEMENTS: ' + orgName.toUpperCase()).
+            prop('disabled', false).
+            removeClass('weButtonDisable').
+            click(() => window.open(url, '_blank'));
+        } else {
+          $('#allEndorsementsButton').
+            text('ENDORSEMENTS' + orgName.toUpperCase()).
+            prop('disabled', true).
+            addClass('weButtonDisable').
+            unbind();
         }
       }
     });
@@ -226,50 +239,5 @@ function dumpTabStatus () {
 //   }
 //   else {
 //
-//   localStorage['enabledURLsData'] = JSON.stringify([
-//     'https://projects.sfchronicle.com/2018/voter-guide/endorsements-list/',
-//     'https://www.sierraclub.org/ohio/2018-endorsements',
-//     'https://www.cadem.org/vote/endorsements',
-//     'https://www.sierraclub.org/california/2018-endorsements',
-//     'https://www.eastbayexpress.com/oakland/our-november-2018-endorsement-guide/Content?oid=21443046'
-//   ]);
-//   console.log('onPage localStorage[enabledURLsData]: ', localStorage['enabledURLsData'])
-//
 //   drawInterface();
 // }
-
-// function drawInterface () {
-//   HighlightsData = JSON.parse(localStorage['HighlightsData']);
-//   enabledURLsData = JSON.parse(localStorage['enabledURLsData']);
-//   console.log('enabledURLsData at drawInterface length: ' + enabledURLsData.length);
-//
-//   for(let i = 0; i < enabledURLsData.length; i++) {
-//     let markup = '<tr>' +
-//       '<td>' + enabledURLsData[i] + '</td>\n' +
-//       '<td><button id="removeButton' + i + '">Remove</button></td>' +
-//       '</tr>';
-//     console.log('drawInterface markup: ' + markup);
-//     $('#enabledURLs > tbody:last-child').append(markup);
-//   }
-//
-//   $('[id^=removeButton]').on('click', function () {
-//     // eslint-disable-next-line no-invalid-this
-//     let {id} = this;
-//     let index = id.substr('removeButton'.length);
-//     removeFromEnabledURLs(index);
-//   });
-//
-//   renderOnOff();
-// }
-
-// function removeFromEnabledURLs (index) {
-//   const i = parseInt(index, 10);
-//   console.log('STEVE STEVE STEVE removeFromEnabledURLs  index: ' + index)
-//   let enabledURLsData = JSON.parse(localStorage['enabledURLsData']);
-//   console.log('STEVE STEVE STEVE removeFromEnabledURLs  before: ', enabledURLsData)
-//   let enabledURLsDataSmaller = enabledURLsData.splice(i);
-//   console.log('STEVE STEVE STEVE removeFromEnabledURLs  after: ', enabledURLsDataSmaller)
-//   localStorage['enabledURLsData'] = JSON.stringify(enabledURLsDataSmaller);
-//   drawInterface();
-// }
-

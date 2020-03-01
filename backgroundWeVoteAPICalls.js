@@ -32,6 +32,7 @@ function getHighlightsListFromApiServer (locationHref, doReHighlight, sendRespon
     sendResponse({
       success: res.success,
       highlights: highlightsList.length,
+      nameToIdMap,
     });
   }).fail((err) => {
     console.log('voterGuideHighlightsRetrieve API error', err);
@@ -219,3 +220,28 @@ function voterGuidePossibilitySave (organizationWeVoteId, voterGuidePossibilityI
     sendResponse({res});
   }
 }
+
+function getCandidate (candidateWeVoteId, sendResponse) {
+  // eslint-disable-next-line prefer-destructuring
+  let voterDeviceId = localStorage['voterDeviceId'];
+  /*debug &&*/ console.log('getCandidate for candidateWeVoteId: ' + candidateWeVoteId);
+  if (voterDeviceId && voterDeviceId.length > 0) {
+    let apiURL = `${rootApiURL}/candidateRetrieve/?voter_device_id=${voterDeviceId}` +
+      `&candidate_id=&candidate_we_vote_id=${candidateWeVoteId}`;
+    // debug &&
+    console.log('getCandidate: ' + apiURL);
+    $.getJSON(apiURL, '', (res) => {
+      debug && console.log('get json from getCandidate API SUCCESS', res);
+      sendResponse({res});
+    }).fail((err) => {
+      console.log('getCandidate error', err);
+    });
+  } else {
+    let res = {
+      success: false,
+      message: 'Can not make ths api call unless you are logged in, and have a voterDeviceId',
+    };
+    sendResponse({res});
+  }
+}
+

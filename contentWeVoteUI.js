@@ -6,11 +6,14 @@ const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-ic
 let state = {
   voterGuidePossibilityId: '',
   organizationWeVoteId: '',
+  organizationTwitterHandle: '',
+  orgName: '',
   candidateName: '',
   allNames: '',
   possibleOrgsList: [],
   positionsCount: 0,
   voterWeVoteId: '',
+  positions: [],
 };
 
 /**
@@ -227,6 +230,7 @@ function getHighlights (showHighlights, showEditor, tabId) {
 
       if (response) {
         debugLog('SUCCESS: getHighlights received a response: ', response, '  showEditor:', showEditor, ', tabId: ', tabId);
+        nameToIdMap = response.nameToIdMap;
         if (showEditor) {
           debugLog('getHighlights() CALLING displayEditPanes()');
           displayEditPanes();
@@ -278,15 +282,18 @@ function updateTopMenu () {
       debugLog('updateTopMenu() response', response);
 
       if (response && Object.entries(response).length > 0) {
-        const { orgName, orgLogo, possibilityId, noExactMatchOrgList } = response.data;
+        const { orgName, orgLogo, possibilityId, noExactMatchOrgList, twitterHandle, weVoteId, } = response.data;
+        state.organizationWeVoteId = weVoteId;
+        state.organizationTwitterHandle = twitterHandle;
+        state.orgName = orgName;
+        state.voterGuidePossibilityId = possibilityId;
+        state.possibleOrgsList = noExactMatchOrgList;
 
         $('#orgLogo').attr('src', orgLogo);
         $('#orgName').text(orgName ? orgName : 'Organization not found for this URL');
         $('#sendTopComment').click(() => {
           sendTopComment();
         });
-        state.voterGuidePossibilityId = possibilityId;
-        state.possibleOrgsList = noExactMatchOrgList;
         debugLog('updateTopMenu voterGuidePossibilityId: ' + state.voterGuidePossibilityId);
         if (orgName === undefined) {
           // rightNewGuideDialog();
@@ -377,6 +384,8 @@ function updatePositionsPanel () {
         positions.sort((a, b) => {
           return a.sortOffset > b.sortOffset ? 1 : -1;
         });
+        state.positions = positions;
+
         for (let k = 0; k < positions.length; k++) {
           const {position, selector} = positions[k];
           rightPositionPanes(k, position, selector);
@@ -412,7 +421,7 @@ function rightPositionPanes (i, candidate, selector) {
 
 function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
   let { party, name, alternateNames, photo, office, comment, candidateWeVoteId, voterGuidePossibilityId, positionWeVoteId,
-    possibilityPositionId, organizationWeVoteId, organizationName, googleCivicElectionId, stance, } = candidate;
+    possibilityPositionId, organizationWeVoteId, organizationName, googleCivicElectionId, stance, description } = candidate;
   if (party === undefined) {
     party = (detachedDialog) ? 'Party: Not specified' :'No match for any current candidate.';
   }
@@ -445,7 +454,7 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
   let markup =
     "<div class='candidateWe " + candNo + "'>" +
     "  <div id='unfurlable-" + i + "' class='" + (detachedDialog ? 'unfurlableDetached' : 'unfurlable') + "'>" +
-         unfurlableGrid(i, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, comment.trim().length > 0, false) +
+         unfurlableGrid(i, name, photo, party, office, description, inLeftPane, detachedDialog, stance, isStored, comment.trim().length > 0, false) +
     "    <input type='hidden' id='candidateName-" + i + "' value='" + name + "'>" +
     "    <input type='hidden' id='candidateWeVoteId-" + i + "' value='" + candidateWeVoteId + "'>" +
     "    <input type='hidden' id='voterGuidePossibilityId-" + i + "' value='" + voterGuidePossibilityId + "'>" +
@@ -488,7 +497,7 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
 }
 
 // eslint-disable-next-line complexity
-function unfurlableGrid (index, name, photo, party, office, inLeftPane, detachedDialog, stance, isStored, showComment, iconOnly) {
+function unfurlableGrid (index, name, photo, party, office, description, inLeftPane, detachedDialog, stance, isStored, showComment, iconOnly) {
   let iconContainer = '';
 
   if (!detachedDialog && !inLeftPane) {
@@ -537,12 +546,13 @@ function unfurlableGrid (index, name, photo, party, office, inLeftPane, detached
       '<div class="gridCandidatePhoto">' +
         '<img class="photoWe removeContentStyles" alt="candidateWe" src="' + photo + '">' +
       '</div>' +
-        (detachedDialog ? ('<input type="text" class="candidateNameInput-' + index + '"/>') : ('<div class="gridCandidateName">' + name + '</div>')) +
+        (detachedDialog ? ('<input type="text" class="candidateNameInput-' + index + '" />') : ('<div class="gridCandidateName">' + name + '</div>')) +
         '<div class="gridIcon">' +
             iconContainer +
         '</div>' +
       '<div class="gridCandidateParty">' + party + '</div>' +
       '<div class="gridOfficeTitle">' + office + '</div>' +
+      (detachedDialog ? '<div class="gridCandidateDesc" id="descriptionId-' + index + '" >' + description + '</div>' : '') +
     '</div>';
 
   if (iconOnly) {
@@ -783,17 +793,34 @@ function deactivateActivePositionPane () {
 function openSuggestionPopUp (selection) {
   const i = 1000;
   $('[role=dialog]').remove();  // Only one suggestion dialog at a time is allowed, so close any previous
-  if (selection.length > 0) {
-    let candidate = {
-      name: selection,
-      office: '',
-      party: undefined,
-      photo: defaultImage,
-      comment: '',
-      url: window.location.href,
-      stance: 'SUPPORT',
-    };
-    $(candidatePaneMarkup(i, i, i, candidate, true)).dialog({
+
+  if (!selection || selection.length == 0) {
+    return;
+  }
+
+  getCandidateQuery(selection, (candidate) => {
+    let mutableCandidate = {};
+    if (!candidate) {
+      mutableCandidate = {
+        name: selection,
+        office: '',
+        party: undefined,
+        photo: defaultImage,
+        comment: '',
+        url: window.location.href,
+        stance: 'SUPPORT',
+        description: '',
+      };
+    } else {
+      mutableCandidate = candidate;
+    }
+
+    const lcName = mutableCandidate.name.toLowerCase();
+    if (urlsForHighlights[lcName]) {  // todo: This is getting wiped out might need to go into local storage
+      mutableCandidate.url = urlsForHighlights[lcName];
+    }
+
+    $(candidatePaneMarkup(i, i, i, mutableCandidate, true)).dialog({
       title: 'Create a We Vote endorsement',
       show: true,
       width: 380,
@@ -807,7 +834,7 @@ function openSuggestionPopUp (selection) {
       'box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)'
     });
     dialogTitlebarStyling();
-    $('#unfurlable-' + i).css('height', i === 1000 ? '80px' : '66px');
+    $('#unfurlable-' + i).css('height', i === 1000 ?'80px' : '66px');
     const can = '.candidateWe.1000';
     $(can).css({'padding': '8px 0 8px 8px'});
     $('.candidateNameInput-1000').val(selection).css({
@@ -822,8 +849,8 @@ function openSuggestionPopUp (selection) {
       'font-weight': 400,
       color: 'black',
     });
-    $('.statementText-' + i).val(candidate.comment).css(getEditableElementTextStyles());
-    $('.moreInfoURL-' + i).val(candidate.url).css(getEditableElementTextStyles());
+    $('.statementText-' + i).val(mutableCandidate.comment).css(getEditableElementTextStyles());  // todo: have to get this elsewhere
+    $('.moreInfoURL-' + i).val(mutableCandidate.url).css(getEditableElementTextStyles());
     $('#voterGuidePossibilityId-' + i).val(state.voterGuidePossibilityId);
     $('#organizationWeVoteId-' + i).val(state.organizationWeVoteId);
     $('.openInWebApp-' + i).stop(); // Stop animations, on the webapp button, since we don't have the twitter id necessary for the url
@@ -831,7 +858,46 @@ function openSuggestionPopUp (selection) {
       $('div.u2i-dialog').remove();
     });
     addHandlersForCandidatePaneButtons('#1000', '1000', true);
+  });
+}
+
+function getCandidateQuery (candidateName, doFunc) {
+  const candidateWeVoteId = nameToIdMap[candidateName.toLowerCase()];
+  if (!candidateWeVoteId) {
+    return undefined;
   }
+
+  const {chrome: {runtime: {sendMessage}}} = window;
+  sendMessage({
+    command: 'getCandidate',
+    candidateWeVoteId,
+  },
+  function (response) {
+    let {lastError} = runtime;
+    if (lastError) {
+      console.warn(' chrome.runtime.sendMessage("getCandidate")', lastError.message);
+    }
+
+    // console.log('getCandidateQuery() response', response);
+    const { ballot_item_display_name: name, party, contest_office_name: office, candidate_photo_url_medium: photo, twitter_description: twitter, ballotpedia_candidate_summary: ballotpedia } = response.res;
+    const description = twitter && twitter.length ? twitter : '' +
+    ballotpedia && ballotpedia.length ? ' ' + ballotpedia : '';
+
+    const candidate = {
+      name,
+      office,
+      party,
+      photo,
+      comment: '',
+      url: window.location.href,
+      stance: 'SUPPORT',  // need to figure out
+      description,
+    };
+
+    // console.log('getCandidateQuery() candidate: ', candidate);
+    doFunc(candidate);
+    return candidate;  // not needed?
+  });
 }
 
 function getEditableElementTextStyles () {

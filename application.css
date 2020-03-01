@@ -83,6 +83,13 @@ hr {
     background-color: darkblue;
 }
 
+.weButtonDisable {
+     background-color: lightgray;
+     color: darkgray;
+     box-shadow: none;
+     border: none;
+ }
+
 .weButtonRemove {
     color: #A04000;
 }
