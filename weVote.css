@@ -349,3 +349,11 @@
   font-size: 12px !important;
   line-height: 24px;
 }
+
+.endorsementHighlights {
+  color: transparent;
+  background-color: transparent;
+  border: none;
+  padding: unset;
+  margin: 0;
+}

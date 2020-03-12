@@ -28,6 +28,8 @@ const colors = {
   DELETED_BACKGROUND: '#f0c7c8',
 };
 
+const baseWebAppUrl = 'https://localhost:3000/candidate-for-extension';
+
 function markupForThumbSvg (classString, type, fillColor) {
   if (type === 'endorse' || type === 'oppose') {
     let markup = "<svg class='" + classString + "' style='margin-top:3px'>";

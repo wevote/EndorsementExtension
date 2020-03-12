@@ -1,0 +1,134 @@
+<!--This is a working model of the JavaScript that we will inject into the endorsement pages. -->
+<!--It is useful for testing changes and styling, but it is a copy of this code (formatted as a string) that is injected by TabWordHighlighter.-->
+<!--Use https://cssminifier.com/ for the <style> -->
+<!--https://javascript-minifier.com/-->
+<!DOCTYPE html>
+<html>
+<style>
+    #wediv {
+        position: absolute;
+        z-index: 9;
+        background-color: black;
+        text-align: center;
+        border: 1px solid #d3d3d3;
+        box-shadow: 10px 10px 5px 0 rgba(0,0,0,0.4);
+    }
+    #wedivheader {
+        cursor: move;
+        z-index: 10;
+        background-color: #2196F3;
+        color: #fff;
+        height:30px
+    }
+    #frameBorder {
+        border-style: solid;
+        border-color: darkgrey;
+        border-width: 4px;
+    }
+    #weIFrame {
+        /*margin-top: 10px;*/
+        width: 400px;
+        height:450px;
+    }
+    #wetitle {
+        float: left;
+        margin-left: 8px;
+        margin-top: 2px;
+    }
+    .weclose {
+        height: 10px;
+        width: 10px;
+        padding-top: 5px;
+        float: right;
+        margin-right: 4px;
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        font-weight: bolder;
+        font-stretch: extra-expanded;
+        font-size: 12pt;
+    }
+</style>
+<body>
+
+<button type="button" id="weopen" class="weopen" onclick="setModal(true, 'https://localhost:3000/candidate-for-extension?candidate_name=Phil%20Ting&candidate_we_vote_id=777&endorsement_page_url=https%3A%2F%2Fwww.sierraclub.org%2Fcalifornia%2F2020-endorsements&candidate_home_page=https%3A%2F%2Fwww.philting.com%2F', 'testy')">Open Modal</button>
+<div style="padding:500px"><div id="testy">testy</div></div>
+<div id="wediv" hidden>
+    <div id="wedivheader">
+        <span id="wetitle">Create a We Vote Endorsement</span>
+        <span id="weclose">
+            <button type="button" class="weclose" onclick="setModal(false,'', '')">X</button>
+        </span>
+    </div>
+    <div id="frameBorder">
+        <iframe id="weIFrame" src="https://wevote.us/img/endorsement-extension/endorsement-icon48.png"></iframe>
+    </div>
+</div>
+
+<script>
+  function dragElement(elmnt) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    if (document.getElementById(elmnt.id + "header")) {
+      /* if present, the header is where you move the DIV from:*/
+      document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
+    } else {
+      /* otherwise, move the DIV from anywhere inside the DIV:*/
+      elmnt.onmousedown = dragMouseDown;
+    }
+
+    function dragMouseDown(e) {
+      e = e || window.event;
+      e.preventDefault();
+      // get the mouse cursor position at startup:
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      document.onmouseup = closeDragElement;
+      // call a function whenever the cursor moves:
+      document.onmousemove = elementDrag;
+    }
+
+    function elementDrag(e) {
+      e = e || window.event;
+      e.preventDefault();
+      // calculate the new cursor position:
+      pos1 = pos3 - e.clientX;
+      pos2 = pos4 - e.clientY;
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      // set the elements new position:
+      elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+      elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+      console.log('position of elmnt after drag: ', elmnt.style.top, elmnt.style.left);
+    }
+
+    function closeDragElement() {
+      /* stop moving when mouse button is released:*/
+      document.onmouseup = null;
+      document.onmousemove = null;
+    }
+  }
+
+  function setModal (state, iframeURL, element) {
+    let candidate = document.getElementById(element);
+    if (!candidate) {
+      candidate = {
+        offsetLeft: 0,
+        offsetTop: 0,
+      }
+    }
+    const wediv = document.getElementById("wediv");
+    const weIFrame = document.getElementById("weIFrame");
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    wediv.hidden = !state;
+    wediv.style.left = candidate.offsetLeft + 300 +'px';
+    wediv.style.top =  candidate.offsetTop + scrollTop + 'px';
+    //Make the DIV element draggagle:
+    if (iframeURL && iframeURL.length) {
+      weIFrame.src = iframeURL;
+    }
+    dragElement(wediv);
+  }
+</script>
+
+</body>
+</html>

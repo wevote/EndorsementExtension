@@ -14,6 +14,7 @@ let state = {
   positionsCount: 0,
   voterWeVoteId: '',
   positions: [],
+  voterIsSignedIn: false,
 };
 
 /**
@@ -24,7 +25,7 @@ let state = {
  * @returns {boolean} - return true to indicate that we want to call the response function asynchronously
  */
 function displayHighlightingAndPossiblyEditor (showHighlights, showEditor, tabId) {  // eslint-disable-line no-unused-vars
-  console.log('BIGBIG displayHighlightingAndPossiblyEditor showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', tabId);
+  console.log('displayHighlightingAndPossiblyEditor showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', tabId);
   try {
     if(showHighlights || showEditor) {
       console.log('displayHighlightingAndPossiblyEditor ----- for tab: ' + tabId);
@@ -103,9 +104,90 @@ function debugWarn (...args) {
   in the past, you can get the most recent one form pgAdmin/voter_voterdevicelink and paste it into the value for
   voterDeviceId in the chrome-extension's DevTools Application tab.
  */
-
-function signIn (showDialog) {
+// Called on click true, or topbar init false
+function signIn (attemptLogin) {
   debugLog('new signIn');
+  const { chrome: { runtime: { sendMessage } } } = window;
+  sendMessage({ command: 'getVoterInfo',},
+    function (response) {
+      let {lastError} = runtime;
+      if (lastError) {
+        console.warn(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
+      }
+      const {success, error, err, voterName, photoURL, weVoteId, voterEmail, isSignedIn} = response.data;
+      state.voterWeVoteId = weVoteId || '';
+      debugLog('signIn response: ', response);
+      let voterInfo = {
+        success: success,
+        error: error,
+        err: err,
+        name: voterName,
+        photo: (!photoURL || photoURL.length < 10)
+          ? 'https://wevote.us/img/global/icons/avatar-generic.png'
+          : photoURL,
+        voterId: weVoteId,
+        email: voterEmail,
+        isSignedIn
+      };
+      // Unfortunately /avatar-generic.png can't be "served" from the extension, since file loading is relative to the endorsement page
+
+      if (voterInfo.success && voterInfo.isSignedIn) {
+        setSignInOutMarkup (voterInfo);
+        updatePositionsPanel();
+        return false;
+      }
+    }
+  );
+
+  if (attemptLogin) {
+    const url = 'https://localhost:3000/more/extensionsignin?title=' + encodeURIComponent(document.title);
+    window.open(url, '_blank');
+
+    let stopWaiting = false;
+    setTimeout(function (){
+      stopWaiting = true;
+      console.log('90 seconds to sign in timeout occurred, without having signed in');
+    }, 90000);
+
+    const interval = setInterval(function (){
+      // console.log('loop state.voterIsSignedIn: ', state.voterIsSignedIn);
+      getVoterInfo();
+      if (state.voterIsSignedIn || stopWaiting) {
+        clearInterval(interval);
+      }
+    }, 100);
+  }
+}
+
+function setSignInOutMarkup (voterInfo) {
+  const { isSignedIn, photo } = voterInfo;
+  if (isSignedIn) {
+    $('#signIn').replaceWith(
+      '<img id="signIn" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" src="' + photo + '" ' +
+      'style="margin: 12px; width: 50px; height: 50px;" />');
+    $('#signIn').click(() => {
+      // We are currently signed in, so this click signs us out
+      console.log('Sign out pressed');
+      // Removing the stored voterDeviceId deauthenticates us, signs us out, within the chrome extension
+      localStorage['voterDeviceId'] = '';
+      let voterInfo = {
+        isSignedIn: false,
+      };
+      setSignInOutMarkup (voterInfo);
+    });
+  } else {
+    $('#signIn').replaceWith(
+      '<button type="button" id="signIn" class="gridSignInTop bareSignIn weButton removeContentStyles">SIGN IN</button>'
+    );
+    $('#signIn').click(() => {
+      // We are currently signed out, so this click signs us in
+      console.log('Sign in pressed');
+      signIn(true);
+    });
+  }
+}
+
+function getVoterInfo () {
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: 'getVoterInfo',},
     function (response) {
@@ -126,49 +208,18 @@ function signIn (showDialog) {
         email: voterEmail,
         isSignedIn
       };
-      // Unfortunately /avatar-generic.png can't be "served" from the extension, since file loading is relative to the endorsement page
-
-      if (voterInfo.success && voterInfo.isSignedIn) {
-        $('[role=dialog]').remove();
-        $('#loginPopUp').remove();
-        $('#signIn').replaceWith(
-          '<img id="signOut" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" src="' + voterInfo.photo + '" ' +
-            'style="margin: 12px; width: 50px; height: 50px;" />');
-        updatePositionsPanel();
-        document.getElementById('signOut').addEventListener('click', function () {
-          debugLog('Sign Out pressed');
-          $('#furlable-2').removeAttr('hidden');
-          signOut();
-          return false;
-        });
-      } else {
-        console.warn('signIn() getVoterInfo returned error: ' + voterInfo.error + ', err: ' + voterInfo.err);
-        if (showDialog) {
-          $('#loginPopUp').dialog({
-            dialogClass: 'no-close',
-            width: 450,
-            position: { my: 'right top', at: 'left bottom', of: '#signIn' },
-            closeText: '',
-            open: function () {
-              dialogTitlebarStyling();
-              const markup =
-                '<div>' +
-                '   <div style=\'margin-bottom: .75rem; padding-left: 10px;\'><b>To sign in</b></div>' +
-                '   <div style=\'margin-bottom: .5rem; padding-left: 20px;\'>1) Sign in at ' +
-                '     <a href="https://wevote.us" target="_blank" style="text-decoration: underline; color: #326891;">WeVote.us</a>' +
-                '   </div>' +
-                '   <div style=\'margin-bottom: .5rem; padding-left: 20px;\'>2) Return to this tab and click the "Sign In" button again</div>' +
-                '</div>';
-              $(this).html(markup);
-              setSideAreaStatus();
-              setSideAreaStatus('No Candidate endorsements have been captured yet.');
-              initializeOrgChoiceList(); // ToDo: is this a dupe call 2/23/20?
-            },
-          });
-        }
+      if (success) {
+        state.voterIsSignedIn = isSignedIn;
       }
-    });
-  return false;
+
+      if (success && isSignedIn) {
+        setSignInOutMarkup (voterInfo);
+        updatePositionsPanel();
+        return true;
+      }
+      return false;
+    }
+  );
 }
 
 function dialogTitlebarStyling () {
@@ -184,10 +235,6 @@ function dialogTitlebarStyling () {
   }).html('X&nbsp;');
   $('.u2i-resizable-handle').css('display', 'none');
   $('.u2i-dialog-title').addClass('createDlgTitle');
-}
-
-function signOut () {
-  console.log('signOut has not been implemented.');
 }
 
 function topMenu () {
@@ -209,11 +256,11 @@ function topMenu () {
   '</div>';
   $('#topMenu').append(topMarkup);
 
-  document.getElementById('signIn').addEventListener('click', function () {
-    debugLog('Sign in pressed');
-    signIn(true);
-    return false;
-  });
+  let voterInfo = {
+    isSignedIn: false,     // Start off as not signed in, call setSignInOutMarkup to set the click listener
+  };
+
+  setSignInOutMarkup (voterInfo);
 }
 
 // Get the href into the extension
@@ -255,11 +302,11 @@ function getRefreshedHighlights () {
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getHighlights") refresh ', lastError.message);
       }
-      console.log('getRefreshedHighlights() response', response);
+      // console.log('getRefreshedHighlights() response', response);
 
       if (response) {
         debugLog('SUCCESS: getRefreshedHighlights received a response', response);
-        console.log('getRefreshedHighlights reloading iframe[0]');
+        // console.log('getRefreshedHighlights reloading iframe[0]');
         // eslint-disable-next-line prefer-destructuring
         let frame = $('iframe')[0];
         frame.contentWindow.location.reload();
@@ -304,7 +351,6 @@ function updateTopMenu () {
       }
     });
 }
-
 
 function updatePositionsPanel () {
   debugLog('updatePositionsPanel() getPositions');
@@ -791,75 +837,70 @@ function deactivateActivePositionPane () {
 // The text they select, will need to be the full name that we send to the API, although they will have a chance to edit it, before sending
 // eslint-disable-next-line no-unused-vars
 function openSuggestionPopUp (selection) {
-  const i = 1000;
   $('[role=dialog]').remove();  // Only one suggestion dialog at a time is allowed, so close any previous
+  const frameUrl = baseWebAppUrl + '?candidate_name=' + encodeURIComponent(selection) +
+    '&candidate_we_vote_id=&endorsement_page_url=' + encodeURIComponent(location.href) +
+    '&candidate_home_page=';
 
-  if (!selection || selection.length == 0) {
-    return;
-  }
+  $('<div id="frameBorder"><iframe id="weIFrame" src="' + frameUrl + '"></iframe></div>').dialog({
+    title: 'Create a We Vote endorsement',
+    show: true,
+    width: 380,
+    resizable: false,
+    fixedDimensions: true,
+    closeText: ''
+  });
 
-  getCandidateQuery(selection, (candidate) => {
-    let mutableCandidate = {};
-    if (!candidate) {
-      mutableCandidate = {
-        name: selection,
-        office: '',
-        party: undefined,
-        photo: defaultImage,
-        comment: '',
-        url: window.location.href,
-        stance: 'SUPPORT',
-        description: '',
-      };
-    } else {
-      mutableCandidate = candidate;
-    }
+  $('[role=dialog]').css({
+    '-webkit-box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)',
+    '-moz-box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)',
+    'box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)'
+  }).attr('id', 'weVoteModal');
+  $('.u2i-dialog-titlebar').css({
+    backgroundColor: '#2196F3',
+    color: '#fff',
+    height: '30px',
+  });
+  $('.u2i-icon-closethick').remove();
+  $('.u2i-dialog-titlebar-close').css({
+    transform: 'translate(-10px, 2px)',
+    height: '10px',
+    width: '10px',
+    backgroundColor: '#2196F3',
+    color: 'white',
+    float: 'right',
+    border: 'none',
+  });
+  $('.u2i-button-icon-space').css({
+    fontWeight: 'bolder',
+    fontStretch: 'extra-expanded',
+    fontSize: '12pt',
+  }).html('X&nbsp;');
+  $('.u2i-dialog-title').css({
+    float: 'left',
+    marginLeft: '8px',
+    marginTop: '2px',
+  });
+  $('u2i-dialog-content').css({
+    width: 'auto',
+    height: 'auto',
+  });
+  $('#weIFrame').css({
+    width: '400px',
+    height: '450px',
+  });
+  $('#frameBorder').css({
+    borderStyle: 'solid',
+    borderColor: 'darkgrey',
+    borderWidth: '4px',
+  });
+  $('.u2i-resizable-handle').css('display', 'none');
 
-    const lcName = mutableCandidate.name.toLowerCase();
-    if (urlsForHighlights[lcName]) {  // todo: This is getting wiped out might need to go into local storage
-      mutableCandidate.url = urlsForHighlights[lcName];
-    }
-
-    $(candidatePaneMarkup(i, i, i, mutableCandidate, true)).dialog({
-      title: 'Create a We Vote endorsement',
-      show: true,
-      width: 380,
-      resizable: false,
-      fixedDimensions: true,
-      closeText: ''
-    });
-    $('[role=dialog]').css({
-      '-webkit-box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)',
-      '-moz-box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)',
-      'box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)'
-    });
-    dialogTitlebarStyling();
-    $('#unfurlable-' + i).css('height', i === 1000 ?'80px' : '66px');
-    const can = '.candidateWe.1000';
-    $(can).css({'padding': '8px 0 8px 8px'});
-    $('.candidateNameInput-1000').val(selection).css({
-      width: '80%',
-      height: '24px',
-      margin: '0',
-      padding: '0 0 0 4px',
-      'font-family': '"Helvetica Neue", Helvetica, Arial, sans-serif',
-      'font-size': '16px',
-      'font-stretch': '100%',
-      'font-style': 'normal',
-      'font-weight': 400,
-      color: 'black',
-    });
-    $('.statementText-' + i).val(mutableCandidate.comment).css(getEditableElementTextStyles());  // todo: have to get this elsewhere
-    $('.moreInfoURL-' + i).val(mutableCandidate.url).css(getEditableElementTextStyles());
-    $('#voterGuidePossibilityId-' + i).val(state.voterGuidePossibilityId);
-    $('#organizationWeVoteId-' + i).val(state.organizationWeVoteId);
-    $('.openInWebApp-' + i).stop(); // Stop animations, on the webapp button, since we don't have the twitter id necessary for the url
-    $('div.u2i-dialog').on('dialogclose', () => {
-      $('div.u2i-dialog').remove();
-    });
-    addHandlersForCandidatePaneButtons('#1000', '1000', true);
+  $('div.u2i-dialog').on('dialogclose', () => {
+    $('div.u2i-dialog').remove();
   });
 }
+
 
 function getCandidateQuery (candidateName, doFunc) {
   const candidateWeVoteId = nameToIdMap[candidateName.toLowerCase()];
