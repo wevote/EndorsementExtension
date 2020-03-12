@@ -64,7 +64,7 @@ function Hilitor (id, tag) {
     });
 
     // --------------------------
-    console.log('BIGBIG duped sortedKeys.length ' + sortedKeys.length);
+    // console.log('duped sortedKeys.length ' + sortedKeys.length);
 
     debugH && console.log('duped sortedKeys.length ' + sortedKeys.length);
 
@@ -80,7 +80,6 @@ function Hilitor (id, tag) {
         names.push(name);
       }
     }
-    console.log('BIGBIG deduped name list size ' + names.length);
     debugH && console.log('deduped name list size ' + names.length);
 
 
@@ -166,7 +165,7 @@ function Hilitor (id, tag) {
       return;
     }
     debugH && console.log('hiliteWords early recursive CONTINUE node.id: ' + node.id);
-    // console.log('BIGBIG before iterating Through every child node using highlight words cnt: ' + (node.hasChildNodes() ? node.childNodes.length : 0));
+    // console.log('before iterating Through every child node using highlight words cnt: ' + (node.hasChildNodes() ? node.childNodes.length : 0));
     // End of modification for WeVote
 
     if (node.hasChildNodes()) {
@@ -231,12 +230,30 @@ function Hilitor (id, tag) {
               // If the name is in a link tag, disable it.
               if (node.parentNode.localName === 'a') {
                 urlHref = node.parentNode.href;
-                $(node.parentNode).css({
-                  'pointer-events': 'none',
-                  cursor: 'default'
-                });
-                urlsForHighlights[$(node.parentNode).text().toLowerCase()] = $(node.parentNode).attr('href');
               }
+              $(node.parentNode).css({
+                'pointer-events': 'none',
+                cursor: 'default'
+              });
+              const nameLC = $(node.parentNode).text().toLowerCase();
+              urlsForHighlights[nameLC] = $(node.parentNode).attr('href');
+              const candidateId = nameToIdMap && nameToIdMap[nameLC] ? nameToIdMap[nameLC] : '';
+              const rawName = $(node.parentNode).text();
+              const encodedName = encodeURIComponent(rawName);
+              let id = '';
+              for (let i = 0; i < rawName.length; i++) {
+                let char1 = rawName.charAt(i);
+                let cc = char1.charCodeAt(0);
+                if ((cc > 47 && cc < 58) || (cc > 64 && cc < 91) || (cc > 96 && cc < 123)) {
+                  id += char1;
+                }
+              }
+              const frameUrl = baseWebAppUrl + '?candidate_name=' + encodedName +
+                '&candidate_we_vote_id=' + candidateId + '&endorsement_page_url=' + encodeURIComponent(location.href) +
+                '&candidate_home_page=' + encodeURIComponent($(node.parentNode).attr('href'));
+              const clickIFrame = 'setModal(true, \'' + frameUrl + '\', \'' + id + '\', event)';
+              // console.log(clickIFrame);
+              $(node.parentNode).wrap('<button type="button" id="' + id + '" class="endorsementHighlights" onclick="' + clickIFrame + '"></button>');
               // Icon within highlights in the DOM of the endorsement page
               if(wordColor[word].Icon.length) {
                 $(match).prepend(wordColor[word].Icon);
@@ -261,7 +278,7 @@ function Hilitor (id, tag) {
             'offset': nodeAttributes.offset,
             'hidden': nodeAttributes.isInHidden,
             'color': wordColor[wordfound].Color,
-            'href': encodeURI(urlHref)
+            'href': urlHref.length ? encodeURI(urlHref) : '',
           };
 
           numberOfHighlights += 1;

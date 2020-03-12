@@ -54,8 +54,8 @@ $(() => {
     console.log('tabWordHighlighter this tab.id: ' + tabId);
   });
 
-  console.log('Hack that sets debugLocal to true in place ------------------------------------');
-  window.debugLocal = true;
+  // console.log('Hack that sets debugLocal to true in place ------------------------------------');
+  // window.debugLocal = true;
 
 
   if (window.location === window.parent.location) {
@@ -72,18 +72,12 @@ $(() => {
             console.warn('chrome.runtime.sendMessage("storeDeviceId")', lastError.message);
           }
         });
-
-        // localStorage['voterDeviceId'] = getVoterDeviceIdFromWeVoteDomainPage();
-        console.log('getVoterDeviceIdFromWeVoteDomainPage ------------AFTER Storage--------------> ' + localStorage['voterDeviceId']);
-      } else {
-        console.log('getVoterDeviceIdFromWeVoteDomainPage ------------AFTER aborted Storage--------------> zero length devive id');
       }
     }
     //only listen for messages in the main page, not in iframes
     chrome.runtime.onMessage.addListener(
       function (request, sender, sendResponse) {
-        /* debug && */
-        console.log('onMessage.addListener() in tabWordHighlighter got a message: '+ request.command);
+        debug && console.log('onMessage.addListener() in tabWordHighlighter got a message: '+ request.command);
 
         if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
             sender.id === 'eofojjpbgfdogalmibgljcgdipkhoclc' ||
@@ -184,7 +178,7 @@ function showMarkers () {
 }
 
 function reHighlight (words) {
-  console.log('BIGBIG function reHighlight(words)');
+  // console.log('function reHighlight(words)');
   for (let group in words) {
     if (words[group].Enabled) {
       for (word in words[group].Words) {
@@ -209,7 +203,7 @@ function getVoterDeviceIdFromWeVoteDomainPage () {
   const tag = 'voter_device_id';
   let b = document.cookie.match('(^|[^;]+)\\s*' + tag + '\\s*=\\s*([^;]+)');
   let id = b ? b.pop() : '';
-  console.log('getVoterDeviceIdFromWeVoteDomainPage ------------TE--------------> ' + id);
+  // console.log('getVoterDeviceIdFromWeVoteDomainPage ------------TE--------------> ' + id);
   return id;
 }
 
@@ -218,7 +212,7 @@ function getVoterDeviceIdFromWeVoteDomainPage () {
 // on the endorsement page that is displayed in the tab (for example, https://www.sierraclub.org/california/2020-endorsements/).
 function sendGetStatus () {
   chrome.runtime.sendMessage({command: 'getStatus'}, function (response) {
-    console.log('BIGBIG chrome.runtime.sendMessage({command: \'getStatus\'}');
+    // console.log('chrome.runtime.sendMessage({command: \'getStatus\'}');
     let {lastError} = chrome.runtime;
     if (lastError) {
       console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
@@ -227,7 +221,7 @@ function sendGetStatus () {
     debug && console.log('reponse from getStatus', window.location);
     highlighterEnabled = response.highlighterEnabled;
     highlighterEnabledThisTab  = response.highlighterEnabled;  // These start out identical, but this one is initialized us false
-    console.log('BIGBIG response from sendStatus highlighterEnabled: ', highlighterEnabled, ', highlighterEnabledThisTab: ', highlighterEnabledThisTab);
+    // console.log('response from sendStatus highlighterEnabled: ', highlighterEnabled, ', highlighterEnabledThisTab: ', highlighterEnabledThisTab);
     if (highlighterEnabled) {
       debug && console.log('about to get words', window.location);
       getWordsThenStartHighlighting();
@@ -236,7 +230,7 @@ function sendGetStatus () {
 }
 
 function getWordsThenStartHighlighting () {
-  console.log('BIGBIG Called getWordsThenStartHighlighting()');
+  // console.log('Called getWordsThenStartHighlighting()');
   chrome.runtime.sendMessage({
     command: 'getWords',
     url: location.href.replace(location.protocol + '//', ''),
@@ -280,6 +274,37 @@ function getWordsThenStartHighlighting () {
 
     //start the highlight loop
     highlightLoop();
+
+    if (!document.getElementById("wediv")) {
+      const head = document.head || document.getElementsByTagName('head')[0];
+
+      const style = document.createElement("style");
+      head.append(style);
+      style.type = 'text/css';
+      // Note that the source code for this css is in popupIFrame.html, where it can be tested in a browser, then minified with https://cssminifier.com/
+      const css = '#wediv{position:absolute;z-index:9;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4);top:35%;left:60%}#wedivheader{cursor:move;z-index:10;background-color:#2196f3;color:#fff;height:30px}#frameBorder{border-style:solid;border-color:#a9a9a9;border-width:4px}#weIFrame{width:400px;height:450px}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;padding-top:5px;float:right;margin-right:4px;background-color:#2196f3;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}';
+      style.appendChild(document.createTextNode(css));
+
+      const js = document.createElement("script");
+      // Note that the source code for this innerHTML is in popupIFrame.html, where it can be tested, then minified with https://javascript-minifier.com/
+      js.innerHTML ='function dragElement(e){let t=0,n=0,o=0,l=0;function d(e){(e=e||window.event).preventDefault(),o=e.clientX,l=e.clientY,document.onmouseup=m,document.onmousemove=f}function f(d){(d=d||window.event).preventDefault(),t=o-d.clientX,n=l-d.clientY,o=d.clientX,l=d.clientY,e.style.top=e.offsetTop-n+"px",e.style.left=e.offsetLeft-t+"px",console.log("position of elmnt after drag: ",e.style.top,e.style.left)}function m(){document.onmouseup=null,document.onmousemove=null}document.getElementById(e.id+"header")?document.getElementById(e.id+"header").onmousedown=d:e.onmousedown=d}function setModal(e,t,n){let o=document.getElementById(n);o||(o={offsetLeft:0,offsetTop:0});const l=document.getElementById("wediv"),d=document.getElementById("weIFrame"),f=window.pageYOffset||document.documentElement.scrollTop;l.hidden=!e,l.style.left=o.offsetLeft+300+"px",l.style.top=o.offsetTop+f+"px",t&&t.length&&(d.src=t),dragElement(l)}';
+      // js.onload = () => console.log('------------- js loaded');
+      head.appendChild(js);
+      const markup = document.createElement('div');
+      markup.id = 'wediv';
+      markup.hidden = true;
+      markup.innerHTML =
+        '<div id="wedivheader">\n' +
+        '  <span id="wetitle">Create a We Vote Endorsement</span>\n' +
+        '  <span id="closeButton">\n' +
+        '    <button type="button" class="weclose" onclick="setModal(false,\'\' ,\'\')">X</button>\n' +
+        '  </span>\n' +
+        '</div>\n' +
+        '<div id="frameBorder">\n' +
+        '  <iframe id="weIFrame" src="https://nonsense.goop"></iframe>\n' +
+        '</div>\n';
+      $('body').first().prepend(markup);
+    }
   });
 }
 
@@ -378,14 +403,14 @@ function findWords () {
     Highlight=false;
 
     setTimeout(function () {
-      /*debug &&*/ console.log('BIGBIG finding words',window.location);
+      debug && console.log('finding words',window.location);
 
       ReadyToFindWords=false;
 
       var changed = false;
       var myHilitor = new Hilitor();
       var highlights = myHilitor.apply(wordsArray, printHighlights);
-      console.log('BIGBIG after myHilitor.apply num highlights: ' + highlights.numberOfHighlights);
+      // console.log('after myHilitor.apply num highlights: ' + highlights.numberOfHighlights);
       if (highlights.numberOfHighlights > 0) {
         highlightMarkers = highlights.markers;
         markerPositions = [];

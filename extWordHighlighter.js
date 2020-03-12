@@ -514,7 +514,7 @@ chrome.runtime.onMessage.addListener(
     } else if(request.command==='beep') {
       document.body.innerHTML += '<audio src="beep.wav" autoplay="autoplay"/>';
     } else if(request.command==='getStatus') {
-      console.log('BIGBIG if(request.command===\'getStatus\') highlighterEnabled: ', highlighterEnabled);
+      // console.log('if(request.command===\'getStatus\') highlighterEnabled: ', highlighterEnabled);
       sendResponse({highlighterEnabled});
     } else if(request.command==='updateContextMenu'){
       updateContextMenu(request.url);
@@ -536,6 +536,8 @@ chrome.runtime.onMessage.addListener(
       // tabId will hold the sender tab's id value
       const tabId = sender.tab.id;
       sendResponse({ from: 'event', tabId });
+    } else if (request.command==='getWeVoteTabs') {
+      sendResponse({ from: 'tabs', tabs: getWeVoteTabs() });
     } else if (request.command==='storeDeviceId') {
       const tabId = sender.tab.id;
       if(request.voterDeviceId.length) {
@@ -551,7 +553,7 @@ chrome.runtime.onMessage.addListener(
 
 
 function requestReHighlight (){
-  console.log('BIGBIG requestReHighlight() called');
+  // console.log('requestReHighlight() called');
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     let id = '';
     let url = '';
@@ -832,6 +834,20 @@ function syncWordList (list, notify, listname){
     }
   };
   xhr.send();
+}
+
+function getWeVoteTabs () {
+  chrome.tabs.getAllInWindow(null, function (tabs) {
+    let results = '';
+    for (let i = 0; i < tabs.length; i++) {
+      const { id: tabId, url } = tabs[i];
+      if (url.includes('https://wevote.us/') || url.includes('https://quality.wevote.us/') || url.includes('https://localhost:3000/')) {
+        results += '|' + tabId +'|';
+        console.log('getWeVoteTabs: ' +tabId + ', : ' + url);
+      }
+    }
+    return results;
+  });
 }
 
 // // This works on all devices/browsers, and uses IndexedDBShim as a final fallback

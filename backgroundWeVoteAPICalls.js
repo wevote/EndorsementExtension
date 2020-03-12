@@ -25,6 +25,7 @@ function getHighlightsListFromApiServer (locationHref, doReHighlight, sendRespon
     neverHighLightOn.push('vars.hotjar.com');
     neverHighLightOn.push('*.google.com');
     debug && console.log('get json highlightsList: ', highlightsList);
+    debug && console.log('get json highlightsList.length: ', highlightsList.length);
     initializeHighlightsData(highlightsList, neverHighLightOn);
     if (doReHighlight) {
       requestReHighlight();
