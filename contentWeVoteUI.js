@@ -3,6 +3,7 @@
 
 const { $, chrome: { runtime } } = window;
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
+
 let state = {
   voterGuidePossibilityId: '',
   organizationWeVoteId: '',
@@ -15,6 +16,7 @@ let state = {
   voterWeVoteId: '',
   positions: [],
   voterIsSignedIn: false,
+  tabId: 0,
 };
 
 /**
@@ -26,6 +28,9 @@ let state = {
  */
 function displayHighlightingAndPossiblyEditor (showHighlights, showEditor, tabId) {  // eslint-disable-line no-unused-vars
   console.log('displayHighlightingAndPossiblyEditor showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', tabId);
+  if (tabId && tabId.length > 0) {
+    state.tabId = tabId;
+  }
   try {
     if(showHighlights || showEditor) {
       console.log('displayHighlightingAndPossiblyEditor ----- for tab: ' + tabId);
@@ -140,9 +145,10 @@ function signIn (attemptLogin) {
   );
 
   if (attemptLogin) {
-    const url = 'https://localhost:3000/more/extensionsignin?title=' + encodeURIComponent(document.title);
+    const url = 'https://quality.wevote.us/more/extensionsignin?title=' + encodeURIComponent(document.title);
     window.open(url, '_blank');
 
+    console.log('opened: ', url);
     let stopWaiting = false;
     setTimeout(function (){
       stopWaiting = true;
@@ -277,9 +283,8 @@ function getHighlights (showHighlights, showEditor, tabId) {
 
       if (response) {
         debugLog('SUCCESS: getHighlights received a response: ', response, '  showEditor:', showEditor, ', tabId: ', tabId);
-        nameToIdMap = response.nameToIdMap;
+        namesToIds = response.nameToIdMap;  // This one only works if NOT in an iFrame
         if (showEditor) {
-          debugLog('getHighlights() CALLING displayEditPanes()');
           displayEditPanes();
         } else {
           // 2/23/20 6pm  This was what finally got highlighting and/or editor woking on command
@@ -903,7 +908,7 @@ function openSuggestionPopUp (selection) {
 
 
 function getCandidateQuery (candidateName, doFunc) {
-  const candidateWeVoteId = nameToIdMap[candidateName.toLowerCase()];
+  const candidateWeVoteId = namesToIds[candidateName.toLowerCase()];
   if (!candidateWeVoteId) {
     return undefined;
   }

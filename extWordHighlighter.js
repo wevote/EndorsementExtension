@@ -31,6 +31,7 @@ let activeUrlGlobal = '';
 let aliasNames = [];
 let nameToIdMap = {};
 
+
 $(() => {
   console.log('extWordHighlighter constructor');
 });
@@ -122,7 +123,6 @@ function initializeHighlightsData (highlightsList, neverHighLightOn) {
     debugE && console.log('groupName: ' + groupName + ', group: ' + group);
     HighlightsData.Groups.push(groupName, group);
   }
-  // localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
 
   printHighlights = HighlightsData.PrintHighlights;
   // console.log("END END END initializeHighlightsData");
@@ -408,7 +408,6 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
     } else {
       HighlightsData.Groups[groupName].Words.push(info.selectionText);
       HighlightsData.Groups[groupName].Modified = Date.now();
-      // localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
       chrome.notifications.create('1', {
         'type': 'basic',
         'iconUrl': 'Plugin96.png',
@@ -582,7 +581,6 @@ function requestReHighlight (){
 //   }
 //   if (validated === true){
 //     HighlightsData=upgradeVersion(temp);
-//     localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
 //   }
 //   return validated;
 // }
@@ -618,6 +616,10 @@ function getWordsBackground (inUrl) {
       }
     }
   }
+  if (nameToIdMap) {
+    result['nameToIdMap'] = nameToIdMap;  // Needed if the endorsement page is in an iFrame, and probably is sufficent if not in an iFrame 3/20/20
+  }
+
   return result;
 }
 
@@ -645,14 +647,12 @@ function showHighlightsCount (label, altColor, tabId)
 
 /*function addWord(inWord) {
   HighlightsData.Words[inWord]="";
-	// localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   return true;
 }*/
 
 function showWordsFound (inState) {
   HighlightsData.ShowFoundWords=inState;
   showFoundWords=inState;
-  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 }
 
 // function showDonate(){
@@ -668,19 +668,16 @@ function showWordsFound (inState) {
 //   else {
 //     HighlightsData.Donate=today.setDate(today.getDate()+100);
 //   }
-//   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 // }
 
 function setPrintHighlights (inState) {
   HighlightsData.PrintHighlights=inState;
   printHighlights=inState;
-  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 }
 
 // function setNeverHighligthOn(inUrls){
 //   HighlightsData.neverHighlightOn=inUrls;
 //   neverHighlightOn=inUrls;
-//   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 // }
 
 function addGroup (inGroup, color, fcolor, findwords, showon, dontshowon, inWords, groupType, remoteConfig, regex, showInEditableFields) {
@@ -695,7 +692,6 @@ function addGroup (inGroup, color, fcolor, findwords, showon, dontshowon, inWord
     HighlightsData.Groups[inGroup].Regex=regex;
   }
 
-  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   setWords(inWords, inGroup, color, fcolor, findwords, showon, dontshowon, inGroup);
   requestReHighlight();
   return true;
@@ -703,13 +699,11 @@ function addGroup (inGroup, color, fcolor, findwords, showon, dontshowon, inWord
 
 function deleteGroup (inGroup) {
   delete HighlightsData.Groups[inGroup];
-  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   requestReHighlight();
   return true;
 }
 function flipGroup (inGroup, inAction) {
   HighlightsData.Groups[inGroup].Enabled = inAction === 'enable';
-  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   requestReHighlight();
   return true;
 }
@@ -727,12 +721,10 @@ function flipGroup (inGroup, inAction) {
 // }
 /*function addWords(inWords) {
   //HighlightsData.Words[inWord]="";
-	//localStorage['HighlightsData']=JSON.stringify(HighlightsData);
   for(let word in inWords) {
     inWord=inWords[word];
     HighlightsData.Words[inWord]="";
   }
-  // localStorage['HighlightsData']=JSON.stringify(HighlightsData);
 
   return true;
 }*/
@@ -769,7 +761,6 @@ function setWords (inWords, inGroup, inColor, inFcolor, inIcon, findwords, showo
     HighlightsData.Groups[newname] = HighlightsData.Groups[inGroup];
     delete HighlightsData.Groups[inGroup];
   }
-  // localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
 
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     updateContextMenu(tabs.url);
@@ -819,7 +810,6 @@ function syncWordList (list, notify, listname){
       }
       list.Words=wordsToAdd;
       list.RemoteConfig.lastUpdated=Date.now();
-      // localStorage['HighlightsData'] = JSON.stringify(HighlightsData);
       if(notify){
         chrome.notifications.create('1', {
           'type': 'basic',
