@@ -237,7 +237,8 @@ function Hilitor (id, tag) {
               });
               const nameLC = $(node.parentNode).text().toLowerCase();
               urlsForHighlights[nameLC] = $(node.parentNode).attr('href');
-              const candidateId = nameToIdMap && nameToIdMap[nameLC] ? nameToIdMap[nameLC] : '';
+              const { namesToIds } = window;
+              const candidateId = namesToIds && namesToIds[nameLC] ? namesToIds[nameLC] : '';
               const rawName = $(node.parentNode).text();
               const encodedName = encodeURIComponent(rawName);
               let id = '';

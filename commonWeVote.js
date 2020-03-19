@@ -28,7 +28,7 @@ const colors = {
   DELETED_BACKGROUND: '#f0c7c8',
 };
 
-const baseWebAppUrl = 'https://localhost:3000/candidate-for-extension';
+const baseWebAppUrl = 'https://quality.wevote.us/candidate-for-extension';  // March 18, 2020  This code is not on the live site yet
 
 function markupForThumbSvg (classString, type, fillColor) {
   if (type === 'endorse' || type === 'oppose') {

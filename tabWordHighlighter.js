@@ -15,7 +15,7 @@
 /* eslint no-ternary: 0 */
 
 var wordsArray = [];
-
+var namesToIds;
 var ReadyToFindWords = true; //indicates if not in a highlight execution
 
 var Highlight=true; // indicates if the extension needs to highlight at start or due to a change. This is evaluated in a loop
@@ -43,15 +43,15 @@ let voterDeviceId = '';
 let tabId = -1;
 var debug = false;
 let urlsForHighlights = {};
-let nameToIdMap = {};
 
 
 $(() => {
   chrome.runtime.sendMessage({
     command: 'myTabId',
   }, function (response) {
-    const { tabId } = response;
-    console.log('tabWordHighlighter this tab.id: ' + tabId);
+    const { tabId: tab } = response;
+    tabId = tab;
+    // console.log('tabWordHighlighter this tab.id: ' + tabId);
   });
 
   // console.log('Hack that sets debugLocal to true in place ------------------------------------');
@@ -195,6 +195,8 @@ function reHighlight (words) {
       }
     }
   }
+  console.log('reHighlight before findWords IS NOT CALLED at this time --------------------------- namesToIds: ', namesToIds, ', tabId: ', state.tabId);
+
   findWords();
 }
 
@@ -230,7 +232,7 @@ function sendGetStatus () {
 }
 
 function getWordsThenStartHighlighting () {
-  // console.log('Called getWordsThenStartHighlighting()');
+  // console.log('Called getWordsThenStartHighlighting() tabId: ', tabId);
   chrome.runtime.sendMessage({
     command: 'getWords',
     url: location.href.replace(location.protocol + '//', ''),
@@ -255,7 +257,6 @@ function getWordsThenStartHighlighting () {
           debug && console.log('getWords response, ' + word + ', group: ' + group + ', findWords: ' + response.words[group].FindWords + ' icon: ' + response.words[group].Icon);
           let wordText = response.words[group].Words[word];
           if (wordText) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
-            // console.log('getWordsThenStartHighlighting word = ' + word + ', wordText: ' + wordText + ', Icon: ' + response.words[group].Icon);
             wordsArray.push({
               word: response.words[group].Words[word].toLowerCase(),
               'regex': globStringToRegex(response.words[group].Words[word]),
@@ -269,6 +270,11 @@ function getWordsThenStartHighlighting () {
         }
       }
     }
+
+    if (response.words.nameToIdMap) {
+      namesToIds = response.words.nameToIdMap;  // This is the one that delivers, when in an iFrame.  It probably is all we need if not in a frame.
+    }
+
     debug && console.log('processed words');
     wordsReceived = true;
 
@@ -282,7 +288,7 @@ function getWordsThenStartHighlighting () {
       head.append(style);
       style.type = 'text/css';
       // Note that the source code for this css is in popupIFrame.html, where it can be tested in a browser, then minified with https://cssminifier.com/
-      const css = '#wediv{position:absolute;z-index:9;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4);top:35%;left:60%}#wedivheader{cursor:move;z-index:10;background-color:#2196f3;color:#fff;height:30px}#frameBorder{border-style:solid;border-color:#a9a9a9;border-width:4px}#weIFrame{width:400px;height:450px}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;padding-top:5px;float:right;margin-right:4px;background-color:#2196f3;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}';
+      const css = '#wediv{position:absolute;z-index:9;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4)}#wedivheader{cursor:move;z-index:10;background-color:#2196f3;color:#fff;height:30px}#frameBorder{border-style:solid;border-color:#a9a9a9;border-width:4px}#weIFrame{width:400px;height:450px}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;padding-top:5px;float:right;margin-right:16px;background-color:#2196f3;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}';
       style.appendChild(document.createTextNode(css));
 
       const js = document.createElement("script");
@@ -301,7 +307,7 @@ function getWordsThenStartHighlighting () {
         '  </span>\n' +
         '</div>\n' +
         '<div id="frameBorder">\n' +
-        '  <iframe id="weIFrame" src="https://nonsense.goop"></iframe>\n' +
+        '  <iframe id="weIFrame" src="https://quality.wevote.us/extension.html"></iframe>\n' +
         '</div>\n';
       $('body').first().prepend(markup);
     }
@@ -418,7 +424,6 @@ function findWords () {
           if (markerPositions.indexOf(highlightMarkers[marker].offset) === -1) {
             markerPositions.push(highlightMarkers[marker].offset);
           }
-
         }
         markerPositions.sort();
 
@@ -476,7 +481,7 @@ function revealRightAction (selection, pageURL, tabId) {
 }
 
 // This allows the popup to find out if this tab is highlighted and/or editors are displayed
-function getDisplayedTabStatus(tabId) {
+function getDisplayedTabStatus (tabId) {
   debug && console.log('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', editorEnabledThisTab: ' + editorEnabledThisTab);
   return {
     highlighterEnabledThisTab,
