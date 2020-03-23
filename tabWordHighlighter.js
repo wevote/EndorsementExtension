@@ -87,13 +87,18 @@ $(() => {
             sender.id === 'highlightthis@deboel.eu') {
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
-            console.log('displayHighlightsForTabAndPossiblyEditPanes request.showHighlights ', request.showHighlights, ', request.showEditor: ', request.showEditor, ', tabId: ' + request.tabId);
-            if (request.showHighlights || request.showEditor) {
+            const priorHighlighterEnabled = highlighterEnabled;
+            const { showHighlights, showEditor, tabId } = request;
+            console.log('displayHighlightsForTabAndPossiblyEditPanes request.showHighlights ', showHighlights, ', showEditor: ', showEditor, ', tabId: ' + tabId);
+            if (showHighlights || showEditor) {
               highlighterEnabled = true;
+            } else if (priorHighlighterEnabled) {
+              // if we were enabled (master switch), and now we are not, reload the page -- if this proves to be a problem, we could reverse the highlighting.
+              location.reload();
             }
-            highlighterEnabledThisTab = request.showHighlights;
-            editorEnabledThisTab = request.showEditor;
-            displayHighlightingAndPossiblyEditor(request.showHighlights, request.showEditor, request.tabId);
+            highlighterEnabledThisTab = showHighlights;
+            editorEnabledThisTab = showEditor;
+            displayHighlightingAndPossiblyEditor(showHighlights, showEditor, tabId);
             return false;
           } else if (request.command === 'ScrollHighlight') {
             jumpNext();
