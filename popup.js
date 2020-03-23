@@ -41,9 +41,12 @@ document.addEventListener('DOMContentLoaded', function () {
       localStorage['highlightCandidatesOnAllTabs'] = 'false';
       $('#highlightCandidatesOnAllTabsSwitch').prop('checked', false);
     }
+    event.timer = setTimeout(() => {
+      window.close();
+    }, 2000);
+
   });
 
-  // Not yet tested
   $('#highlightCandidatesOnAllTabsSwitch').prop('checked', highlightCandidatesOnAllTabs).click(() => {
     if ($('#highlightCandidatesOnAllTabsSwitch').is(':checked')) {
       $('#highlightingMasterSwitch').prop('checked', true);
@@ -54,6 +57,9 @@ document.addEventListener('DOMContentLoaded', function () {
       chrome.extension.getBackgroundPage().enableHighlightsForAllTabs(false);
       localStorage['highlightCandidatesOnAllTabs'] = 'false';
     }
+    event.timer = setTimeout(() => {
+      window.close();
+    }, 2000);
   });
 
   let showHighlights = false;

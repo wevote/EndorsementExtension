@@ -833,7 +833,7 @@ function getWeVoteTabs () {
       const { id: tabId, url } = tabs[i];
       if (url.includes('https://wevote.us/') || url.includes('https://quality.wevote.us/') || url.includes('https://localhost:3000/')) {
         results += '|' + tabId +'|';
-        console.log('getWeVoteTabs: ' +tabId + ', : ' + url);
+        console.log('getWeVoteTabs: ' + tabId + ', : ' + url);
       }
     }
     return results;
