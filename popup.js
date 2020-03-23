@@ -112,12 +112,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 1000);
   });
 
-  // if (onPageShown) {
-  //   drawInterface();
-  // }
-  // else {
-  //   onPage();
-  // }
+  $('#jumpToMyBallot').click(() => {
+    window.open(ballotWebAppURL, '_blank');
+  });
+
+
 });
 
 function updateButtonState () {

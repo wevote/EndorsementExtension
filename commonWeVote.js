@@ -28,7 +28,10 @@ const colors = {
   DELETED_BACKGROUND: '#f0c7c8',
 };
 
-const baseWebAppUrl = 'https://quality.wevote.us/candidate-for-extension';  // March 18, 2020  This code is not on the live site yet
+const candidateExtensionWebAppURL = 'https://quality.wevote.us/candidate-for-extension';  // March 18, 2020  This code is not on the live site yet
+const ballotWebAppURL = 'https://quality.wevote.us/ballot';
+const extensionWarmUpPage = 'https://quality.wevote.us/extension.html';
+const extensionSignInPage = 'https://quality.wevote.us/more/extensionsignin';
 
 function markupForThumbSvg (classString, type, fillColor) {
   if (type === 'endorse' || type === 'oppose') {

@@ -145,7 +145,7 @@ function signIn (attemptLogin) {
   );
 
   if (attemptLogin) {
-    const url = 'https://quality.wevote.us/more/extensionsignin?title=' + encodeURIComponent(document.title);
+    const url = extensionSignInPage + '?title=' + encodeURIComponent(document.title);
     window.open(url, '_blank');
 
     console.log('opened: ', url);
@@ -843,7 +843,7 @@ function deactivateActivePositionPane () {
 // eslint-disable-next-line no-unused-vars
 function openSuggestionPopUp (selection) {
   $('[role=dialog]').remove();  // Only one suggestion dialog at a time is allowed, so close any previous
-  const frameUrl = baseWebAppUrl + '?candidate_name=' + encodeURIComponent(selection) +
+  const frameUrl = candidateExtensionWebAppURL + '?candidate_name=' + encodeURIComponent(selection) +
     '&candidate_we_vote_id=&endorsement_page_url=' + encodeURIComponent(location.href) +
     '&candidate_home_page=';
 
