@@ -210,7 +210,7 @@ function getVoterDeviceIdFromWeVoteDomainPage () {
   const tag = 'voter_device_id';
   let b = document.cookie.match('(^|[^;]+)\\s*' + tag + '\\s*=\\s*([^;]+)');
   let id = b ? b.pop() : '';
-  // console.log('getVoterDeviceIdFromWeVoteDomainPage ------------TE--------------> ' + id);
+  debug && console.log('getVoterDeviceIdFromWeVoteDomainPage ------------TE--------------> ' + id);
   return id;
 }
 
@@ -286,17 +286,17 @@ function getWordsThenStartHighlighting () {
     //start the highlight loop
     highlightLoop();
 
-    if (!document.getElementById("wediv")) {
+    if (!document.getElementById('wediv')) {
       const head = document.head || document.getElementsByTagName('head')[0];
 
-      const style = document.createElement("style");
+      const style = document.createElement('style');
       head.append(style);
       style.type = 'text/css';
       // Note that the source code for this css is in popupIFrame.html, where it can be tested in a browser, then minified with https://cssminifier.com/
       const css = '#wediv{position:absolute;z-index:9;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4)}#wedivheader{cursor:move;z-index:10;background-color:#2196f3;color:#fff;height:30px}#frameBorder{border-style:solid;border-color:#a9a9a9;border-width:4px}#weIFrame{width:400px;height:450px}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;padding-top:5px;float:right;margin-right:16px;background-color:#2196f3;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}';
       style.appendChild(document.createTextNode(css));
 
-      const js = document.createElement("script");
+      const js = document.createElement('script');
       // Note that the source code for this innerHTML is in popupIFrame.html, where it can be tested, then minified with https://javascript-minifier.com/
       js.innerHTML ='function dragElement(e){let t=0,n=0,o=0,l=0;function d(e){(e=e||window.event).preventDefault(),o=e.clientX,l=e.clientY,document.onmouseup=m,document.onmousemove=f}function f(d){(d=d||window.event).preventDefault(),t=o-d.clientX,n=l-d.clientY,o=d.clientX,l=d.clientY,e.style.top=e.offsetTop-n+"px",e.style.left=e.offsetLeft-t+"px",console.log("position of elmnt after drag: ",e.style.top,e.style.left)}function m(){document.onmouseup=null,document.onmousemove=null}document.getElementById(e.id+"header")?document.getElementById(e.id+"header").onmousedown=d:e.onmousedown=d}function setModal(e,t,n){let o=document.getElementById(n);o||(o={offsetLeft:0,offsetTop:0});const l=document.getElementById("wediv"),d=document.getElementById("weIFrame"),f=window.pageYOffset||document.documentElement.scrollTop;l.hidden=!e,l.style.left=o.offsetLeft+300+"px",l.style.top=o.offsetTop+f+"px",t&&t.length&&(d.src=t),dragElement(l)}';
       // js.onload = () => console.log('------------- js loaded');
@@ -312,7 +312,7 @@ function getWordsThenStartHighlighting () {
         '  </span>\n' +
         '</div>\n' +
         '<div id="frameBorder">\n' +
-        '  <iframe id="weIFrame" src="https://quality.wevote.us/extension.html"></iframe>\n' +
+        '  <iframe id="weIFrame" src="' + extensionWarmUpPage + '"></iframe>\n' +
         '</div>\n';
       $('body').first().prepend(markup);
     }

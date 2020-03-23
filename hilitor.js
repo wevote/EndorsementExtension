@@ -249,7 +249,7 @@ function Hilitor (id, tag) {
                   id += char1;
                 }
               }
-              const frameUrl = baseWebAppUrl + '?candidate_name=' + encodedName +
+              const frameUrl = candidateExtensionWebAppURL + '?candidate_name=' + encodedName +
                 '&candidate_we_vote_id=' + candidateId + '&endorsement_page_url=' + encodeURIComponent(location.href) +
                 '&candidate_home_page=' + encodeURIComponent($(node.parentNode).attr('href'));
               const clickIFrame = 'setModal(true, \'' + frameUrl + '\', \'' + id + '\', event)';
