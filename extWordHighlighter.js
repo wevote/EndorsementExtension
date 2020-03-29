@@ -276,7 +276,7 @@ function processUniqueNames (uniqueNamesFromPage) {
 // Called by the "highlight this tab" button on the popup
 // This receives the tab not the tabid!
 function setEnableForActiveTab (showHighlights, showEditor, tab) {
-  console.log('enabling highlights on active tab ', tab, ' ------- ext');
+  console.log('enabling highlights on active tab ', tab, ' ------- ext, showEditor: ', showEditor);
 
   // Ignore if on a 'neverHighlightOn' page
   if (HighlightsData.neverHighlightOn === undefined) {

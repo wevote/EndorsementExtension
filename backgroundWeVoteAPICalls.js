@@ -252,7 +252,7 @@ function convertPdfToHtmlInS3 (pdfURL, sendResponse) {
   let voterDeviceId = localStorage['voterDeviceId'];
 
   if (voterDeviceId && voterDeviceId.length > 0) {
-    let apiURL = `http://localhost:8000/apis/v1/pdfToHtmlRetrieve?voter_device_id=${voterDeviceId}&pdf_url=${pdfURL}`;
+    let apiURL = `${rootApiURL}/pdfToHtmlRetrieve?voter_device_id=${voterDeviceId}&pdf_url=${pdfURL}`;
     // let apiURL = `${rootApiURL}/pdfToHtmlRetrieve?voter_device_id=${voterDeviceId}&pdf_url=${pdfURL}`;
     // debug && console.log('convertPdfToHtmlInS3: ' + apiURL);
     $.getJSON(apiURL, '', (res) => {
