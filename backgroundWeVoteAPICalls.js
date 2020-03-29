@@ -246,3 +246,26 @@ function getCandidate (candidateWeVoteId, sendResponse) {
   }
 }
 
+function convertPdfToHtmlInS3 (pdfURL, sendResponse) {
+  debug && console.log('convertPdfToHtmlInS3: ' + pdfURL);
+  // eslint-disable-next-line prefer-destructuring
+  let voterDeviceId = localStorage['voterDeviceId'];
+
+  if (voterDeviceId && voterDeviceId.length > 0) {
+    let apiURL = `http://localhost:8000/apis/v1/pdfToHtmlRetrieve?voter_device_id=${voterDeviceId}&pdf_url=${pdfURL}`;
+    // let apiURL = `${rootApiURL}/pdfToHtmlRetrieve?voter_device_id=${voterDeviceId}&pdf_url=${pdfURL}`;
+    // debug && console.log('convertPdfToHtmlInS3: ' + apiURL);
+    $.getJSON(apiURL, '', (res) => {
+      debug && console.log('get json from convertPdfToHtmlInS3 API SUCCESS', res);
+      sendResponse({res});
+    }).fail((err) => {
+      console.log('convertPdfToHtmlInS3 error', err);
+    });
+  } else {
+    let res = {
+      success: false,
+      message: 'Can not make ths api call unless you are logged in, and have a voterDeviceId',
+    };
+    sendResponse({res});
+  }
+}

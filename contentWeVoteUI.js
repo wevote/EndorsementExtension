@@ -273,7 +273,12 @@ function topMenu () {
 function getHighlights (showHighlights, showEditor, tabId) {
   debugLog('getHighlights() called');
   const { chrome: { runtime: { sendMessage } } } = window;
-  sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: false },
+  let urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML
+  if (urlToQuery.length < 1) {
+    urlToQuery = window.location.href;
+  }
+
+  sendMessage({ command: 'getHighlights', url: urlToQuery, doReHighlight: false },
     function (response) {
       let {lastError} = runtime;
       if (lastError) {

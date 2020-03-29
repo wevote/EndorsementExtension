@@ -76,6 +76,7 @@ $(() => {
     }
     //only listen for messages in the main page, not in iframes
     chrome.runtime.onMessage.addListener(
+      // eslint-disable-next-line complexity
       function (request, sender, sendResponse) {
         debug && console.log('onMessage.addListener() in tabWordHighlighter got a message: '+ request.command);
 
@@ -87,6 +88,10 @@ $(() => {
             sender.id === 'highlightthis@deboel.eu') {
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
+            if (window.location.href.toLowerCase().endsWith('.pdf')) {
+              console.log('displayHighlightsForTabAndPossiblyEditPanes skipping PDF file');
+              return false;
+            }
             const priorHighlighterEnabled = highlighterEnabled;
             const { showHighlights, showEditor, tabId } = request;
             console.log('displayHighlightsForTabAndPossiblyEditPanes request.showHighlights ', showHighlights, ', showEditor: ', showEditor, ', tabId: ' + tabId);
@@ -122,9 +127,10 @@ $(() => {
             revealRightAction(request.selection, request.pageURL, request.tabId);
             return false;
           } else if (request.command === 'getTabStatusValues') {
+            const encodedHref = encodeURIComponent(location.href);
             const {orgName, organizationWeVoteId, organizationTwitterHandle} = state;
             debug && console.log('getTabStatusValues tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', editorEnabledThisTab: ' + editorEnabledThisTab);
-            sendResponse({ highlighterEnabledThisTab, editorEnabledThisTab, orgName, organizationWeVoteId, organizationTwitterHandle });
+            sendResponse({ highlighterEnabledThisTab, editorEnabledThisTab, orgName, organizationWeVoteId, organizationTwitterHandle, encodedHref });
             return false;
           } else if (request.command === 'disableExtension') {
             enableHighlightsForAllTabs(false);
