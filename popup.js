@@ -4,13 +4,16 @@
 var debug=false;
 const removeEditText = 'Remove Edit Panel From This Tab';
 const openEditText = 'Open Edit Panel for this Tab';
+const openEditTextConvertedPDF = 'Open Edit Panel for this PDF';
 const highlightThisText = 'Highlight Candidates on This Tab';
+const highlightThisPDF = 'Highlight Candidates found on this PDF';
 const removeHighlightThisText = 'Remove Highlights From This Tab';
+let pdfURL = null;
 
 document.addEventListener('DOMContentLoaded', function () {
   let highlightingEnabled = false;
   let highlightCandidatesOnAllTabs = localStorage['highlightCandidatesOnAllTabs'] === 'true';
-  dumpTabStatus();
+  debug && dumpTabStatus();
 
   console.log('chrome.extension.getBackgroundPage().highlighterEnabled: ' + chrome.extension.getBackgroundPage().highlighterEnabled);
   // console.log('localStorage[\'highlightCandidatesOnThisTab\']', localStorage['highlightCandidatesOnThisTab']);
@@ -67,19 +70,27 @@ document.addEventListener('DOMContentLoaded', function () {
     chrome.extension.getBackgroundPage().highlighterEnabled = true;
     $('#highlightingMasterSwitch').prop('checked', true);
 
-    // Need enable/disable logic here
     if ($('#highlightCandidatesThisTabButton').hasClass('weButtonRemove')) {  // if pressing the button would do a remove...
-      $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').text(highlightThisText);
       showHighlights = false;
-    } else {
-      $('#highlightCandidatesThisTabButton').addClass('weButtonRemove').text(removeHighlightThisText);
+      if (pdfURL) {
+        $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').text(highlightThisText);
+      } else {
+        $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').addClass('wePDF').text(highlightThisPDF);
+      }
+    } else {                                                                  // If pressing the button would add the highlights
       showHighlights = true;
+      $('#highlightCandidatesThisTabButton').addClass('weButtonRemove').removeClass('wePDF').text(removeHighlightThisText);
     }
 
     chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
       console.log('enabling highlights on active tab -- popup.js tab.id: ' + tabs[0].id);
       const showEditor = false;
-      chrome.extension.getBackgroundPage().setEnableForActiveTab(showHighlights, showEditor, tabs[0]);
+      if (pdfURL) {
+        debug && console.log('enabling highlights on active tab FOR A PDF -- popup.js tab.id: ', tabs[0].id, pdfURL);
+        chrome.extension.getBackgroundPage().reloadPdfTabAsHTML(pdfURL, showEditor, tabs[0]);
+      } else {
+        chrome.extension.getBackgroundPage().setEnableForActiveTab(showHighlights, showEditor, tabs[0]);
+      }
     });
     event.timer = setTimeout(() => {
       window.close();
@@ -92,9 +103,13 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('openEditPanelButton button onClick -- popup.js');
     $('#highlightingMasterSwitch').prop('checked', true);
 
-    // Need enable/disable logic here
     if ($('#openEditPanelButton').hasClass('weButtonRemove')) {  // if pressing the button would do a remove...
-      $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
+      if (pdfURL) {
+        $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditTextConvertedPDF);
+      } else {
+        $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
+      }
+
       showEditor = false;
     } else {
       $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);
@@ -103,9 +118,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-      console.log('enabling editor on active tab from openEditPanelButton button -- popup.js tab.id: ' + tabs[0].id);
-      chrome.extension.getBackgroundPage().setEnableForActiveTab(showHighlights, showEditor, tabs[0]);
-      // chrome.extension.getBackgroundPage().hackoTurnOnHandE(showHighlights, showEditor, tabs[0]);
+      debug && console.log('enabling editor on active tab from openEditPanelButton button -- popup.js tab.id: ' + tabs[0].id);
+      if (pdfURL) {
+        console.log('enabling highlights on active tab FOR A PDF -- popup.js tab.id: ', tabs[0].id, pdfURL);
+        chrome.extension.getBackgroundPage().reloadPdfTabAsHTML(pdfURL, showEditor, tabs[0]);
+      } else {
+        chrome.extension.getBackgroundPage().setEnableForActiveTab(showHighlights, showEditor, tabs[0]);
+      }
     });
     event.timer = setTimeout(() => {
       window.close();
@@ -122,17 +141,25 @@ document.addEventListener('DOMContentLoaded', function () {
 function updateButtonState () {
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     chrome.tabs.sendMessage(tabs[0].id, {command: 'getTabStatusValues'}, function (result){
-      debug && console.log('getCurrentTabStatus() result: ', result);
+      debug && console.log('getTabStatusValues result: ', result);
       if(result) {
-        let {highlighterEnabledThisTab, editorEnabledThisTab, orgName, organizationWeVoteId, organizationTwitterHandle} = result;
+        const {highlighterEnabledThisTab, editorEnabledThisTab, orgName, organizationWeVoteId, organizationTwitterHandle, encodedHref} = result;
+        const isPDF = encodedHref.toLowerCase().endsWith('.pdf');
+        if (isPDF) {
+          pdfURL = encodedHref;
+        }
         if (highlighterEnabledThisTab) {
-          $('#highlightCandidatesThisTabButton').addClass('weButtonRemove').text(removeHighlightThisText);
+          $('#highlightCandidatesThisTabButton').addClass('weButtonRemove').removeClass('wePDF').text(removeHighlightThisText);
+        } else if(isPDF) {
+          $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').addClass('wePDF').text(highlightThisPDF);
         } else {
           $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').text(highlightThisText);
         }
 
         if (editorEnabledThisTab) {
           $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);
+        } else if(isPDF) {
+          $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditTextConvertedPDF);
         } else {
           $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
         }

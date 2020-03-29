@@ -11,20 +11,12 @@ const { chrome: { runtime: { getPlatformInfo}, contextMenus: { create, removeAll
 /* eslint no-unused-vars: 0 */
 /* eslint complexity: 0 */
 
-/* April 25, 2019 Steve
-   This code relies on the scoping behaviour for the 'var' keyword, changing them all to 'let' will break things.
- */
-
 const debugE = false;
 let highlighterEnabled = false;  // Don't globally change var to let! see note above.  This is changed from popup.js
 let showFoundWords = false;
 let printHighlights = true;
 let HighlightsData = {};
 let noContextMenu = ['_generated_background_page.html'];
-// let voterName = '';
-// let voterPhotoURL = '';
-// let voterWeVoteId = '';
-// let voterEmail = '';
 let uniqueNames = [];
 let activeTabIdGlobal;
 let activeUrlGlobal = '';
@@ -284,14 +276,15 @@ function processUniqueNames (uniqueNamesFromPage) {
 // Called by the "highlight this tab" button on the popup
 // This receives the tab not the tabid!
 function setEnableForActiveTab (showHighlights, showEditor, tab) {
-  console.log('enabling highlights on active tab ', tab, ' ------- ext');
+  console.log('enabling highlights on active tab ', tab, ' ------- ext, showEditor: ', showEditor);
 
   // Ignore if on a 'neverHighlightOn' page
   if (HighlightsData.neverHighlightOn === undefined) {
     HighlightsData.neverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org', 'localhost'];
   }
   for (let neverShowOn in HighlightsData.neverHighlightOn) {
-    if (tab.url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
+    const tentativeURL = tab.url.length ? tab.url : tab.pendingUrl;
+    if (tentativeURL.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
       showHighlightsCount('x', 'red', tab.id);
       setTimeout(function () {
         showHighlightsCount('', 'white', tab.id);
@@ -318,7 +311,6 @@ function setEnableForActiveTab (showHighlights, showEditor, tab) {
   });
 }
 
-// untested 2/15/20
 function enableHighlightsForAllTabs (showHighlights) {
   // Here we are telling all tabs to enable/disable highlighting
   chrome.tabs.getAllInWindow(null, function (tabs) {
@@ -350,16 +342,21 @@ chrome.tabs.onActivated.addListener(function (tabid){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     debugE && console.log('XXXXXX set GLOBALS in tabs onactivated', tabid, tabs);
     // Sept 25, 2019: Todo this assumes that the first tab, when you turn it on, is the one that gets the menu!
-    activeTabIdGlobal = tabs[0].id;
-    activeUrlGlobal = tabs[0].url;
+    if (tabs.length) {
+      activeTabIdGlobal = tabs[0].id;
+      activeUrlGlobal = tabs[0].url;
 
-    updateContextMenu(tabs[0].url);
+      debugE && console.log('XXXXXX chrome.tabs.onActivated.addListener', tabs[0]);
+      updateContextMenu(tabs[0].url);
+    } else {
+      console.warn('chrome.tabs.onActivated.addListener found no currentWindow for tabid: ' + tabid);
+    }
   });
 });
 
 chrome.tabs.onUpdated.addListener(
   function (tabid, tab){
-    debugE&&console.log('in tabs onupdated', tabid, tab);
+    debugE && console.log('in tabs onupdated', tabid, tab);
 
     if(tab.url !== undefined){
       updateContextMenu(tab.url);
@@ -708,27 +705,6 @@ function flipGroup (inGroup, inAction) {
   return true;
 }
 
-// function flipGroupWordFind(inGroup, inAction) {
-//   if (inAction === "enable"){
-//     HighlightsData.Groups[inGroup].FindWords=true;
-//   }
-//   else {
-//     HighlightsData.Groups[inGroup].FindWords=false;
-//   }
-//   localStorage['HighlightsData']=JSON.stringify(HighlightsData);
-//   requestReHighlight();
-//   return true;
-// }
-/*function addWords(inWords) {
-  //HighlightsData.Words[inWord]="";
-  for(let word in inWords) {
-    inWord=inWords[word];
-    HighlightsData.Words[inWord]="";
-  }
-
-  return true;
-}*/
-
 function setWords (inWords, inGroup, inColor, inFcolor, inIcon, findwords, showon, dontshowon, newname, groupType, remoteConfig, regex, showInEditableFields) {
 
   for(word in inWords){
@@ -839,6 +815,24 @@ function getWeVoteTabs () {
     return results;
   });
 }
+
+function reloadPdfTabAsHTML (pdfURL, showEditor, tab) {
+  debugE && console.log('reloadPdfTabAsHTML pdfURL: ' + pdfURL);
+  convertPdfToHtmlInS3(pdfURL, (response) => {
+    const { s3_url_for_html: htmlURL } = response.res;
+    debugE && console.log('reloadPdfTabAsHTML htmlURL: ' + htmlURL);
+    const tabId = tab.id;
+    console.log('reloadPdfTabAsHTML tab.id: ' + tabId);
+    chrome.tabs.create({ url: htmlURL }, (newTabId) => {
+      chrome.tabs.onUpdated.addListener(function (newTabId, info) {
+        if (info.status === 'complete') {
+          chrome.tabs.get(newTabId, (newTab) => setEnableForActiveTab(true, showEditor, newTab));
+        }
+      });
+    });
+  });
+}
+
 
 // // This works on all devices/browsers, and uses IndexedDBShim as a final fallback
 // var indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB || window.shimIndexedDB;
