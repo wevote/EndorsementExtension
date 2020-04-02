@@ -17,6 +17,7 @@ let state = {
   positions: [],
   voterIsSignedIn: false,
   tabId: 0,
+  isFromPDF:  false,
 };
 
 /**
@@ -31,6 +32,13 @@ function displayHighlightingAndPossiblyEditor (showHighlights, showEditor, tabId
   if (tabId && tabId.length > 0) {
     state.tabId = tabId;
   }
+
+  const urlToQuery = $('input[name="pdfFileName"]').val();
+  state.isFromPDF = urlToQuery && urlToQuery.length > 0;   // This is for PDFs that have been converted to HTML by PDFMinerSix
+  if (state.isFromPDF) {
+    fixupForPdfMinerSix();
+  }
+
   try {
     if(showHighlights || showEditor) {
       console.log('displayHighlightingAndPossiblyEditor ----- for tab: ' + tabId);
@@ -44,6 +52,46 @@ function displayHighlightingAndPossiblyEditor (showHighlights, showEditor, tabId
     console.log('jQuery dialog in contentWeVoteUI threw: ', err);
   }
   return true;  // indicates that we call the response function asynchronously.  https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
+}
+
+function fixupForPdfMinerSix () {
+  $('div').each((i, div) => {
+    $(div).each((j, span) => {
+      const markup = span.outerHTML;
+      // console.log('Initial span markup: ', markup);
+      try {
+        let startSpan = markup.match(/(<span .*?>)/);
+        if (startSpan) {
+          // console.log('startSpan: ', startSpan[0]);
+          const count = (markup.match(/(<br>)/gm) || []).length;
+          if (count > 1) {
+            let divSpanLeader = markup.match(/(<div.*?span.*?>)/)[0];
+            let thisTop = divSpanLeader.match(/top:(\d*)px;/);
+            let top = parseInt(thisTop[1], 10);
+            // console.log('divSpanLeader: ', divSpanLeader);
+            let previous = span;
+            let lines = markup.match(/(?:[\f\n]<br>|<span.*?>)(.*?)*\n/gm);
+            for (line in lines) {
+              // console.log('line: ', lines[line]);
+              let clean = lines[line].replace(/(<.*?>)/g, '');
+              // console.log('clean: ', clean);
+              top += 12;
+              let thisLeader = divSpanLeader.replace(/(top:\d*px;)/g, 'top:' + top + 'px;');
+              let newLine = thisLeader + clean + '</span><br></div>\n';
+              // console.log('newLine: ', newLine);
+              previous = $(newLine).insertAfter(previous);
+            }
+            if (span !== previous) {
+              span.remove();
+            }
+          }
+        }
+      } catch (e) {
+        console.error('fixupForPdfMinerSix threw exception: ', e, ' while parsing ', markup)
+
+      }
+    });
+  });
 }
 
 function displayEditPanes () {
@@ -274,8 +322,8 @@ function getHighlights (showHighlights, showEditor, tabId) {
   debugLog('getHighlights() called');
   const { chrome: { runtime: { sendMessage } } } = window;
   let urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML
-  if (urlToQuery.length < 1) {
-    urlToQuery = window.location.href;
+  if (!urlToQuery || urlToQuery.length < 1) {
+    urlToQuery = window.location.origin;
   }
 
   sendMessage({ command: 'getHighlights', url: urlToQuery, doReHighlight: false },

@@ -29,7 +29,8 @@ function Hilitor (id, tag) {
   var highlights = {}; //added
   var highlightMarkers = {};
   let debugH = false;
-
+  const urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML
+  const isFromPDF = (urlToQuery && urlToQuery.length > 0);
 
   this.setMatchType = function (type) {
     switch (type) {
@@ -147,8 +148,8 @@ function Hilitor (id, tag) {
   };
 
 
-
   // recursively apply word highlighting
+  // eslint-disable-next-line complexity
   this.hiliteWords = function (node, printHighlights, inContentEditable) {
 
     if (node == undefined || !node) {return;}
@@ -176,8 +177,8 @@ function Hilitor (id, tag) {
 
     if (node.nodeType == 3) { // NODE_TEXT
 
-      let nv = node.nodeValue;
-      debugH && console.log('node.nodeValue: ', node.nodeValue);
+      let nv = this.cleanName(node.nodeValue);
+      debugH && console.log('cleanName(node.nodeValue) >' + nv +'<');
       if(inContentEditable) {
         regs = matchRegexEditable.exec(nv);
       } else {
@@ -227,39 +228,7 @@ function Hilitor (id, tag) {
 
             if (!inContentEditable || (inContentEditable && wordColor[wordfound].ShowInEditableFields)) {
               // Begin modification for WeVote
-              // If the name is in a link tag, disable it.
-              if (node.parentNode.localName === 'a') {
-                urlHref = node.parentNode.href;
-              }
-              $(node.parentNode).css({
-                'pointer-events': 'none',
-                cursor: 'default'
-              });
-              const nameLC = $(node.parentNode).text().toLowerCase();
-              urlsForHighlights[nameLC] = $(node.parentNode).attr('href');
-              const { namesToIds } = window;
-              const candidateId = namesToIds && namesToIds[nameLC] ? namesToIds[nameLC] : '';
-              const rawName = $(node.parentNode).text();
-              const encodedName = encodeURIComponent(rawName);
-              let id = '';
-              for (let i = 0; i < rawName.length; i++) {
-                let char1 = rawName.charAt(i);
-                let cc = char1.charCodeAt(0);
-                if ((cc > 47 && cc < 58) || (cc > 64 && cc < 91) || (cc > 96 && cc < 123)) {
-                  id += char1;
-                }
-              }
-              const frameUrl = candidateExtensionWebAppURL + '?candidate_name=' + encodedName +
-                '&candidate_we_vote_id=' + candidateId + '&endorsement_page_url=' + encodeURIComponent(location.href) +
-                '&candidate_home_page=' + encodeURIComponent($(node.parentNode).attr('href'));
-              const clickIFrame = 'setModal(true, \'' + frameUrl + '\', \'' + id + '\', event)';
-              // console.log(clickIFrame);
-              $(node.parentNode).wrap('<button type="button" id="' + id + '" class="endorsementHighlights" onclick="' + clickIFrame + '"></button>');
-              // Icon within highlights in the DOM of the endorsement page
-              if(wordColor[word].Icon.length) {
-                $(match).prepend(wordColor[word].Icon);
-              }
-
+              urlHref = this.weVoteDomMods(node);
               // End of modification for WeVote
               var after = node.splitText(regs.index);
               after.nodeValue = after.nodeValue.substring(regs[0].length);
@@ -289,6 +258,69 @@ function Hilitor (id, tag) {
     }
   };
 
+  this.weVoteDomMods = function (node) {
+    let urlHref = (node.parentNode.localName === 'a') ? node.parentNode.href : '';
+    // If the name is in a link tag, disable it.
+    if (node.parentNode.localName === 'a') {
+      $(node.parentNode).css({
+        'pointer-events': 'none',
+        cursor: 'default'
+      });
+    }
+    const cleanedName = this.cleanName($(node.parentNode).text());
+    const nameLC = cleanedName.toLowerCase();
+    urlsForHighlights[nameLC] = $(node.parentNode).attr('href');
+    const { namesToIds } = window;
+    const candidateId = namesToIds && namesToIds[nameLC] ? namesToIds[nameLC] : '';
+    const encodedName = encodeURIComponent(cleanedName);
+    let id = '';
+
+    if (!cleanedName) {
+      console.warn('Bad cleaned name error');
+    }
+    for (let i = 0; i < cleanedName.length; i++) {
+      let char1 = cleanedName.charAt(i);
+      let cc = char1.charCodeAt(0);
+      if ((cc > 47 && cc < 58) || (cc > 64 && cc < 91) || (cc > 96 && cc < 123)) {
+        id += char1;
+      }
+    }
+    const home = $(node.parentNode).attr('href');
+    const homePage = home ? encodeURIComponent(home) : '';
+    const frameUrl = candidateExtensionWebAppURL + '?candidate_name=' + encodedName +
+      '&candidate_we_vote_id=' + candidateId + '&endorsement_page_url=' + encodeURIComponent(location.href) +
+      '&candidate_home_page=' + homePage;
+    const clickIFrame = 'setModal(true, \'' + frameUrl + '\', \'' + id + '\', event)';
+    // console.log('----------------', $(node.parentNode).text());
+
+    $(node.parentNode).wrap('<button type="button" id="' + id + '" class="endorsementHighlights" onclick="' + clickIFrame + '"></button>');
+    // Icon within highlights in the DOM of the endorsement page
+    if(wordColor[word].Icon.length) {
+      $(match).prepend(wordColor[word].Icon);
+    }
+    return urlHref;
+  };
+
+  this.cleanName = function (rawName) {
+    let workingCopy = rawName;
+
+    if (isFromPDF && (typeof workingCopy === 'string' || workingCopy instanceof String)) {
+      // Remove new lines and form feeds
+      workingCopy = workingCopy.replace(/[\n\f]/g, '');
+      // Remove following text in parenthesis, if the first char in the string is not am opening parenthesis
+      if (workingCopy.charAt(0) !== '(') {
+        workingCopy = workingCopy.replace(/(\(.*?\))/g, '');
+      }
+
+      const parts = workingCopy.split(':');
+      if (parts.length > 1) {
+        workingCopy = parts[1];
+      }
+
+      return workingCopy.trim();
+    }
+    return rawName;
+  };
 
   this.findNodeAttributes = function (inNode, attributes) {
 

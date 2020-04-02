@@ -47,11 +47,27 @@
         font-stretch: extra-expanded;
         font-size: 12pt;
     }
+    .highlight {
+        padding: 1px;
+        box-shadow: rgb(229, 229, 229) 1px 1px;
+        border-radius: 3px;
+        -webkit-print-color-adjust: exact;
+        background-color: rgb(255, 255, 102);
+        color: rgb(0, 0, 0);
+        font-style: inherit;
+    }
 </style>
 <body>
 
-<button type="button" id="weopen" class="weopen" onclick="setModal(true, candidateExtensionWebAppURL + '?candidate_name=Phil%20Ting&candidate_we_vote_id=777&endorsement_page_url=https%3A%2F%2Fwww.sierraclub.org%2Fcalifornia%2F2020-endorsements&candidate_home_page=https%3A%2F%2Fwww.philting.com%2F', 'testy')">Open Modal</button>
-<div style="padding:500px"><div id="testy">testy</div></div>
+<button type="button"
+        id="weopen"
+        class="weopen highlight"
+        style=""
+        onclick="setModal(true, candidateExtensionWebAppURL + '?candidate_name=Dick%20Durban&candidate_we_vote_id=wv02cand58299&endorsement_page_url=https%3A%2F%2Fwww.sierraclub.org%2Fcalifornia%2F2020-endorsements&candidate_home_page=https%3A%2F%2Fwww.philting.com%2F', 'testy')"
+>
+    Open Modal
+</button>
+<div style="padding:500px"><div id="testy">Some endorsement page</div></div>
 <div id="wediv" hidden>
     <div id="wedivheader">
         <span id="wetitle">Create a We Vote Endorsement</span>
@@ -65,6 +81,7 @@
 </div>
 
 <script>
+  const candidateExtensionWebAppURL = 'https://quality.wevote.us/candidate-for-extension';  // March 18, 2020  This code is not on the live site yet
   function dragElement(elmnt) {
     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
     if (document.getElementById(elmnt.id + "header")) {
