@@ -1,5 +1,4 @@
-/* global markupForThumbSvg */
-/* global colors */
+/* global markupForThumbSvg, extensionSignInPage, extensionSignInPage, addCandidateExtensionWebAppURL, colors */
 
 const { $, chrome: { runtime } } = window;
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
@@ -18,7 +17,9 @@ let state = {
   voterIsSignedIn: false,
   tabId: 0,
   isFromPDF:  false,
+  priorData: [],
 };
+
 
 /**
  * Display (or remove) the highlighting on the endorsement page, and optionaly the editor
@@ -28,7 +29,7 @@ let state = {
  * @returns {boolean} - return true to indicate that we want to call the response function asynchronously
  */
 function displayHighlightingAndPossiblyEditor (showHighlights, showEditor, tabId) {  // eslint-disable-line no-unused-vars
-  console.log('displayHighlightingAndPossiblyEditor showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', tabId);
+  // console.log('displayHighlightingAndPossiblyEditor showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', tabId);
   if (tabId && tabId.length > 0) {
     state.tabId = tabId;
   }
@@ -65,13 +66,14 @@ function fixupForPdfMinerSix () {
           // console.log('startSpan: ', startSpan[0]);
           const count = (markup.match(/(<br>)/gm) || []).length;
           if (count > 1) {
+            // eslint-disable-next-line prefer-destructuring
             let divSpanLeader = markup.match(/(<div.*?span.*?>)/)[0];
             let thisTop = divSpanLeader.match(/top:(\d*)px;/);
             let top = parseInt(thisTop[1], 10);
             // console.log('divSpanLeader: ', divSpanLeader);
             let previous = span;
             let lines = markup.match(/(?:[\f\n]<br>|<span.*?>)(.*?)*\n/gm);
-            for (line in lines) {
+            for (let line in lines) {
               // console.log('line: ', lines[line]);
               let clean = lines[line].replace(/(<.*?>)/g, '');
               // console.log('clean: ', clean);
@@ -112,7 +114,7 @@ function displayEditPanes () {
   $(weFlexBox).append('<div id="sideArea"></div>');
   $('#frame').attr('src', hr);
   topMenu();
-  updateTopMenu();
+  updateTopMenu(true);
   signIn(false);                       // Calls updatePositionsPanel
   initializeOrgChoiceList();           //  Does not display an org choice list, if not logged in, or have not chosen an org
   greyAllPositionPanes(false);
@@ -124,14 +126,13 @@ function initializeOrgChoiceList () {
       if (state.possibleOrgsList.length) {
         orgChoiceDialog(state.possibleOrgsList)
       } else if (state.positionsCount === 0) {
-        setSideAreaStatus('No Candidate endorsements have been captured yet.');
+        setSideAreaStatus('No Candidate endorsements have been captured yet for this endorsement page.');
       }
     } else {
       setSideAreaStatus('You must be signed in to display Candidate information.');
     }
   }, 2000);  // Yuck! Time delays are always a last resort
 }
-
 
 function debugLog (...args) {
   const {debugLocal} = window;
@@ -186,7 +187,16 @@ function signIn (attemptLogin) {
 
       if (voterInfo.success && voterInfo.isSignedIn) {
         setSignInOutMarkup (voterInfo);
-        updatePositionsPanel();
+        // updatePositionsPanel(true);
+        const interval = setInterval(function (){
+          try {
+            debugLog('loop update position panel, interval ', interval);
+            updatePositionsPanel(true);
+          } catch (e) {
+            // exception for context invalidated, ie the page refreshed
+            clearInterval(interval);
+          }
+        }, 10000);
         return false;
       }
     }
@@ -268,7 +278,7 @@ function getVoterInfo () {
 
       if (success && isSignedIn) {
         setSignInOutMarkup (voterInfo);
-        updatePositionsPanel();
+        updatePositionsPanel(true);
         return true;
       }
       return false;
@@ -276,20 +286,20 @@ function getVoterInfo () {
   );
 }
 
-function dialogTitlebarStyling () {
-  $('.u2i-dialog-titlebar').css('background-color', '#2E3C5D');
-  $('.u2i-icon-closethick').remove();
-  $('.u2i-dialog-titlebar-close').css({
-    'background-color': '#2E3C5D',
-    'color': 'white',
-    'border': '6px'
-  });
-  $('.u2i-button-icon-space').css({
-    'padding-right': '4px',
-  }).html('X&nbsp;');
-  $('.u2i-resizable-handle').css('display', 'none');
-  $('.u2i-dialog-title').addClass('createDlgTitle');
-}
+// function dialogTitlebarStyling () {
+//   $('.u2i-dialog-titlebar').css('background-color', '#2E3C5D');
+//   $('.u2i-icon-closethick').remove();
+//   $('.u2i-dialog-titlebar-close').css({
+//     'background-color': '#2E3C5D',
+//     'color': 'white',
+//     'border': '6px'
+//   });
+//   $('.u2i-button-icon-space').css({
+//     'padding-right': '4px',
+//   }).html('X&nbsp;');
+//   $('.u2i-resizable-handle').css('display', 'none');
+//   $('.u2i-dialog-title').addClass('createDlgTitle');
+// }
 
 function topMenu () {
   let topMarkup = '' +
@@ -319,12 +329,14 @@ function topMenu () {
 
 // Get the href into the extension
 function getHighlights (showHighlights, showEditor, tabId) {
+  const t0 = performance.now();
   debugLog('getHighlights() called');
   const { chrome: { runtime: { sendMessage } } } = window;
   let urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML
   if (!urlToQuery || urlToQuery.length < 1) {
-    urlToQuery = window.location.origin;
+    urlToQuery = window.location.href;
   }
+  // TODO: We need to send both urls, html and pdf to the server
 
   sendMessage({ command: 'getHighlights', url: urlToQuery, doReHighlight: false },
     function (response) {
@@ -335,14 +347,19 @@ function getHighlights (showHighlights, showEditor, tabId) {
       debugLog('getHighlights() response', response);
 
       if (response) {
+        const t1 = performance.now();
+        console.log("TIMING: time to getHighlights took " + (t1 - t0) + " milliseconds.");
         debugLog('SUCCESS: getHighlights received a response: ', response, '  showEditor:', showEditor, ', tabId: ', tabId);
         namesToIds = response.nameToIdMap;  // This one only works if NOT in an iFrame
         if (showEditor) {
           displayEditPanes();
+          const t2 = performance.now();
+          console.log("TIMING: time to displayEditPanes took " + (t2 - t1) + " milliseconds.");
         } else {
           // 2/23/20 6pm  This was what finally got highlighting and/or editor woking on command
           // The same endorsement page, when opened in an iframe will immediately reload and must call sendGetStatus from that DOM, at that moment.
           // See the call to sendGetStatus in the initialization code for tabWordHighlighter
+          updateTopMenu(false);  // Get the voterGuidePossiblityId without attempting to update the non-existent top menu
           sendGetStatus();
         }
       } else {
@@ -358,16 +375,14 @@ function getRefreshedHighlights () {
     function (response) {
       let {lastError} = runtime;
       if (lastError) {
-        console.warn(' chrome.runtime.sendMessage("getHighlights") refresh ', lastError.message);
+        console.warn(' chrome.runtime.sendMessage("getRefreshedHighlights") ', lastError.message);
       }
       // console.log('getRefreshedHighlights() response', response);
 
       if (response) {
         debugLog('SUCCESS: getRefreshedHighlights received a response', response);
-        // console.log('getRefreshedHighlights reloading iframe[0]');
-        // eslint-disable-next-line prefer-destructuring
-        let frame = $('iframe')[0];
-        frame.contentWindow.location.reload();
+        console.log('getRefreshedHighlights reloading iframe');
+        document.location.reload();
       } else {
         console.log('ERROR: getRefreshedHighlights received empty response');
       }
@@ -375,7 +390,7 @@ function getRefreshedHighlights () {
 }
 
 // Call into the background script to do a voterGuidePossibilityRetrieve() api call, and return the data, then update the top menu
-function updateTopMenu () {
+function updateTopMenu (update) {
   debugLog('updateTopMenu()');
   const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: 'getTopMenuData', url: window.location.href },
@@ -387,114 +402,48 @@ function updateTopMenu () {
       debugLog('updateTopMenu() response', response);
 
       if (response && Object.entries(response).length > 0) {
-        const { orgName, orgLogo, possibilityId, noExactMatchOrgList, twitterHandle, weVoteId, } = response.data;
+        const { orgName, orgLogo, voterGuidePossibilityId, noExactMatchOrgList, twitterHandle, weVoteId, } = response.data;
         state.organizationWeVoteId = weVoteId;
         state.organizationTwitterHandle = twitterHandle;
         state.orgName = orgName;
-        state.voterGuidePossibilityId = possibilityId;
+        state.voterGuidePossibilityId = voterGuidePossibilityId;
         state.possibleOrgsList = noExactMatchOrgList;
 
-        $('#orgLogo').attr('src', orgLogo);
-        $('#orgName').text(orgName ? orgName : 'Organization not found for this URL');
-        $('#sendTopComment').click(() => {
-          sendTopComment();
-        });
-        debugLog('updateTopMenu voterGuidePossibilityId: ' + state.voterGuidePossibilityId);
-        if (orgName === undefined) {
-          // rightNewGuideDialog();
+        if (update) {
+          $('#orgLogo').attr('src', orgLogo);
+          $('#orgName').text(orgName ? orgName : 'Organization not found for this URL');
+          $('#sendTopComment').click(() => {
+            sendTopComment();
+          });
+          debugLog('updateTopMenu voterGuidePossibilityId: ' + state.voterGuidePossibilityId);
         }
-        updatePositionsPanel();
+        updatePositionsPanel(update);
       } else {
         console.error('ERROR: updateTopMenu received empty response');
       }
     });
 }
 
-function updatePositionsPanel () {
-  debugLog('updatePositionsPanel() getPositions');
+function updatePositionsPanel (update) {
+  debugLog('updatePositionsPanel() getPositions, state.voterGuidePossibilityId: ' + state.voterGuidePossibilityId);
   const { chrome: { runtime: { sendMessage } } } = window;
-  sendMessage({ command: 'getPositions', url: window.location.href, possibilityId: state.voterGuidePossibilityId },
+  sendMessage({ command: 'getPositions', hrefURL: window.location.href, isIFrame: isInIFrame(), voterGuidePossibilityId: state.voterGuidePossibilityId },
     function (response) {
       let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getPositions")', lastError.message);
       }
       debugLog('updatePositionsPanel() response', response);
-      $('.candidateWe').remove();   // Remove all the existing candidates, and then redraw them
-      let names = [];
-      let positions = [];
       if ((response && Object.entries(response).length > 0) && (response.data !== undefined) && (response.data.length > 0)) {
         let {data} = response;
-        state.positionsCount = data.length;
-        let selector = $('#sideArea');
-        if (state.positionsCount > 0) {
-          setSideAreaStatus();
-          let insert = 0;
-          let allHtml = $('#noDisplayPageBeforeFraming').html();
-          for (let i = 0; i < state.positionsCount; i++) {
-            debugLog('updatePositionsPanel data: ', data[i]);
-            // be sure not to use position_stance_stored, statement_text_stored, or more_info_url_stored -- we want the possibilities, not the live data
-            let { ballot_item_name: name, candidate_alternate_names: alternateNames, position_stance: stance, statement_text: comment, more_info_url: url,
-              political_party: party, office_name: officeName, ballot_item_image_url_https_large: imageURL, position_we_vote_id: positionWeVoteId,
-              candidate_we_vote_id: candidateWeVoteId, google_civic_election_id: googleCivicElectionId, office_we_vote_id: officeWeVoteId,
-              organization_we_vote_id: organizationWeVoteId, possibility_position_id: possibilityPositionId, organization_name: organizationName,
-              voter_guide_possibility_id: voterGuidePossibilityId
-            } = data[i];
-
-            if (names.includes(name.toLowerCase())) {
-              // Note October 2019: This is a lttle risky, since it assumes the first one is the best one
-              console.log('Skipping right position panel duplicate name "' + name + '", index = ' + insert);
-              // eslint-disable-next-line no-continue
-              continue;
-            }
-            names.push(name.toLowerCase());
-
-            state.organizationWeVoteId = organizationWeVoteId;
-
-            let position = {
-              name,
-              alternateNames,
-              party,
-              office: officeName ? officeName : '',
-              photo: (imageURL && imageURL.length > 0) ? imageURL : defaultImage,
-              comment: (comment && comment.length) ? comment : '',
-              stance,
-              url: url ? url : '',
-              candidateWeVoteId,
-              googleCivicElectionId,
-              officeWeVoteId,
-              organizationWeVoteId,
-              organizationName,
-              possibilityPositionId,
-              positionWeVoteId,
-              voterGuidePossibilityId,
-            };
-
-            let offs = allHtml.indexOf(name);
-            for (let j = 0; j < alternateNames.length && offs < 0; j++) {
-              offs = allHtml.indexOf(alternateNames[j]);
-            }
-
-            positions.push({
-              position,
-              selector,
-              insert,
-              sortOffset: offs,
-            });
-            insert++;
-          }
+        if (!hasCandidateDataChanged(data)) {
+          debugLog('updatePositionsPanel -------------- no change in data, aborting update of positions panel');
+          return;
         }
-        // eslint-disable-next-line arrow-body-style
-        positions.sort((a, b) => {
-          return a.sortOffset > b.sortOffset ? 1 : -1;
-        });
-        state.positions = positions;
+        state.priorData = data;
 
-        for (let k = 0; k < positions.length; k++) {
-          const {position, selector} = positions[k];
-          rightPositionPanes(k, position, selector);
-        }
-        attachClickHandlers();
+        $('.candidateWe').remove();   // Remove all the existing candidates, and then redraw them
+        coreUpdatePositions(data, update);
       } else {
         // This is not necessarily an error, it could be a brand new voter guide possibility with no position possibilities yet.
         console.log('Note: updatePositionsPanel() getPositions returned an empty response or no data element.');
@@ -503,10 +452,118 @@ function updatePositionsPanel () {
   );
 }
 
+function hasCandidateDataChanged (data) {
+  if (data.length !== state.priorData.length) {
+    return true;
+  }
+  for (let i =0; i< data.length; i++) {
+    if (data[i].position_stance !== state.priorData[i].position_stance) {
+      return true;
+    }
+    if (data[i].statement_text !== state.priorData[i].statement_text) {
+      return true;
+    }
+    if (data[i].more_info_url !== state.priorData[i].more_info_url) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function coreUpdatePositions (data, update) {
+  let names = [];
+  let positions = [];
+  state.positionsCount = data.length;
+  let selector = $('#sideArea');
+  if (state.positionsCount > 0) {
+    setSideAreaStatus();
+    let insert = 0;
+    let allHtml = $('#noDisplayPageBeforeFraming').html();
+    for (let i = 0; i < state.positionsCount; i++) {
+      debugLog('updatePositionsPanel data: ', data[i]);
+      // be sure not to use position_stance_stored, statement_text_stored, or more_info_url_stored -- we want the possibilities, not the live data
+      let {
+        ballot_item_name: name, candidate_alternate_names: alternateNames, position_stance: stance, statement_text: comment, more_info_url: url,
+        political_party: party, office_name: officeName, ballot_item_image_url_https_large: imageURL, position_we_vote_id: positionWeVoteId,
+        candidate_we_vote_id: candidateWeVoteId, google_civic_election_id: googleCivicElectionId, office_we_vote_id: officeWeVoteId,
+        organization_we_vote_id: organizationWeVoteId, possibility_position_id: possibilityPositionId, organization_name: organizationName,
+        voter_guide_possibility_id: voterGuidePossibilityId
+      } = data[i];
+
+      if (!name) {
+        // Note October 2019: This is a lttle risky, since it assumes the first one is the best one
+        console.log('Skipping right position panel blank name: ', data[i]);
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+      if (names.includes(name.toLowerCase())) {
+        // Note October 2019: This is a lttle risky, since it assumes the first one is the best one
+        console.log('Skipping right position panel duplicate name "' + name + '", index = ' + insert);
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+      names.push(name.toLowerCase());
+
+      state.organizationWeVoteId = organizationWeVoteId;
+
+      let position = {
+        name,
+        alternateNames,
+        party,
+        office: officeName ? officeName : '',
+        photo: (imageURL && imageURL.length > 0) ? imageURL : defaultImage,
+        comment: (comment && comment.length) ? comment : '',
+        stance,
+        url: url ? url : '',
+        candidateWeVoteId,
+        googleCivicElectionId,
+        officeWeVoteId,
+        organizationWeVoteId,
+        organizationName,
+        possibilityPositionId,
+        positionWeVoteId,
+        voterGuidePossibilityId,
+      };
+
+      let offs = 0;
+      if (update && allHtml) {     // Does not exist if we have not re-opened the page in a frame
+        offs = allHtml.indexOf(name);
+        for (let j = 0; j < alternateNames.length && offs < 0; j++) {
+          offs = allHtml.indexOf(alternateNames[j]);
+        }
+      }
+
+      positions.push({
+        position,
+        selector,
+        insert,
+        sortOffset: offs,
+      });
+      insert++;
+    }
+  }
+
+  if (update) {
+    // eslint-disable-next-line arrow-body-style
+    positions.sort((a, b) => {
+      return a.sortOffset > b.sortOffset ? 1 : -1;
+    });
+  }
+  state.positions = positions;
+
+  if (update) {
+    for (let k = 0; k < positions.length; k++) {
+      const {position, selector} = positions[k];
+      rightPositionPanes(k, position, selector);
+    }
+    attachClickHandlers();
+  }
+}
+
 function rightPositionPanes (i, candidate, selector) {
   const { name, comment, url, positionWeVoteId,  } = candidate;
   let dupe = $(".candidateName:contains('" + name + "')").length;
-  debugLog('rightPositionPanes ------------------------------ i: ' + i + ', ' + name);
+  debugLog('rightPositionPanes -- i: ' + i + ', ' + name);
   let furlNo = 'furlable-' + i;
   let candNo = 'candidateWe-' + i;
   if (name === null || name.length === 0) {
@@ -516,14 +573,17 @@ function rightPositionPanes (i, candidate, selector) {
   }
   if (!dupe) {
     $(selector).append(candidatePaneMarkup(candNo, furlNo, i, candidate, false));
-    $('.statementText-' + i).val(comment).css(getEditableElementTextStyles());
-    $('.moreInfoURL-' + i).val(url).css(getEditableElementTextStyles());
+    $('.statementText-' + i).val(comment);
+    $('.moreInfoURL-' + i).val(url).css('height: unset !important;');
     return true;
+  } else {
+    console.warn('Found duplicate voterGuidePossibility candidate ... indicates data problem.');
   }
   return false;
 }
 
 function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
+  // console.log("candidatePaneMarkup ",detachedDialog, candidate);
   let { party, name, alternateNames, photo, office, comment, candidateWeVoteId, voterGuidePossibilityId, positionWeVoteId,
     possibilityPositionId, organizationWeVoteId, organizationName, googleCivicElectionId, stance, description } = candidate;
   if (party === undefined) {
@@ -592,8 +652,8 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
       "    <button type='button' class='openInWebApp-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>JUMP TO WE VOTE</button>";
   }
   markup +=
-    "      <button type='button' class='saveButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>SAVE</button>" +
     "      <button type='button' class='deleteButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>DELETE</button>" +
+    "      <button type='button' class='saveButton-" + i + " weButton u2i-button u2i-widget u2i-corner-all removeContentStyles'>SAVE</button>" +
     '    </span>' +
     '  </div>' +
     '</div>';
@@ -712,8 +772,8 @@ function selectOneDeselectOthers (type, targetFurl) {
   });
 }
 
-// As of Sept 2019, we are only updating possiblilities here, we are not changing the "stored" live presentation data
-function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
+// We are only updating possiblilities here, we are not changing the "stored" live presentation data
+function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDialog) {
   const targetCand = event.currentTarget.className; // div.candidateWe.candidateWe-4
   const targetFurl = '#' + targetCand.replace('candidateWe candidateWe', 'furlable');
   // eslint-disable-next-line prefer-destructuring
@@ -721,6 +781,7 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
   const buttonContainerId = detachedDialog ? '#1000' : '#furlable-' + number;
   const buttons = $(buttonContainerId).find(':button');
   let stance = 'NO_STANCE';
+  const remove = removePosition;
 
   buttons.each((i, but) => {
     const {className} = but;   // "infoButton-2 weButton removeContentStyles deselected"
@@ -740,7 +801,9 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
   const moreInfoURL = $('.moreInfoURL-' + number).val().trim();
   const isStored =  $('.isStored-' + number).val();
   // Since we might have changed the stance and/or comment, update the right icon in the unfurlable grid
-  let iconContainer = unfurlableGrid (number, '', '', '', '', true, false, stance, isStored, statementText.length > 0, true);
+  const inLeftPane = true;
+  const iconOnly = true;
+  let iconContainer = unfurlableGrid (number, '', '', '', '', '', inLeftPane, detachedDialog, stance, isStored, statementText.length > 0, iconOnly);
   $('#iconContainer-' + number).wrap('<p/>').parent().html(iconContainer);
 
   const {chrome: {runtime: {sendMessage}}} = window;
@@ -752,6 +815,7 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
     stance,
     statementText,
     moreInfoURL,
+    removePosition,
   },
   function (response) {
     let {lastError} = runtime;
@@ -765,20 +829,25 @@ function saveUpdatedCandidatePossiblePosition (event, detachedDialog) {
       setSideAreaStatus();
       updatePositionsPanel();
     } else {
-      const furlables = $('.furlable');
-      const thisDiv = $('#furlable-' + number);
-      const lastDiv = furlables[furlables.length - 1];
-      let forceNumber = Number(number);
-      forceNumber = (thisDiv[0] === lastDiv) ? 0 : forceNumber + 1;
-      for (let i = 0; i < 10; i++) {
-        if ($('#furlable-' + forceNumber).length === 0) {
-          forceNumber++;      // skip any missing elements
-        } else {
-          break;
+      console.log(remove);
+      if (remove) {
+        $(`.candidateWe-${number}`).remove();
+      } else {
+        const furlables = $('.furlable');
+        const thisDiv = $('#furlable-' + number);
+        const lastDiv = furlables[furlables.length - 1];
+        let forceNumber = Number(number);
+        forceNumber = (thisDiv[0] === lastDiv) ? 0 : forceNumber + 1;
+        for (let i = 0; i < 10; i++) {
+          if ($('#furlable-' + forceNumber).length === 0) {
+            forceNumber++;      // skip any missing elements
+          } else {
+            break;
+          }
         }
+        deactivateActivePositionPane();
+        unfurlOnePositionPane(null, forceNumber);
       }
-      deactivateActivePositionPane();
-      unfurlOnePositionPane(null, forceNumber);
     }
     // Here we are still in the response from 'savePosition'.  After a successful save on the right side (voterGuidePossibilityPositionSave in backgroundWeVoteAPICalls)
     // return here (the left side) and after advancing the open pane (above), call getRefreshedHighlights() (below) to send a 'getHighlights' message to the right side
@@ -856,7 +925,6 @@ function addHandlersForCandidatePaneButtons (targetDiv, number, detachedDialog) 
         let URL = 'https://api.wevoteusa.org/c/?show_all_elections=1&hide_candidate_tools=0&page=0&state_code=' +
           '&candidate_search=' + candidateName + '&show_all_elections=False';
         window.open(URL, '_blank');
-
       });
     } else if (className.startsWith('openInWebApp-')) {
       $(but).click((event) => {
@@ -867,10 +935,17 @@ function addHandlersForCandidatePaneButtons (targetDiv, number, detachedDialog) 
           window.open(URL, '_blank');
         }
       });
-    } else if (className.startsWith('save')) {
+    } else if (className.startsWith('deleteButton')) {
       $(but).click((event) => {
         event.stopPropagation();
-        saveUpdatedCandidatePossiblePosition(event, detachedDialog);
+        let removePosition = true;
+        saveUpdatedCandidatePossiblePosition(event, removePosition, detachedDialog);
+      });
+    } else if (className.startsWith('saveButton')) {
+      $(but).click((event) => {
+        const removePosition = false;
+        event.stopPropagation();
+        saveUpdatedCandidatePossiblePosition(event, removePosition, detachedDialog);
       });
     }
   });
@@ -896,14 +971,15 @@ function deactivateActivePositionPane () {
 // eslint-disable-next-line no-unused-vars
 function openSuggestionPopUp (selection) {
   $('[role=dialog]').remove();  // Only one suggestion dialog at a time is allowed, so close any previous
-  const frameUrl = candidateExtensionWebAppURL + '?candidate_name=' + encodeURIComponent(selection) +
+  const frameUrl = addCandidateExtensionWebAppURL + '?candidate_name=' + encodeURIComponent(selection) +
     '&candidate_we_vote_id=&endorsement_page_url=' + encodeURIComponent(location.href) +
-    '&candidate_home_page=';
+    '&candidate_specific_endorsement_url=';
 
-  $('<div id="frameBorder"><iframe id="weIFrame" src="' + frameUrl + '"></iframe></div>').dialog({
-    title: 'Create a We Vote endorsement',
+  $('<iframe id="weIFrame" src="' + frameUrl + '"></div>').dialog({
+    title: '',
     show: true,
-    width: 380,
+    width: 450,
+    height: 557,
     resizable: false,
     fixedDimensions: true,
     closeText: ''
@@ -915,7 +991,7 @@ function openSuggestionPopUp (selection) {
     'box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)'
   }).attr('id', 'weVoteModal');
   $('.u2i-dialog-titlebar').css({
-    backgroundColor: '#2196F3',
+    backgroundColor: '#2e3c5d',
     color: '#fff',
     height: '30px',
   });
@@ -924,7 +1000,7 @@ function openSuggestionPopUp (selection) {
     transform: 'translate(-10px, 2px)',
     height: '10px',
     width: '10px',
-    backgroundColor: '#2196F3',
+    backgroundColor: '#2e3c5d',
     color: 'white',
     float: 'right',
     border: 'none',
@@ -944,13 +1020,8 @@ function openSuggestionPopUp (selection) {
     height: 'auto',
   });
   $('#weIFrame').css({
-    width: '400px',
-    height: '450px',
-  });
-  $('#frameBorder').css({
-    borderStyle: 'solid',
-    borderColor: 'darkgrey',
-    borderWidth: '4px',
+    width: '450px',
+    height: '525px',
   });
   $('.u2i-resizable-handle').css('display', 'none');
 
@@ -959,62 +1030,6 @@ function openSuggestionPopUp (selection) {
   });
 }
 
-
-function getCandidateQuery (candidateName, doFunc) {
-  const candidateWeVoteId = namesToIds[candidateName.toLowerCase()];
-  if (!candidateWeVoteId) {
-    return undefined;
-  }
-
-  const {chrome: {runtime: {sendMessage}}} = window;
-  sendMessage({
-    command: 'getCandidate',
-    candidateWeVoteId,
-  },
-  function (response) {
-    let {lastError} = runtime;
-    if (lastError) {
-      console.warn(' chrome.runtime.sendMessage("getCandidate")', lastError.message);
-    }
-
-    // console.log('getCandidateQuery() response', response);
-    const { ballot_item_display_name: name, party, contest_office_name: office, candidate_photo_url_medium: photo, twitter_description: twitter, ballotpedia_candidate_summary: ballotpedia } = response.res;
-    const description = twitter && twitter.length ? twitter : '' +
-    ballotpedia && ballotpedia.length ? ' ' + ballotpedia : '';
-
-    const candidate = {
-      name,
-      office,
-      party,
-      photo,
-      comment: '',
-      url: window.location.href,
-      stance: 'SUPPORT',  // need to figure out
-      description,
-    };
-
-    // console.log('getCandidateQuery() candidate: ', candidate);
-    doFunc(candidate);
-    return candidate;  // not needed?
-  });
-}
-
-function getEditableElementTextStyles () {
-  return {
-    width: '95%',
-    margin: '5px 0 5px 0',
-    border: '1px solid grey',
-    padding: '5px',
-    'font-family': '"Helvetica Neue", Helvetica, Arial, sans-serif',
-    'font-size': '12px',
-    'font-style': 'normal',
-    'font-variant': 'normal',
-    'font-weight': 400,
-    'line-height': '14px',
-  };
-}
-
-// SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
 function supportButton (i, type, stance) {
   let buttonText = '';
   let fillColor = '';
@@ -1161,9 +1176,9 @@ function orgChoiceDialog (orgList) {
         debugLog('setSideAreaStatus voterGuidePossibilitySave() response', res);
         const{ organization_we_vote_id: id } = res.res.organization;
         if (id && id.length) {
-          updateTopMenu();
+          updateTopMenu(true);
           $('#orgChoiceDialog').remove();  // Remove this selection menu/dialog
-          setSideAreaStatus('No Candidate endorsements have been captured yet.');
+          setSideAreaStatus('No Candidate endorsements have been captured yet for this endorsement page.');
         }
       });
     });

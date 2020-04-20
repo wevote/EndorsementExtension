@@ -10,7 +10,9 @@ const highlightThisPDF = 'Highlight Candidates found on this PDF';
 const removeHighlightThisText = 'Remove Highlights From This Tab';
 let pdfURL = null;
 
+// When popup.html is loaded by clicking on the W icon as specified in th manifest.json
 document.addEventListener('DOMContentLoaded', function () {
+  const t0 = performance.now();
   let highlightingEnabled = false;
   let highlightCandidatesOnAllTabs = localStorage['highlightCandidatesOnAllTabs'] === 'true';
   debug && dumpTabStatus();
@@ -134,8 +136,9 @@ document.addEventListener('DOMContentLoaded', function () {
   $('#jumpToMyBallot').click(() => {
     window.open(ballotWebAppURL, '_blank');
   });
-
-
+  const t1 = performance.now();
+  console.log('TIMING: time to process popoup.html in popup.js took ' + (t1 - t0) + ' milliseconds.');
+  updateButtonState();
 });
 
 function updateButtonState () {

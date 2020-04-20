@@ -1,6 +1,5 @@
 const {$} = window;
-const useProductionAPIs = true;
-const rootApiURL = useProductionAPIs ? 'https://api.wevoteusa.org/apis/v1' : 'http://127.0.0.1:8000/apis/v1';
+const voterGuidePossibilityIdCache = {};  // we lose the current value when we reload in a iFrame, so cache it here
 let debug = false;
 
 // All the functions would be flagged without the following
@@ -11,44 +10,67 @@ function getHighlightsListFromApiServer (locationHref, doReHighlight, sendRespon
   console.log('getHighlightsListFromApiServer received election: ' + election);
 
   const hrefEncoded = encodeURIComponent(locationHref); //'https://www.emilyslist.org/pages/entry/state-and-local-candidates');
-  const apiURL = `${rootApiURL}/voterGuidePossibilityHighlightsRetrieve?voter_device_id=${localStorage['voterDeviceId']}&url_to_scan=${hrefEncoded}`;
+  const apiURL = `${rootApiURL}/voterGuidePossibilityHighlightsRetrieve/?voter_device_id=${localStorage['voterDeviceId']}&url_to_scan=${hrefEncoded}`;
   debug && console.log('getHighlightsListFromApiServer: ' + apiURL);
+  const t1 = performance.now();
+
   $.getJSON(apiURL, '', (res) => {
     debug && console.log('voterGuideHighlightsRetrieve API SUCCESS', res);
-    let highlightsList = res['highlight_list'];
-    let neverHighLightOn = res['never_highlight_on'];
-
-    // February 2020, these are temporary and can be removed once the python server is updated
-    neverHighLightOn.push('blank');
-    neverHighLightOn.push('platform.twitter.com');
-    neverHighLightOn.push('s7.addthis.com');
-    neverHighLightOn.push('vars.hotjar.com');
-    neverHighLightOn.push('*.google.com');
-    neverHighLightOn.push('regex101.com');
-    debug && console.log('get json highlightsList: ', highlightsList);
-    debug && console.log('get json highlightsList.length: ', highlightsList.length);
-    initializeHighlightsData(highlightsList, neverHighLightOn);
-    if (doReHighlight) {
-      requestReHighlight();
+    console.log('------------------- voterGuideHighlightsRetrieve API SUCCESS apiURL: ' + apiURL);
+    const t2 = performance.now();
+    if (t2 -t1 < 1000) {
+      console.log('TIMING: time to voterGuideHighlightsRetrieve took ' + (t2 - t1) + ' milliseconds.');
+    } else {
+      const secs = ((t2 - t1)/1000);
+      const msg = 'TIMING: time to voterGuideHighlightsRetrieve took ' + secs + ' SECONDS.';
+      if (secs > 8.0) {
+        console.warn(msg);
+      } else {
+        console.log(msg);
+      }
     }
-    sendResponse({
-      success: res.success,
-      highlights: highlightsList.length,
-      nameToIdMap,
-    });
+    processHighlightsRetrieve(res, doReHighlight, sendResponse);
   }).fail((err) => {
     console.log('voterGuideHighlightsRetrieve API error', err);
+  });
+}
+
+function processHighlightsRetrieve (res, doReHighlight, sendResponse) {
+  let highlightsList = res['highlight_list'];
+  let neverHighLightOn = res['never_highlight_on'];
+
+
+  // February 2020, these are temporary and can be removed once the python server is updated
+  neverHighLightOn.push('blank');
+  neverHighLightOn.push('platform.twitter.com');
+  neverHighLightOn.push('s7.addthis.com');
+  neverHighLightOn.push('vars.hotjar.com');
+  neverHighLightOn.push('*.google.com');
+  neverHighLightOn.push('regex101.com');
+  debug && console.log('get json highlightsList: ', highlightsList);
+  debug && console.log('get json highlightsList.length: ', highlightsList.length);
+  initializeHighlightsData(highlightsList, neverHighLightOn);
+  if (doReHighlight) {
+    requestReHighlight();
+  }
+  sendResponse({
+    success: res.success,
+    highlights: highlightsList.length,
+    nameToIdMap,
   });
 }
 
 function getOrganizationFound (locationHref, sendResponse) {
   let data = {};
   const hrefEncoded = encodeURIComponent(locationHref);
+  const t0 = performance.now();
   const apiURL = `${rootApiURL}/voterGuidePossibilityRetrieve/?voter_device_id=${localStorage['voterDeviceId']}&url_to_scan=${hrefEncoded}`;
   console.log('voterGuidePossibilityRetrieve apiURL: ' + apiURL);
   $.getJSON(apiURL, '', (res) => {
+    const t1 = performance.now();
+    console.log('TIMING: time to voterGuidePossibilityRetrieve took ' + (t1 - t0) + ' milliseconds.');
     debug && console.log('voterGuidePossibilityRetrieve API results', res);
-    let {voter_guide_possibility_edit: voterGuidePossibilityEdit, possibilityUrl, voter_guide_possibility_id: possibilityId, organization,
+    let {voter_guide_possibility_edit: voterGuidePossibilityEdit, possibilityUrl, voter_guide_possibility_id: voterGuidePossibilityId, organization,
       possible_owner_of_website_organizations_list: noExactMatchOrgList} = res;
     if (voterGuidePossibilityEdit) {
       let {
@@ -57,7 +79,8 @@ function getOrganizationFound (locationHref, sendResponse) {
         we_vote_hosted_profile_image_url_medium: orgLogo,
       } = organization;
 
-      debug && console.log('voter_guide_possibility_id:', possibilityId);
+      voterGuidePossibilityIdCache[locationHref] = voterGuidePossibilityId;
+      debug && console.log('voter_guide_possibility_id:', voterGuidePossibilityId);
 
       data = {
         email,
@@ -67,7 +90,7 @@ function getOrganizationFound (locationHref, sendResponse) {
         orgWebsite,
         orgLogo,
         possibilityUrl,
-        possibilityId,
+        voterGuidePossibilityId,
         noExactMatchOrgList
       };
     } else {
@@ -125,14 +148,18 @@ function getVoterSignInInfo (sendResponse) {
   }
 }
 
-function getPossiblePositions (possibilityId, sendResponse) {
+function getPossiblePositions (voterGuidePossibilityId, hrefURL, isIFrame, sendResponse) {
   // https://api.wevoteusa.org/apis/v1/voterGuidePossibilityPositionsRetrieve/?voter_device_id=cYBPkwago&voter_guide_possibility_id=65
   let voterDeviceId = localStorage['voterDeviceId'];
   if (voterDeviceId && voterDeviceId.length > 0) {
-    const apiURL = `${rootApiURL}/voterGuidePossibilityPositionsRetrieve/?voter_device_id=${voterDeviceId}&voter_guide_possibility_id=${possibilityId}`;
+    let vGPId = voterGuidePossibilityId;
+    if (!voterGuidePossibilityId || voterGuidePossibilityId === 0 || voterGuidePossibilityId === '') {
+      vGPId = voterGuidePossibilityIdCache[hrefURL];
+    }
+    const apiURL = `${rootApiURL}/voterGuidePossibilityPositionsRetrieve/?voter_device_id=${voterDeviceId}&voter_guide_possibility_id=${vGPId}`;
     debug && console.log('getPossiblePositions: ' + apiURL);
     $.getJSON(apiURL, '', (res) => {
-      debug && console.log('get json from getPossiblePositions API SUCCESS', res);
+      debug && console.log('get json from getPossiblePositions API returned ', res);
 
       const {possible_position_list: possiblePositions} = res;
 
@@ -167,26 +194,28 @@ function updatePossibleVoterGuide (voterGuidePossibilityId, orgName, orgTwitter,
   }
 }
 
-function voterGuidePossibilityPositionSave (itemName, voterGuidePossibilityId, voterGuidePossibilityPositionId, stance, statementText, moreInfoURL, sendResponse) {
+function voterGuidePossibilityPositionSave (itemName, voterGuidePossibilityId, voterGuidePossibilityPositionId, stance, statementText, moreInfoURL, removePosition, sendResponse) {
   //  Dale: 9/16/19
   //  Remove the voter_device_id and voter_guide_possibility_id
   //  Enter the "possibility_position_id" into the "voter_guide_possibility_position_id" field in the try it now form
   //  Do not send empty values on the url, since that might clear out good data on the Python side
   //  Steve: voter_guide_possibility_position_id completely specifies the possibility and nothing else is needed for the search/match
   let voterDeviceId = localStorage['voterDeviceId'];
-  debug && console.log('voterGuidePossibilityPositionSave voterGuidePossibilityPositionId: ' + voterGuidePossibilityPositionId);
+  console.log('voterGuidePossibilityPositionSave voterGuidePossibilityPositionId: ' + voterGuidePossibilityPositionId);
   if (voterDeviceId && voterDeviceId.length > 0) {
     let apiURL = `${rootApiURL}/voterGuidePossibilityPositionSave/?voter_device_id=${voterDeviceId}` +
       `&voter_guide_possibility_id=${voterGuidePossibilityId}&voter_guide_possibility_position_id=${voterGuidePossibilityPositionId}` +
-      `&position_stance=${stance}`;
-    if (itemName.length > 0) {
-      apiURL += `&ballot_item_name=${encodeURIComponent(itemName)}`;
-    }
-    if (statementText.length > 0) {
-      apiURL += `&statement_text=${encodeURIComponent(statementText)}`;
-    }
-    if (moreInfoURL.length > 0) {
-      apiURL += `&more_info_url=${encodeURIComponent(moreInfoURL)}`;
+      `&position_stance=${stance}&possibility_should_be_deleted=${removePosition}`;
+    if (!removePosition) {
+      if (itemName.length > 0) {
+        apiURL += `&ballot_item_name=${encodeURIComponent(itemName)}`;
+      }
+      if (statementText.length > 0) {
+        apiURL += `&statement_text=${encodeURIComponent(statementText)}`;
+      }
+      if (moreInfoURL.length > 0) {
+        apiURL += `&more_info_url=${encodeURIComponent(moreInfoURL)}`;
+      }
     }
     debug && console.log('voterGuidePossibilityPositionSave: ' + apiURL);
     $.getJSON(apiURL, '', (res) => {
@@ -253,7 +282,7 @@ function convertPdfToHtmlInS3 (pdfURL, sendResponse) {
   let voterDeviceId = localStorage['voterDeviceId'];
 
   if (voterDeviceId && voterDeviceId.length > 0) {
-    let apiURL = `${rootApiURL}/pdfToHtmlRetrieve?voter_device_id=${voterDeviceId}&pdf_url=${pdfURL}`;
+    let apiURL = `${rootApiURL}/pdfToHtmlRetrieve/?voter_device_id=${voterDeviceId}&pdf_url=${pdfURL}`;
     // let apiURL = `${rootApiURL}/pdfToHtmlRetrieve?voter_device_id=${voterDeviceId}&pdf_url=${pdfURL}`;
     // debug && console.log('convertPdfToHtmlInS3: ' + apiURL);
     $.getJSON(apiURL, '', (res) => {

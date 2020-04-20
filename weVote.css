@@ -8,8 +8,33 @@
   width: 100%;
   font-weight: 400;
   color: black;
+  background: white !important;
   line-height: 14px;
   text-align: left;
+}
+
+[class^="statementText"], [class^="moreInfoURL"] {
+  width: 95%;
+  margin: 5px 0 5px 0 !important;
+  padding: 5px !important;
+  border-width: thin !important;
+  border-color: grey !important;
+  border-style: solid !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: 12px !important;
+  font-style: normal !important;
+  font-variant: normal !important;
+  font-weight: 400 !important;
+  line-height: 14px !important;
+}
+
+.weInfoText {
+  height: unset !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: 12px !important;
+  font-style: normal !important;
+  font-variant: normal !important;
+  font-weight: 400 !important;
 }
 
 .aliases {

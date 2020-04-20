@@ -28,11 +28,24 @@ const colors = {
   DELETED_BACKGROUND: '#f0c7c8',
 };
 
-const candidateExtensionWebAppURL = 'https://quality.wevote.us/candidate-for-extension';  // March 18, 2020  This code is not on the live site yet
-const ballotWebAppURL = 'https://quality.wevote.us/ballot';
-const extensionWarmUpPage = 'https://quality.wevote.us/extension.html';
-const extensionSignInPage = 'https://quality.wevote.us/more/extensionsignin';
 
+const useProductionAPIs = true;
+const useProductionWebApp = true;
+const webAppRoot = useProductionWebApp ? 'https://quality.wevote.us' : 'https://localhost:3000';
+const candidateExtensionWebAppURL = `${webAppRoot}/candidate-for-extension`;
+const addCandidateExtensionWebAppURL = `${webAppRoot}/add-candidate-for-extension`;
+const ballotWebAppURL = `${webAppRoot}/ballot`;
+const extensionWarmUpPage = `${webAppRoot}/extension.html`;
+const extensionSignInPage = `${webAppRoot}/more/extensionsignin`;
+const apiRoot = useProductionAPIs ? 'https://api.wevoteusa.org' : 'http://localhost:8000';
+const rootApiURL = `${apiRoot}/apis/v1`
+
+
+function isInIFrame () {
+  return window.self !== window.top;  // true if in an iframe
+}
+
+// SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
 function markupForThumbSvg (classString, type, fillColor) {
   if (type === 'endorse' || type === 'oppose') {
     let markup = "<svg class='" + classString + "' style='margin-top:3px'>";
