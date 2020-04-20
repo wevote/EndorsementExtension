@@ -57,10 +57,10 @@ $(() => {
   // console.log('Hack that sets debugLocal to true in place ------------------------------------');
   // window.debugLocal = true;
 
-
-  if (window.location === window.parent.location) {
-    if (window.location.host.indexOf('wevote.us') > -1) {
-      // Experiment February 19, 2020: get a new device ID on every new tab, on every access of the tab. Is this excessive, and does it have side effects?
+  // If not in an iFrame
+  if (!isInIFrame()) {
+    // Check to see if we are on the WebApp signin page, and capture the device id if signed in
+    if (window.location.host.indexOf('wevote.us') > -1 || window.location.host.indexOf('localhost:3000') > -1) {
       const voterDeviceId = getVoterDeviceIdFromWeVoteDomainPage();
       if (voterDeviceId.length) {
         chrome.runtime.sendMessage({
@@ -81,10 +81,6 @@ $(() => {
         debug && console.log('onMessage.addListener() in tabWordHighlighter got a message: '+ request.command);
 
         if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
-            sender.id === 'eofojjpbgfdogalmibgljcgdipkhoclc' ||
-            sender.id === 'abcibokldhgkclhihipipbiaednfcpia' ||
-            sender.id === 'fgmbnmjmbjenlhbefngfibmjkpbcljaj' ||
-            sender.id === 'cnkjigcefmbkoffbgljmkfocdpdlilln' ||
             sender.id === 'highlightthis@deboel.eu') {
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
@@ -146,9 +142,17 @@ $(() => {
     debug && console.log('not in main page', window.location)
   }
 
-  if (window.self !== window.top) {
-    // If this page has been loaded in an iFrame, call sendGetStatus() to initiate the highlighting
-    sendGetStatus ();
+  if (isInIFrame()) {   // if in an iframe
+    debug && console.log('bottom of page init window.self: ', window.self);
+    const urlObj = new URL(window.location);
+    if (!urlObj.host.includes('wevote') &&
+      !urlObj.host.includes('twitter') &&
+      !urlObj.host.includes('stripe') &&
+      !urlObj.host.includes('addthis') &&
+      urlObj.host !== '') {  // this filter is not life or death, it just cuts out some common waste
+      debug && console.log('------------- host ', urlObj.host);
+      sendGetStatus();
+    }
   }
 });
 
@@ -194,19 +198,23 @@ function reHighlight (words) {
     if (words[group].Enabled) {
       for (word in words[group].Words) {
         debug && console.log('reHighlight word = ' + word);
-        wordsArray.push({
-          word: words[group].Words[word].toLowerCase(),
-          'regex': globStringToRegex(words[group].Words[word]),
-          'Color': words[group].Color,
-          'Fcolor': words[group].Fcolor,
-          'Icon': words[group].Icon,
-          'FindWords': words[group].FindWords,
-          'ShowInEditableFields': words[group].ShowInEditableFields
-        });
+        if (words[group].Words[word]) {
+          wordsArray.push({
+            word: words[group].Words[word].toLowerCase(),
+            'regex': globStringToRegex(words[group].Words[word]),
+            'Color': words[group].Color,
+            'Fcolor': words[group].Fcolor,
+            'Icon': words[group].Icon,
+            'FindWords': words[group].FindWords,
+            'ShowInEditableFields': words[group].ShowInEditableFields
+          });
+        } else {
+          console.warn('Null word in rehighlight');
+        }
       }
     }
   }
-  console.log('reHighlight before findWords IS NOT CALLED at this time --------------------------- namesToIds: ', namesToIds, ', tabId: ', state.tabId);
+  console.log('reHighlight before findWords --------------------------- namesToIds: ', namesToIds, ', tabId: ', state.tabId);
 
   findWords();
 }
@@ -225,7 +233,7 @@ function getVoterDeviceIdFromWeVoteDomainPage () {
 // on the endorsement page that is displayed in the tab (for example, https://www.sierraclub.org/california/2020-endorsements/).
 function sendGetStatus () {
   chrome.runtime.sendMessage({command: 'getStatus'}, function (response) {
-    // console.log('chrome.runtime.sendMessage({command: \'getStatus\'}');
+    console.log('chrome.runtime.sendMessage({command: \'getStatus\'}', document.URL);
     let {lastError} = chrome.runtime;
     if (lastError) {
       console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
@@ -243,7 +251,7 @@ function sendGetStatus () {
 }
 
 function getWordsThenStartHighlighting () {
-  // console.log('Called getWordsThenStartHighlighting() tabId: ', tabId);
+  console.log('Called getWordsThenStartHighlighting() tabId: ', tabId, 'URL', document.URL);
   chrome.runtime.sendMessage({
     command: 'getWords',
     url: location.href.replace(location.protocol + '//', ''),
@@ -293,18 +301,19 @@ function getWordsThenStartHighlighting () {
     highlightLoop();
 
     if (!document.getElementById('wediv')) {
+      // console.log('inserting wediv for the dialog into the top of the body');
       const head = document.head || document.getElementsByTagName('head')[0];
 
       const style = document.createElement('style');
       head.append(style);
       style.type = 'text/css';
       // Note that the source code for this css is in popupIFrame.html, where it can be tested in a browser, then minified with https://cssminifier.com/
-      const css = '#wediv{position:absolute;z-index:9;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4)}#wedivheader{cursor:move;z-index:10;background-color:#2196f3;color:#fff;height:30px}#frameBorder{border-style:solid;border-color:#a9a9a9;border-width:4px}#weIFrame{width:400px;height:450px}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;padding-top:5px;float:right;margin-right:16px;background-color:#2196f3;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}';
+      const css = '#wediv{position:absolute;z-index:10000;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4);height:557px;}#wedivheader{cursor:move;z-index:10;background-color:#2e3c5d;color:#fff;height:30px}#weIFrame{width:450px;height:525px;border-width:0;border:none}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;float:right;margin-right:16px;background-color:#2e3c5d;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}.highlight{padding:1px;box-shadow:#e5e5e5 1px 1px;border-radius:3px;-webkit-print-color-adjust:exact;background-color:#ff6;color:#000;font-style:inherit}';
       style.appendChild(document.createTextNode(css));
 
       const js = document.createElement('script');
       // Note that the source code for this innerHTML is in popupIFrame.html, where it can be tested, then minified with https://javascript-minifier.com/
-      js.innerHTML ='function dragElement(e){let t=0,n=0,o=0,l=0;function d(e){(e=e||window.event).preventDefault(),o=e.clientX,l=e.clientY,document.onmouseup=m,document.onmousemove=f}function f(d){(d=d||window.event).preventDefault(),t=o-d.clientX,n=l-d.clientY,o=d.clientX,l=d.clientY,e.style.top=e.offsetTop-n+"px",e.style.left=e.offsetLeft-t+"px",console.log("position of elmnt after drag: ",e.style.top,e.style.left)}function m(){document.onmouseup=null,document.onmousemove=null}document.getElementById(e.id+"header")?document.getElementById(e.id+"header").onmousedown=d:e.onmousedown=d}function setModal(e,t,n){let o=document.getElementById(n);o||(o={offsetLeft:0,offsetTop:0});const l=document.getElementById("wediv"),d=document.getElementById("weIFrame"),f=window.pageYOffset||document.documentElement.scrollTop;l.hidden=!e,l.style.left=o.offsetLeft+300+"px",l.style.top=o.offsetTop+f+"px",t&&t.length&&(d.src=t),dragElement(l)}';
+      js.innerHTML ='function dragElement(e){let t=0,n=0,o=0,l=0;function d(e){(e=e||window.event).preventDefault(),o=e.clientX,l=e.clientY,document.onmouseup=s,document.onmousemove=f}function f(d){(d=d||window.event).preventDefault(),t=o-d.clientX,n=l-d.clientY,o=d.clientX,l=d.clientY,e.style.top=e.offsetTop-n+"px",e.style.left=e.offsetLeft-t+"px",console.log("position of elmnt after drag: ",e.style.top,e.style.left)}function s(){document.onmouseup=null,document.onmousemove=null}document.getElementById(e.id+"header")?document.getElementById(e.id+"header").onmousedown=d:e.onmousedown=d}function setModal(e,t,n){let o=document.getElementById(n);o||(o={offsetLeft:0,offsetTop:0});const l=document.getElementById("wediv"),d=document.getElementById("weIFrame"),f=window.pageYOffset||document.documentElement.scrollTop;l.hidden=!e,l.style.left=o.offsetLeft+300+"px",l.style.top=o.offsetTop+f+"px",t&&t.length&&(d.src=t),dragElement(l)}';
       // js.onload = () => console.log('------------- js loaded');
       head.appendChild(js);
       const markup = document.createElement('div');
@@ -312,15 +321,22 @@ function getWordsThenStartHighlighting () {
       markup.hidden = true;
       markup.innerHTML =
         '<div id="wedivheader">\n' +
-        '  <span id="wetitle">Create a We Vote Endorsement</span>\n' +
+        '  <span id="wetitle"></span>\n' +
         '  <span id="closeButton">\n' +
         '    <button type="button" class="weclose" onclick="setModal(false,\'\' ,\'\')">X</button>\n' +
         '  </span>\n' +
         '</div>\n' +
-        '<div id="frameBorder">\n' +
-        '  <iframe id="weIFrame" src="' + extensionWarmUpPage + '"></iframe>\n' +
-        '</div>\n';
+        '<iframe id="weIFrame" src="' + extensionWarmUpPage + '"></iframe>\n';
       $('body').first().prepend(markup);
+      $('.weclose').click(() => {
+        // if (window.location === window.parent.location) { // if in an iframe
+        if (isInIFrame()) { // if in an iframe
+          // console.log('dialog containing iFrame has closed on page in our iFrame, updating PositionsPanel')
+          updatePositionsPanel(true);
+        }
+        // console.log('dialog containing iFrame has closed, updating PositionsPanel')
+        getRefreshedHighlights();  // redo the highlights on the endorsement page
+      });
     }
   });
 }
@@ -448,13 +464,13 @@ function findWords () {
 
         chrome.runtime.sendMessage({
           command: 'showHighlightsCount',
-          label: highlights.numberOfHighlights.toString(),
+          label: uniqueNameMatches.length.toString(),
           uniqueNames: uniqueNameMatches,
           altColor: uniqueNameMatches.length ? '' : 'darkgreen',
         }, function (response) {
           let {lastError} = chrome.runtime;
           if (lastError) {
-            console.warn(' chrome.runtime.sendMessage("showHighlightsCount")',lastError.message);
+            console.warn('findWords() ... chrome.runtime.sendMessage("showHighlightsCount")',lastError.message);
           }
         });
       } else {

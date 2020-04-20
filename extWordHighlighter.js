@@ -59,28 +59,32 @@ function promoteAliasesThatArriveAsDefault (highlightsList) {
   for (let i = 0; i < highlightsList.length; i++) {
     let highlight = highlightsList[i];
     const {display, we_vote_id: weVoteId, name} = highlight;
-    nameToIdMap[name.toLowerCase()] = weVoteId;
-    if (display === 'DEFAULT') {
-      let match = highlightsList.find(function (possibleAlias) {
-        return possibleAlias.we_vote_id === weVoteId;
-      });
+    if (name && name.length > 2) {
+      nameToIdMap[name.toLowerCase()] = weVoteId;
+      if (display === 'DEFAULT') {
+        let match = highlightsList.find(function (possibleAlias) {
+          return possibleAlias.we_vote_id === weVoteId;
+        });
 
-      const { display: displayMatch, stance: stanceMatch } = match;
-      if (displayMatch !== 'DEFAULT') {
-        console.log('For ' + name + ' overwriting to ' + displayMatch + ', ' + stanceMatch + ', from ', match);
-        highlight.display = displayMatch;
-        highlight.stance = stanceMatch;
+        const {display: displayMatch, stance: stanceMatch} = match;
+        if (displayMatch !== 'DEFAULT') {
+          console.log('For ' + name + ' overwriting to ' + displayMatch + ', ' + stanceMatch + ', from ', match);
+          highlight.display = displayMatch;
+          highlight.stance = stanceMatch;
+        }
       }
-    }
-    let match = aliasNames.find((alias) => alias.candidateWeVoteId === weVoteId);
-    if (match === undefined) {
-      aliasNames.push({
-        candidateWeVoteId: weVoteId,
-        names: [name],
-      });
+      let match = aliasNames.find((alias) => alias.candidateWeVoteId === weVoteId);
+      if (match === undefined) {
+        aliasNames.push({
+          candidateWeVoteId: weVoteId,
+          names: [name],
+        });
+      } else {
+        match.names.push(name);
+        debugE && console.log('ALIAS FOUND <<<<<<<<<<<< ' + name + ', ', match);
+      }
     } else {
-      match.names.push(name);
-      debugE && console.log('ALIAS FOUND <<<<<<<<<<<< ' + name + ', ', match);
+      console.log('Bad hightlight received in promoteAliases ', highlight);
     }
   }
 }
@@ -191,7 +195,7 @@ function createSearchMenu (){
 }
 
 function updateContextMenu (inUrl){
-  debugE&&console.log('updating context menu', inUrl);
+  debugE && console.log('updating context menu', inUrl);
   if(inUrl&&noContextMenu.indexOf(inUrl) === -1){
     removeAll();
     createSearchMenu();
@@ -262,7 +266,7 @@ function updateContextMenu (inUrl){
 
 function processUniqueNames (uniqueNamesFromPage) {
   // This function will be called multiple times as the page loads (to catch previously unrendered names), for simple pages this will seem unnecessary
-  debugE&&console.log('uniqueNamesFromPage: ', uniqueNamesFromPage);
+  debugE && console.log('uniqueNamesFromPage: ', uniqueNamesFromPage);
   for (let i = 0; i < uniqueNamesFromPage.length; i++) {
     // eslint-disable-next-line prefer-destructuring
     const name = uniqueNamesFromPage[0];
@@ -366,7 +370,7 @@ chrome.tabs.onUpdated.addListener(
 chrome.tabs.onCreated.addListener(function (tab){if(tab.url !== undefined){updateContextMenu(tab.url);}});
 
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
-  debugE&&console.log('Steve chrome.contextMenus.onClicked: ' + info.selectionText);
+  debugE && console.log('Steve chrome.contextMenus.onClicked: ' + info.selectionText);
 
   if (info.menuItemId.indexOf('idContextMenuCreateNew') > -1) {
     chrome.tabs.sendMessage(tab.id, {
@@ -375,7 +379,7 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
       pageURL: info.pageUrl,
       tabId: tab.id,
     }, function (result) {
-      debugE&&console.log('contextMenus on click, response received to createEndorsement ', result);
+      debugE && console.log('contextMenus on click, response received to createEndorsement ', result);
     });
   } else if (info.menuItemId.indexOf('idContextMenuRevealRight') > -1) {
     chrome.tabs.sendMessage(tab.id, {
@@ -384,7 +388,7 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
       pageURL: info.pageUrl,
       tabId: tab.id,
     }, function (result) {
-      debugE&&console.log('contextMenus on click, response received to revealRight ', result);
+      debugE && console.log('contextMenus on click, response received to revealRight ', result);
     });
   } else if (info.menuItemId.indexOf('AddTo_') > -1) {
     groupName = info.menuItemId.replace('AddTo_', '');
@@ -455,10 +459,10 @@ chrome.runtime.onMessage.addListener(
       getOrganizationFound(request.url, sendResponse);
     } else if (request.command === 'getHighlights') {
       getHighlightsListFromApiServer(request.url, request.doReHighlight, sendResponse, '6000');
-    } else if (request.command==='getPositions') {
-      getPossiblePositions(request.possibilityId, sendResponse);
-    } else if (request.command==='savePosition') {
-      debugE && console.log('XXXXXX voterGuidePossibilityPositionSave message received', request, sender, sender.tab.id);
+    } else if (request.command === 'getPositions') {
+      getPossiblePositions(request.voterGuidePossibilityId, request.hrefURL, request.isIFrame, sendResponse);
+    } else if (request.command === 'savePosition') {
+      debugE && console.log('XXXXXX voterGuidePossibilityPositionSave message received', request, request.removePosition, sender, sender.tab.id);
       voterGuidePossibilityPositionSave(
         request.itemName,
         request.voterGuidePossibilityId,
@@ -466,12 +470,13 @@ chrome.runtime.onMessage.addListener(
         request.stance,
         request.statementText,
         request.moreInfoURL.trim(),
+        request.removePosition,
         sendResponse);
-    } else if(request.command==='getCandidate') {
+    } else if(request.command === 'getCandidate') {
       getCandidate (request.candidateWeVoteId, sendResponse);
-    } else if(request.command==='getVoterInfo') {
+    } else if(request.command === 'getVoterInfo') {
       getVoterSignInInfo (sendResponse);
-    } else if(request.command==='getWords') {
+    } else if(request.command === 'getWords') {
       if (request.id && request.id.length > 0) {
         localStorage['voterDeviceId'] = request.id;     // Incoming voterDeviceId if we are viewing a wevote domain page.
       }
@@ -479,68 +484,71 @@ chrome.runtime.onMessage.addListener(
         words:getWordsBackground(request.url),
         storedDeviceId: localStorage['voterDeviceId'],  // Outgoing voterDeviceId for viewing all other pages
       });
-    } else if (request.command==='updateVoterGuide') {
+    } else if (request.command === 'updateVoterGuide') {
       updatePossibleVoterGuide(request.voterGuidePossibilityId, request.orgName, request.orgTwitter, request.orgState,
         request.comments, request.sendResponse);
-    } else if (request.command==='showWordsFound') {
+    } else if (request.command === 'showWordsFound') {
       sendResponse({success:showWordsFound(request.state)});
-    } else if (request.command==='initiateReHighlightFromContext') {
+    } else if (request.command === 'initiateReHighlightFromContext') {
       requestReHighlight();
       sendResponse({success: true,
         status: 'requestReHighlight invoked asynchronously'});
-    } else if(request.command==='showHighlightsCount') {
+    } else if(request.command === 'showHighlightsCount') {
       showHighlightsCount(request.label, request.altColor, sender.tab.id);
       if (request.altColor.length === 0) {
         processUniqueNames(request.uniqueNames);
       }
       sendResponse({success: 'ok'});
-    } else if(request.command==='voterGuidePossibilitySave') {
+    } else if(request.command === 'voterGuidePossibilitySave') {
       voterGuidePossibilitySave(request.organizationWeVoteId, request.voterGuidePossibilityId, request.internalNotes, request.contributorEmail, sendResponse);
 
       // The following commands are from "Highlight This", and are not currently in use
 
-    } else if(request.command==='setPrintHighlights') {
+    } else if(request.command === 'setPrintHighlights') {
       sendResponse({success:setPrintHighlights(request.state)});
-    } else if(request.command==='addGroup') {
+    } else if(request.command === 'addGroup') {
       console.log('XXXXXXXXX NO LONGER CALLED XXXXXXXXXXX addGroup message received', request, sender, sender.tab.id);
       sendResponse({success:addGroup(request.group, request.color, request.fcolor, request.icon, request.findwords, request.showon,
         request.dontshowon, request.words, request.groupType, request.remoteConfig, request.regex, request.showInEditableFields)});
-    } else if(request.command==='removeWord') {
+    } else if(request.command === 'removeWord') {
       sendResponse({success:removeWord(request.word)});
-    } else if(request.command==='beep') {
+    } else if(request.command === 'beep') {
       document.body.innerHTML += '<audio src="beep.wav" autoplay="autoplay"/>';
-    } else if(request.command==='getStatus') {
-      // console.log('if(request.command===\'getStatus\') highlighterEnabled: ', highlighterEnabled);
+    } else if(request.command === 'getStatus') {
+      // console.log('if(request.command === \'getStatus\') highlighterEnabled: ', highlighterEnabled);
       sendResponse({highlighterEnabled});
-    } else if(request.command==='updateContextMenu'){
+    } else if(request.command === 'updateContextMenu'){
       updateContextMenu(request.url);
       sendResponse({success: 'ok'});
-    } else if(request.command==='flipGroup') {
+    } else if(request.command === 'flipGroup') {
       sendResponse({success: flipGroup(request.group, request.action)});
-    } else if(request.command==='deleteGroup') {
+    } else if(request.command === 'deleteGroup') {
       sendResponse({success:deleteGroup(request.group)});
-    } else if(request.command==='addWord') {
+    } else if(request.command === 'addWord') {
       sendResponse({success:addWord(request.word)});
-    } else if(request.command==='addWords') {
+    } else if(request.command === 'addWords') {
       sendResponse({success:addWords(request.words)});
-    } else if(request.command==='syncList') {
+    } else if(request.command === 'syncList') {
       sendResponse({success:syncWordList(HighlightsData.Groups[request.group], true,request.group)});
-    } else if(request.command==='setWords') {
+    } else if(request.command === 'setWords') {
       sendResponse({success:setWords(request.words, request.group, request.color, request.fcolor, request.findwords,
         request.showon, request.dontshowon,  request.newname, request.groupType, request.remoteConfig,request.regex, request.showInEditableFields)});
-    } else if (request.command==='myTabId') {
+    } else if (request.command === 'myTabId') {
       // tabId will hold the sender tab's id value
       const tabId = sender.tab.id;
       sendResponse({ from: 'event', tabId });
-    } else if (request.command==='getWeVoteTabs') {
+    } else if (request.command === 'getWeVoteTabs') {
       sendResponse({ from: 'tabs', tabs: getWeVoteTabs() });
-    } else if (request.command==='storeDeviceId') {
+    } else if (request.command === 'storeDeviceId') {
       const tabId = sender.tab.id;
-      if(request.voterDeviceId.length) {
+      if (request.voterDeviceId.length) {
         localStorage['voterDeviceId'] = request.voterDeviceId;
         console.log('extWordHighlighter "storeDeviceId" received from tab: ' + tabId + ', voterDeviceId: ' + request.voterDevicedId);
       }
       sendResponse({ from: 'event', tabId });
+    } else if (request.command === 'closeDialogAndUpdatePositionsPanel') {
+      const tabId = sender.tab.id;
+      console.log('extWordHighlighter "closeDialogAndUpdatePositionsPanel" received from tab: ' + tabId);
     } else {
       console.error('extWordHighlighter received unknown command : ' + request.command);
     }
@@ -584,12 +592,12 @@ function requestReHighlight (){
 
 function getWordsBackground (inUrl) {
   let result={};
-  console.log("getWordsBackground inURL: " + inUrl);
   for(let neverShowOn in HighlightsData.neverHighlightOn){
     if (inUrl.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))){
       return result;
     }
   }
+  debugE && console.log("getWordsBackground inURL: " + inUrl);
   for (let highlightData in HighlightsData.Groups) {
     let returnHighlight=false;
     if (HighlightsData.Groups[highlightData].Enabled){

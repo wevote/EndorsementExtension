@@ -227,13 +227,13 @@ function Hilitor (id, tag) {
             match.style.fontStyle = 'inherit';
 
             if (!inContentEditable || (inContentEditable && wordColor[wordfound].ShowInEditableFields)) {
-              // Begin modification for WeVote
-              urlHref = this.weVoteDomMods(node);
-              // End of modification for WeVote
               var after = node.splitText(regs.index);
               after.nodeValue = after.nodeValue.substring(regs[0].length);
 
               node.parentNode.insertBefore(match, after);
+              // Begin modification for WeVote
+              urlHref = this.weVoteDomMods(node, match, wordfound);
+              // End of modification for WeVote
             }
           }
 
@@ -258,45 +258,51 @@ function Hilitor (id, tag) {
     }
   };
 
-  this.weVoteDomMods = function (node) {
-    let urlHref = (node.parentNode.localName === 'a') ? node.parentNode.href : '';
-    // If the name is in a link tag, disable it.
-    if (node.parentNode.localName === 'a') {
-      $(node.parentNode).css({
-        'pointer-events': 'none',
-        cursor: 'default'
+  this.weVoteDomMods = function (node, match, wordfound) {
+    const possibleA = node.parentNode;
+    let candidateHomePage = '';
+    // eslint-disable-next-line no-nested-ternary
+    let urlHref = (possibleA.href) ? possibleA.href : (possibleA.title ? possibleA.title : '');  // The parent might have been an 'a' before we swapped it out for a span, but if it has an href, use it.
+    candidateHomePage = encodeURIComponent(urlHref);
+    // If the name is in a link tag, disable it by changing the "A" to a "SPAN"
+    if (possibleA.localName === 'a') {   // Only swap it one time, ie. don't swap it if it has the class "once was an A tag"
+      $(possibleA).replaceWith(function () {
+        return '<span class="once was an A tag" title="' + urlHref + '">' + $(possibleA).text() + '</span>'
       });
     }
-    const cleanedName = this.cleanName($(node.parentNode).text());
-    const nameLC = cleanedName.toLowerCase();
-    urlsForHighlights[nameLC] = $(node.parentNode).attr('href');
-    const { namesToIds } = window;
-    const candidateId = namesToIds && namesToIds[nameLC] ? namesToIds[nameLC] : '';
-    const encodedName = encodeURIComponent(cleanedName);
-    let id = '';
+    const emNode = node.nextElementSibling;
+    if (emNode.tagName === 'EM') {
+      const cleanedName = this.cleanName(emNode.innerText);
+      const nameLC = cleanedName.toLowerCase();
+      urlsForHighlights[nameLC] = emNode.baseURI;
+      const {namesToIds} = window;
+      const candidateId = namesToIds && namesToIds[nameLC] ? namesToIds[nameLC] : '';
+      const encodedName = encodeURIComponent(cleanedName);
+      let id = '';
 
-    if (!cleanedName) {
-      console.warn('Bad cleaned name error');
-    }
-    for (let i = 0; i < cleanedName.length; i++) {
-      let char1 = cleanedName.charAt(i);
-      let cc = char1.charCodeAt(0);
-      if ((cc > 47 && cc < 58) || (cc > 64 && cc < 91) || (cc > 96 && cc < 123)) {
-        id += char1;
+      if (!cleanedName) {
+        console.warn('Bad cleaned name error');
       }
-    }
-    const home = $(node.parentNode).attr('href');
-    const homePage = home ? encodeURIComponent(home) : '';
-    const frameUrl = candidateExtensionWebAppURL + '?candidate_name=' + encodedName +
-      '&candidate_we_vote_id=' + candidateId + '&endorsement_page_url=' + encodeURIComponent(location.href) +
-      '&candidate_home_page=' + homePage;
-    const clickIFrame = 'setModal(true, \'' + frameUrl + '\', \'' + id + '\', event)';
-    // console.log('----------------', $(node.parentNode).text());
+      for (let i = 0; i < cleanedName.length; i++) {
+        let char1 = cleanedName.charAt(i);
+        let cc = char1.charCodeAt(0);
+        if ((cc > 47 && cc < 58) || (cc > 64 && cc < 91) || (cc > 96 && cc < 123)) {
+          id += char1;
+        }
+      }
+      const frameUrl = candidateExtensionWebAppURL + '?candidate_name=' + encodedName +
+        '&candidate_we_vote_id=' + candidateId +
+        '&endorsement_page_url=' + encodeURIComponent(location.href) +
+        '&candidate_specific_endorsement_url=' + candidateHomePage +
+        '&voter_guide_possibility_id=' + state.voterGuidePossibilityId;
+      // console.log('frameUrl ==================== ' + frameUrl);
+      const clickIFrame = 'setModal(true, \'' + frameUrl + '\', \'' + id + '\', event)';
 
-    $(node.parentNode).wrap('<button type="button" id="' + id + '" class="endorsementHighlights" onclick="' + clickIFrame + '"></button>');
-    // Icon within highlights in the DOM of the endorsement page
-    if(wordColor[word].Icon.length) {
-      $(match).prepend(wordColor[word].Icon);
+      $(emNode).wrap('<button type="button" id="' + id + '" class="endorsementHighlights" onclick="' + clickIFrame + '"></button>');
+      // Icon within highlights in the DOM of the endorsement page
+      if (wordColor[wordfound].Icon.length) {
+        $(match).prepend(wordColor[wordfound].Icon);
+      }
     }
     return urlHref;
   };
