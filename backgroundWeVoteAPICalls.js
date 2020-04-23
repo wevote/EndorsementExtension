@@ -18,17 +18,7 @@ function getHighlightsListFromApiServer (locationHref, doReHighlight, sendRespon
     debug && console.log('voterGuideHighlightsRetrieve API SUCCESS', res);
     console.log('------------------- voterGuideHighlightsRetrieve API SUCCESS apiURL: ' + apiURL);
     const t2 = performance.now();
-    if (t2 -t1 < 1000) {
-      console.log('TIMING: time to voterGuideHighlightsRetrieve took ' + (t2 - t1) + ' milliseconds.');
-    } else {
-      const secs = ((t2 - t1)/1000);
-      const msg = 'TIMING: time to voterGuideHighlightsRetrieve took ' + secs + ' SECONDS.';
-      if (secs > 8.0) {
-        console.warn(msg);
-      } else {
-        console.log(msg);
-      }
-    }
+    timingLog(t1, t2, 'voterGuideHighlightsRetrieve took', 8.0);
     processHighlightsRetrieve(res, doReHighlight, sendResponse);
   }).fail((err) => {
     console.log('voterGuideHighlightsRetrieve API error', err);
@@ -68,7 +58,7 @@ function getOrganizationFound (locationHref, sendResponse) {
   console.log('voterGuidePossibilityRetrieve apiURL: ' + apiURL);
   $.getJSON(apiURL, '', (res) => {
     const t1 = performance.now();
-    console.log('TIMING: time to voterGuidePossibilityRetrieve took ' + (t1 - t0) + ' milliseconds.');
+    timingLog(t0, t1, 'voterGuidePossibilityRetrieve took', 8.0);
     debug && console.log('voterGuidePossibilityRetrieve API results', res);
     let {voter_guide_possibility_edit: voterGuidePossibilityEdit, possibilityUrl, voter_guide_possibility_id: voterGuidePossibilityId, organization,
       possible_owner_of_website_organizations_list: noExactMatchOrgList} = res;

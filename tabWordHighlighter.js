@@ -4,6 +4,7 @@
 // These log to the console of the endorsement page (like sierraclub.org) in the browser, Aand communicate with the background script via chrome extension messages that are sent.
 // When the endorsement page is re-opened in an iframe, access to that DOM is greatly limited.
 
+/* global preloadCandidateDataForThisVM, preloadPositionsForAnotherVM */
 
 /* eslint no-unused-vars: 0 */
 /* eslint init-declarations: 0 */
@@ -46,9 +47,14 @@ let urlsForHighlights = {};
 
 
 $(() => {
-  chrome.runtime.sendMessage({
+  const {chrome: {runtime: {sendMessage, lastError}}} = window;
+  sendMessage({
     command: 'myTabId',
   }, function (response) {
+    if (lastError) {
+      console.warn(' chrome.runtime.sendMessage("myTabId")', lastError.message);
+    }
+
     const { tabId: tab } = response;
     tabId = tab;
     // console.log('tabWordHighlighter this tab.id: ' + tabId);
@@ -63,11 +69,10 @@ $(() => {
     if (window.location.host.indexOf('wevote.us') > -1 || window.location.host.indexOf('localhost:3000') > -1) {
       const voterDeviceId = getVoterDeviceIdFromWeVoteDomainPage();
       if (voterDeviceId.length) {
-        chrome.runtime.sendMessage({
+        sendMessage({
           command: 'storeDeviceId',
           voterDeviceId
         }, function (response) {
-          let {lastError} = chrome.runtime;
           if (lastError) {
             console.warn('chrome.runtime.sendMessage("storeDeviceId")', lastError.message);
           }
@@ -232,9 +237,9 @@ function getVoterDeviceIdFromWeVoteDomainPage () {
 // and retrieves the appropriate candidate names, brings them back to the extension, and then starts highlighting the candidate names
 // on the endorsement page that is displayed in the tab (for example, https://www.sierraclub.org/california/2020-endorsements/).
 function sendGetStatus () {
-  chrome.runtime.sendMessage({command: 'getStatus'}, function (response) {
+  const {chrome: {runtime: {sendMessage, lastError}}} = window;
+  sendMessage({command: 'getStatus'}, function (response) {
     console.log('chrome.runtime.sendMessage({command: \'getStatus\'}', document.URL);
-    let {lastError} = chrome.runtime;
     if (lastError) {
       console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
       return;
@@ -251,15 +256,14 @@ function sendGetStatus () {
 }
 
 function getWordsThenStartHighlighting () {
+  const {chrome: {runtime: {sendMessage, lastError}}} = window;
   console.log('Called getWordsThenStartHighlighting() tabId: ', tabId, 'URL', document.URL);
-  chrome.runtime.sendMessage({
+  sendMessage({
     command: 'getWords',
     url: location.href.replace(location.protocol + '//', ''),
     id: getVoterDeviceIdFromWeVoteDomainPage()  // is this nonsense?
   }, function (response) {
     debug && console.log('Received response in getWordsThenStartHighlighting');
-
-    let {lastError} = chrome.runtime;
     if (lastError) {
       console.warn('chrome runtime sendMessage("getWords")',lastError.message);
       return;
@@ -308,12 +312,12 @@ function getWordsThenStartHighlighting () {
       head.append(style);
       style.type = 'text/css';
       // Note that the source code for this css is in popupIFrame.html, where it can be tested in a browser, then minified with https://cssminifier.com/
-      const css = '#wediv{position:absolute;z-index:10000;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4);height:557px;}#wedivheader{cursor:move;z-index:10;background-color:#2e3c5d;color:#fff;height:30px}#weIFrame{width:450px;height:525px;border-width:0;border:none}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;float:right;margin-right:16px;background-color:#2e3c5d;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}.highlight{padding:1px;box-shadow:#e5e5e5 1px 1px;border-radius:3px;-webkit-print-color-adjust:exact;background-color:#ff6;color:#000;font-style:inherit}';
+      const css = '#wediv{position:absolute;z-index:10000;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4);height:600px;}#wedivheader{cursor:move;z-index:10;background-color:#2e3c5d;color:#fff;height:30px}#weIFrame{width:450px;height:568px;border-width:0;border:none}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;float:right;margin-right:16px;background-color:#2e3c5d;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}.highlight{padding:1px;box-shadow:#e5e5e5 1px 1px;border-radius:3px;-webkit-print-color-adjust:exact;background-color:#ff6;color:#000;font-style:inherit}';
       style.appendChild(document.createTextNode(css));
 
       const js = document.createElement('script');
       // Note that the source code for this innerHTML is in popupIFrame.html, where it can be tested, then minified with https://javascript-minifier.com/
-      js.innerHTML ='function dragElement(e){let t=0,n=0,o=0,l=0;function d(e){(e=e||window.event).preventDefault(),o=e.clientX,l=e.clientY,document.onmouseup=s,document.onmousemove=f}function f(d){(d=d||window.event).preventDefault(),t=o-d.clientX,n=l-d.clientY,o=d.clientX,l=d.clientY,e.style.top=e.offsetTop-n+"px",e.style.left=e.offsetLeft-t+"px",console.log("position of elmnt after drag: ",e.style.top,e.style.left)}function s(){document.onmouseup=null,document.onmousemove=null}document.getElementById(e.id+"header")?document.getElementById(e.id+"header").onmousedown=d:e.onmousedown=d}function setModal(e,t,n){let o=document.getElementById(n);o||(o={offsetLeft:0,offsetTop:0});const l=document.getElementById("wediv"),d=document.getElementById("weIFrame"),f=window.pageYOffset||document.documentElement.scrollTop;l.hidden=!e,l.style.left=o.offsetLeft+300+"px",l.style.top=o.offsetTop+f+"px",t&&t.length&&(d.src=t),dragElement(l)}';
+      js.innerHTML ='function dragElement(e){let t=0,n=0,o=0,l=0;function d(e){(e=e||window.event).preventDefault(),o=e.clientX,l=e.clientY,document.onmouseup=s,document.onmousemove=f}function f(d){(d=d||window.event).preventDefault(),t=o-d.clientX,n=l-d.clientY,o=d.clientX,l=d.clientY,e.style.top=e.offsetTop-n+"px",e.style.left=e.offsetLeft-t+"px"}function s(){document.onmouseup=null,document.onmousemove=null}document.getElementById(e.id+"header")?document.getElementById(e.id+"header").onmousedown=d:e.onmousedown=d}function setModal(e,t,n){let o=document.getElementById(n);o||(o={offsetLeft:0,offsetTop:0});const l=document.getElementById("wediv"),d=document.getElementById("weIFrame"),f=window.pageYOffset||document.documentElement.scrollTop;l.hidden=!e,l.style.left=o.offsetLeft+300+"px",l.style.top=o.offsetTop+f+"px",t&&t.length&&(d.src=t),dragElement(l)}';
       // js.onload = () => console.log('------------- js loaded');
       head.appendChild(js);
       const markup = document.createElement('div');
@@ -328,14 +332,16 @@ function getWordsThenStartHighlighting () {
         '</div>\n' +
         '<iframe id="weIFrame" src="' + extensionWarmUpPage + '"></iframe>\n';
       $('body').first().prepend(markup);
+      preloadPositionsForAnotherVM()  // preLoad positions for this VM, if it is a VM within an iFrame
       $('.weclose').click(() => {
         // if (window.location === window.parent.location) { // if in an iframe
         if (isInIFrame()) { // if in an iframe
-          // console.log('dialog containing iFrame has closed on page in our iFrame, updating PositionsPanel')
-          updatePositionsPanel(true);
+          console.log('With editors displayed, and the endorsement page in an iFrame, the modal containing an iFrame to the webapp has closed.  Evaluating the need to update the PositionsPanel, state ', state);
+          updatePositionPanelFromTheIFrame();  // which calls getRefreshedHighlights() if the positions data has changed
+        } else {
+          console.log('dialog containing iFrame has closed, either without the editor displayed, or for newly discovered positions, ie right click on highlighed position');
+          updateHighlightsIfNeeded();
         }
-        // console.log('dialog containing iFrame has closed, updating PositionsPanel')
-        getRefreshedHighlights();  // redo the highlights on the endorsement page
       });
     }
   });
@@ -432,6 +438,7 @@ function getSearchParameter (n) {
 
 
 function findWords () {
+  const {chrome: {runtime: {sendMessage, lastError}}} = window;
   if (Object.keys(wordsArray).length > 0) {
     Highlight=false;
 
@@ -462,25 +469,27 @@ function findWords () {
           }
         }
 
-        chrome.runtime.sendMessage({
-          command: 'showHighlightsCount',
-          label: uniqueNameMatches.length.toString(),
-          uniqueNames: uniqueNameMatches,
-          altColor: uniqueNameMatches.length ? '' : 'darkgreen',
-        }, function (response) {
-          let {lastError} = chrome.runtime;
-          if (lastError) {
-            console.warn('findWords() ... chrome.runtime.sendMessage("showHighlightsCount")',lastError.message);
-          }
-        });
+        try {
+          sendMessage({
+            command: 'showHighlightsCount',
+            label: uniqueNameMatches.length.toString(),
+            uniqueNames: uniqueNameMatches,
+            altColor: uniqueNameMatches.length ? '' : 'darkgreen',
+          }, function (response) {
+            if (lastError) {
+              console.warn('findWords() ... chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
+            }
+          });
+        } catch (e) {
+          console.log('EXPERIMENTAL showHighlightsCount ', e);
+        }
       } else {
-        chrome.runtime.sendMessage({
+        sendMessage({
           command: 'showHighlightsCount',
           label: '0',
           uniqueNames: [],
           altColor: 'darkgreen',
         }, function (response) {
-          let {lastError} = chrome.runtime;
           if (lastError) {
             console.warn(' chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
           }

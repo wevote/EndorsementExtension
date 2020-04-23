@@ -64,3 +64,20 @@ function markupForThumbSvg (classString, type, fillColor) {
   }
   return '';
 }
+
+function timingLog (time0, time1, text, warnAt) {
+  const duration = time1 - time0;
+
+  if (duration < 1000) {
+    const niceDuration = Number.parseFloat(duration).toPrecision(4)
+    console.log('TIMING: time to ' + text + ' ' + niceDuration + ' milliseconds.');
+  } else {
+    const niceDuration = Number.parseFloat(duration/1000).toPrecision(4)
+    const msg = 'TIMING: time to voterGuideHighlightsRetrieve took ' + niceDuration + ' SECONDS.';
+    if ((duration)/1000 > warnAt) {
+      console.warn(msg);
+    } else {
+      console.log(msg);
+    }
+  }
+}
