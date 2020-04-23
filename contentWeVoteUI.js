@@ -1,6 +1,6 @@
-/* global markupForThumbSvg, extensionSignInPage, extensionSignInPage, addCandidateExtensionWebAppURL, colors */
+/* global $, markupForThumbSvg, extensionSignInPage, extensionSignInPage, addCandidateExtensionWebAppURL, colors,
+   isInIFrame */
 
-const { $, chrome: { runtime } } = window;
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
 
 let state = {
@@ -112,10 +112,10 @@ function displayEditPanes () {
   let weFlexBox = $('#weFlexBox');
   $(weFlexBox).append('<div id="frameDiv"><iframe id="frame" width="100%" ></iframe></div>');
   $(weFlexBox).append('<div id="sideArea"></div>');
-  $('#frame').attr('src', hr);
+  $('#frame').attr('src', hr).attr('class','weVoteEndorsementFrame');
   topMenu();
   updateTopMenu(true);
-  signIn(false);                       // Calls updatePositionsPanel
+  signIn(false);                       // Calls handleUpdatedOrNewPositions() to draw the initial position pane if the editor has been chosen on popup.js
   initializeOrgChoiceList();           //  Does not display an org choice list, if not logged in, or have not chosen an org
   greyAllPositionPanes(false);
 }
@@ -160,11 +160,10 @@ function debugWarn (...args) {
  */
 // Called on click true, or topbar init false
 function signIn (attemptLogin) {
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugLog('new signIn');
-  const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: 'getVoterInfo',},
     function (response) {
-      let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
@@ -187,11 +186,11 @@ function signIn (attemptLogin) {
 
       if (voterInfo.success && voterInfo.isSignedIn) {
         setSignInOutMarkup (voterInfo);
-        // updatePositionsPanel(true);
+        // handleUpdatedOrNewPositions(true, false, false);
         const interval = setInterval(function (){
           try {
-            debugLog('loop update position panel, interval ', interval);
-            updatePositionsPanel(true);
+            // debugLog('loop update position panel, interval ', interval);
+            updatePositionPanelUnconditiionally();
           } catch (e) {
             // exception for context invalidated, ie the page refreshed
             clearInterval(interval);
@@ -252,10 +251,9 @@ function setSignInOutMarkup (voterInfo) {
 }
 
 function getVoterInfo () {
-  const { chrome: { runtime: { sendMessage } } } = window;
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
   sendMessage({ command: 'getVoterInfo',},
     function (response) {
-      let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
@@ -278,7 +276,7 @@ function getVoterInfo () {
 
       if (success && isSignedIn) {
         setSignInOutMarkup (voterInfo);
-        updatePositionsPanel(true);
+        updatePositionPanelUnconditiionally ();
         return true;
       }
       return false;
@@ -329,9 +327,9 @@ function topMenu () {
 
 // Get the href into the extension
 function getHighlights (showHighlights, showEditor, tabId) {
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
   const t0 = performance.now();
   debugLog('getHighlights() called');
-  const { chrome: { runtime: { sendMessage } } } = window;
   let urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML
   if (!urlToQuery || urlToQuery.length < 1) {
     urlToQuery = window.location.href;
@@ -340,7 +338,6 @@ function getHighlights (showHighlights, showEditor, tabId) {
 
   sendMessage({ command: 'getHighlights', url: urlToQuery, doReHighlight: false },
     function (response) {
-      let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getHighlights")', lastError.message);
       }
@@ -348,13 +345,12 @@ function getHighlights (showHighlights, showEditor, tabId) {
 
       if (response) {
         const t1 = performance.now();
-        console.log("TIMING: time to getHighlights took " + (t1 - t0) + " milliseconds.");
+        timingLog(t0, t1, 'getHighlights took', 8.0);
         debugLog('SUCCESS: getHighlights received a response: ', response, '  showEditor:', showEditor, ', tabId: ', tabId);
         namesToIds = response.nameToIdMap;  // This one only works if NOT in an iFrame
         if (showEditor) {
           displayEditPanes();
-          const t2 = performance.now();
-          console.log("TIMING: time to displayEditPanes took " + (t2 - t1) + " milliseconds.");
+          timingLog(t1, performance.now(), 'displayEditPanes took', 5.0);
         } else {
           // 2/23/20 6pm  This was what finally got highlighting and/or editor woking on command
           // The same endorsement page, when opened in an iframe will immediately reload and must call sendGetStatus from that DOM, at that moment.
@@ -369,11 +365,10 @@ function getHighlights (showHighlights, showEditor, tabId) {
 }
 
 function getRefreshedHighlights () {
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugLog('getRefreshedHighlights called');
-  const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: true },
     function (response) {
-      let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getRefreshedHighlights") ', lastError.message);
       }
@@ -391,11 +386,10 @@ function getRefreshedHighlights () {
 
 // Call into the background script to do a voterGuidePossibilityRetrieve() api call, and return the data, then update the top menu
 function updateTopMenu (update) {
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugLog('updateTopMenu()');
-  const { chrome: { runtime: { sendMessage } } } = window;
   sendMessage({ command: 'getTopMenuData', url: window.location.href },
     function (response) {
-      let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getTopMenuData")', lastError.message);
       }
@@ -417,36 +411,63 @@ function updateTopMenu (update) {
           });
           debugLog('updateTopMenu voterGuidePossibilityId: ' + state.voterGuidePossibilityId);
         }
-        updatePositionsPanel(update);
+        updatePositionPanelConditionally(update);
       } else {
         console.error('ERROR: updateTopMenu received empty response');
       }
     });
 }
 
-function updatePositionsPanel (update) {
-  debugLog('updatePositionsPanel() getPositions, state.voterGuidePossibilityId: ' + state.voterGuidePossibilityId);
-  const { chrome: { runtime: { sendMessage } } } = window;
+function updateHighlightsIfNeeded () {
+  handleUpdatedOrNewPositions(false, false, false);
+}
+
+function updatePositionPanelUnconditiionally () {
+  handleUpdatedOrNewPositions(true, false, false);
+}
+
+function updatePositionPanelConditionally (update) {
+  handleUpdatedOrNewPositions(update, false, false);
+}
+
+function preloadPositionsForAnotherVM () {
+  handleUpdatedOrNewPositions(false, true, true);
+}
+
+function updatePositionPanelFromTheIFrame () {
+  handleUpdatedOrNewPositions(true, true, false);
+}
+
+function handleUpdatedOrNewPositions (update, fromIFrame, preLoad) {
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
+  debugLog('handleUpdatedOrNewPositions() getPositions, state.voterGuidePossibilityId: ' + state.voterGuidePossibilityId);
   sendMessage({ command: 'getPositions', hrefURL: window.location.href, isIFrame: isInIFrame(), voterGuidePossibilityId: state.voterGuidePossibilityId },
     function (response) {
-      let {lastError} = runtime;
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getPositions")', lastError.message);
       }
-      debugLog('updatePositionsPanel() response', response);
+      debugLog('handleUpdatedOrNewPositions() response', response);
       if ((response && Object.entries(response).length > 0) && (response.data !== undefined) && (response.data.length > 0)) {
         let {data} = response;
-        if (!hasCandidateDataChanged(data)) {
-          debugLog('updatePositionsPanel -------------- no change in data, aborting update of positions panel');
+        debugLog('--------------- handleUpdatedOrNewPositions: booleans, response and previous', update, fromIFrame, preLoad, data, state.priorData);
+        if (!preLoad && !hasCandidateDataChanged(data)) {
+          debugLog('handleUpdatedOrNewPositions -------------- no change in data, aborting update of positions panel');
           return;
         }
         state.priorData = data;
 
-        $('.candidateWe').remove();   // Remove all the existing candidates, and then redraw them
-        coreUpdatePositions(data, update);
+        if (!preLoad) {
+          if (fromIFrame || !update) {
+            getRefreshedHighlights();
+          }
+          if (update) {
+            $('.candidateWe').remove();   // Remove all the existing candidates, and then redraw them
+            coreUpdatePositions(data, update);
+          }
+        }
       } else {
         // This is not necessarily an error, it could be a brand new voter guide possibility with no position possibilities yet.
-        console.log('Note: updatePositionsPanel() getPositions returned an empty response or no data element.');
+        console.log('Note: handleUpdatedOrNewPositions() getPositions returned an empty response or no data element.');
       }
     }
   );
@@ -480,7 +501,7 @@ function coreUpdatePositions (data, update) {
     let insert = 0;
     let allHtml = $('#noDisplayPageBeforeFraming').html();
     for (let i = 0; i < state.positionsCount; i++) {
-      debugLog('updatePositionsPanel data: ', data[i]);
+      debugLog('coreUpdatePositions data: ', data[i]);
       // be sure not to use position_stance_stored, statement_text_stored, or more_info_url_stored -- we want the possibilities, not the live data
       let {
         ballot_item_name: name, candidate_alternate_names: alternateNames, position_stance: stance, statement_text: comment, more_info_url: url,
@@ -774,6 +795,7 @@ function selectOneDeselectOthers (type, targetFurl) {
 
 // We are only updating possiblilities here, we are not changing the "stored" live presentation data
 function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDialog) {
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
   const targetCand = event.currentTarget.className; // div.candidateWe.candidateWe-4
   const targetFurl = '#' + targetCand.replace('candidateWe candidateWe', 'furlable');
   // eslint-disable-next-line prefer-destructuring
@@ -806,7 +828,6 @@ function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDi
   let iconContainer = unfurlableGrid (number, '', '', '', '', '', inLeftPane, detachedDialog, stance, isStored, statementText.length > 0, iconOnly);
   $('#iconContainer-' + number).wrap('<p/>').parent().html(iconContainer);
 
-  const {chrome: {runtime: {sendMessage}}} = window;
   sendMessage({
     command: 'savePosition',
     itemName,
@@ -818,7 +839,6 @@ function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDi
     removePosition,
   },
   function (response) {
-    let {lastError} = runtime;
     if (lastError) {
       console.warn(' chrome.runtime.sendMessage("savePosition")', lastError.message);
     }
@@ -827,7 +847,7 @@ function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDi
     if (detachedDialog) {
       $('div.ui-dialog').remove();
       setSideAreaStatus();
-      updatePositionsPanel();
+      updatePositionPanelUnconditiionally();
     } else {
       console.log(remove);
       if (remove) {
@@ -979,7 +999,7 @@ function openSuggestionPopUp (selection) {
     title: '',
     show: true,
     width: 450,
-    height: 557,
+    height: 600,
     resizable: false,
     fixedDimensions: true,
     closeText: ''
@@ -1021,7 +1041,7 @@ function openSuggestionPopUp (selection) {
   });
   $('#weIFrame').css({
     width: '450px',
-    height: '525px',
+    height: '568px',
   });
   $('.u2i-resizable-handle').css('display', 'none');
 
@@ -1129,6 +1149,7 @@ function attachClickHandlers () {
 }
 
 function orgChoiceDialog (orgList) {
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
   // console.log('building orgChoiceDialog');
   const sortedList = sortURLs(orgList);
   let markup =
@@ -1160,7 +1181,6 @@ function orgChoiceDialog (orgList) {
       let organizationWeVoteId = id.substring(id.indexOf('-') + 1);
 
       // console.log('orgChoiceDialog  button onclick:  ' + event.currentTarget.id);
-      const {chrome: {runtime: {sendMessage}}} = window;
       sendMessage({
         command: 'voterGuidePossibilitySave',
         organizationWeVoteId: organizationWeVoteId,
@@ -1169,7 +1189,6 @@ function orgChoiceDialog (orgList) {
         voterWeVoteId : state.voterWeVoteId,
       },
       function (res) {
-        let {lastError} = runtime;
         if (lastError) {
           console.warn(' chrome.runtime.sendMessage("setSideAreaStatus voterGuidePossibilitySave")', lastError.message);
         }
@@ -1186,8 +1205,8 @@ function orgChoiceDialog (orgList) {
 }
 
 function sendTopComment () {
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
   // console.log('orgChoiceDialog  button onclick:  ' + event.currentTarget.id);
-  const {chrome: {runtime: {sendMessage}}} = window;
   sendMessage({
     command: 'voterGuidePossibilitySave',
     organizationWeVoteId: state.organizationWeVoteId,
@@ -1197,7 +1216,6 @@ function sendTopComment () {
     voterWeVoteId : state.voterWeVoteId,
   },
   function (res) {
-    let {lastError} = runtime;
     if (lastError) {
       console.warn(' chrome.runtime.sendMessage("sendTopComment voterGuidePossibilitySave")', lastError.message);
     }

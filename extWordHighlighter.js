@@ -280,6 +280,7 @@ function processUniqueNames (uniqueNamesFromPage) {
 // Called by the "highlight this tab" button on the popup
 // This receives the tab not the tabid!
 function setEnableForActiveTab (showHighlights, showEditor, tab) {
+  const { chrome: { tabs: { sendMessage, lastError } } } = window;
   console.log('enabling highlights on active tab ', tab, ' ------- ext, showEditor: ', showEditor);
 
   // Ignore if on a 'neverHighlightOn' page
@@ -305,19 +306,23 @@ function setEnableForActiveTab (showHighlights, showEditor, tab) {
     highlighterEnabled = true;
   }
 
-  chrome.tabs.sendMessage(tabId, {
+  sendMessage(tabId, {
     command: 'displayHighlightsForTabAndPossiblyEditPanes',
     showHighlights,
     showEditor,
     tabId,
   }, function (result) {
+    if (lastError) {
+      console.warn(' chrome.runtime.sendMessage("displayHighlightsForTabAndPossiblyEditPanes")', lastError.message);
+    }
     debugE && console.log('on click highlight this tab or edit this tab, response received from displayHighlightsForTabAndPossiblyEditPanes ', result);
   });
 }
 
 function enableHighlightsForAllTabs (showHighlights) {
+  const { chrome: { runtime: { sendMessage, lastError }, tabs: {getAllInWindow} } } = window;
   // Here we are telling all tabs to enable/disable highlighting
-  chrome.tabs.getAllInWindow(null, function (tabs) {
+  getAllInWindow(null, function (tabs) {
     for (let i = 0; i < tabs.length; i++) {
       const { id: tabId, url } = tabs[i];
 
@@ -329,12 +334,15 @@ function enableHighlightsForAllTabs (showHighlights) {
         }
       }
       if (!skip) {
-        chrome.tabs.sendMessage(tabId, {
+        sendMessage(tabId, {
           command: 'displayHighlightsForTabAndPossiblyEditPanes',
           showHighlights,
           showEditor: false,          // todo:  See if editor is already enabled and then send that value
           tabId,
         }, function (result) {
+          if (lastError) {
+            console.warn(' chrome.runtime.sendMessage("displayHighlightsForTabAndPossiblyEditPanes")', lastError.message);
+          }
           debugE && console.log('on click icon, response received to displayHighlightsForTabAndPossiblyEditPanes ', result);
         });
       }
@@ -370,24 +378,31 @@ chrome.tabs.onUpdated.addListener(
 chrome.tabs.onCreated.addListener(function (tab){if(tab.url !== undefined){updateContextMenu(tab.url);}});
 
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
+  const { chrome: { tabs: { sendMessage, lastError, query } } } = window;
   debugE && console.log('Steve chrome.contextMenus.onClicked: ' + info.selectionText);
 
   if (info.menuItemId.indexOf('idContextMenuCreateNew') > -1) {
-    chrome.tabs.sendMessage(tab.id, {
+    sendMessage(tab.id, {
       command: 'createEndorsement',
       selection: info.selectionText,
       pageURL: info.pageUrl,
       tabId: tab.id,
     }, function (result) {
+      if (lastError) {
+        console.warn(' chrome.runtime.sendMessage("createEndorsement")', lastError.message);
+      }
       debugE && console.log('contextMenus on click, response received to createEndorsement ', result);
     });
   } else if (info.menuItemId.indexOf('idContextMenuRevealRight') > -1) {
-    chrome.tabs.sendMessage(tab.id, {
+    sendMessage(tab.id, {
       command: 'revealRight',
       selection: info.selectionText,
       pageURL: info.pageUrl,
       tabId: tab.id,
     }, function (result) {
+      if (lastError) {
+        console.warn(' chrome.runtime.sendMessage("revealRight")', lastError.message);
+      }
       debugE && console.log('contextMenus on click, response received to revealRight ', result);
     });
   } else if (info.menuItemId.indexOf('AddTo_') > -1) {
@@ -420,8 +435,8 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
       updateContextMenu(tab.url);
     }
   } else if (info.menuItemId === 'Highlight') {
-    chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-      chrome.tabs.sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
+    query({active: true, currentWindow: true}, function (tabs) {
+      sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
     });
   //     }
   //     requestReHighlight();
@@ -444,9 +459,10 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
 
 
 chrome.commands.onCommand.addListener(function (command) {
+  const {chrome: {tabs: {sendMessage, query}}} = window;
   if (command === 'ScrollHighlight') {
-    chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-      chrome.tabs.sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
+    query({active: true, currentWindow: true}, function (tabs) {
+      sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
     });
   }
 });
@@ -557,8 +573,9 @@ chrome.runtime.onMessage.addListener(
 
 
 function requestReHighlight (){
+  const {chrome: {tabs: {sendMessage, query}}} = window;
   // console.log('requestReHighlight() called');
-  chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+  query({active: true, currentWindow: true}, function (tabs) {
     let id = '';
     let url = '';
     if (tabs.length) {
@@ -570,7 +587,7 @@ function requestReHighlight (){
       url = activeUrlGlobal;
       console.log('requestReHighlight() called for tab id (2): '+id);
     }
-    chrome.tabs.sendMessage(id, {command: 'ReHighlight', words: getWordsBackground(url)});
+    sendMessage(id, {command: 'ReHighlight', words: getWordsBackground(url)});
   });
 }
 
@@ -629,9 +646,13 @@ function getWordsBackground (inUrl) {
 }
 
 function onPage () {
-  chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    chrome.tabs.sendMessage(tabs[0].id, {command: 'getMarkers'}, function (result){
+  const {chrome: {tabs: {sendMessage, query, lastError}}} = window;
+  query({active: true, currentWindow: true}, function (tabs) {
+    sendMessage(tabs[0].id, {command: 'getMarkers'}, function (result){
       if(result){
+        if (lastError) {
+          console.warn(' chrome.runtime.sendMessage("getMarkers")', lastError.message);
+        }
         return(result);
       }
     });
@@ -811,7 +832,8 @@ function syncWordList (list, notify, listname){
 }
 
 function getWeVoteTabs () {
-  chrome.tabs.getAllInWindow(null, function (tabs) {
+  const { chrome: {tabs: {getAllInWindow}}} = window;
+  getAllInWindow(null, function (tabs) {
     let results = '';
     for (let i = 0; i < tabs.length; i++) {
       const { id: tabId, url } = tabs[i];
@@ -825,16 +847,17 @@ function getWeVoteTabs () {
 }
 
 function reloadPdfTabAsHTML (pdfURL, showEditor, tab) {
+  const {chrome: {tabs: {create, onUpdated, get}}} = window;
   debugE && console.log('reloadPdfTabAsHTML pdfURL: ' + pdfURL);
   convertPdfToHtmlInS3(pdfURL, (response) => {
     const { s3_url_for_html: htmlURL } = response.res;
     debugE && console.log('reloadPdfTabAsHTML htmlURL: ' + htmlURL);
     const tabId = tab.id;
     console.log('reloadPdfTabAsHTML tab.id: ' + tabId);
-    chrome.tabs.create({ url: htmlURL }, (newTabId) => {
-      chrome.tabs.onUpdated.addListener(function (newTabId, info) {
+    create({ url: htmlURL }, (newTabId) => {
+      onUpdated.addListener(function (newTabId, info) {
         if (info.status === 'complete') {
-          chrome.tabs.get(newTabId, (newTab) => setEnableForActiveTab(true, showEditor, newTab));
+          get(newTabId, (newTab) => setEnableForActiveTab(true, showEditor, newTab));
         }
       });
     });
