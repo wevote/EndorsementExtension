@@ -1,3 +1,4 @@
+/* global $ */
 /* eslint-disable no-unused-vars */
 
 const groupNames = {
@@ -38,7 +39,7 @@ const ballotWebAppURL = `${webAppRoot}/ballot`;
 const extensionWarmUpPage = `${webAppRoot}/extension.html`;
 const extensionSignInPage = `${webAppRoot}/more/extensionsignin`;
 const apiRoot = useProductionAPIs ? 'https://api.wevoteusa.org' : 'http://localhost:8000';
-const rootApiURL = `${apiRoot}/apis/v1`
+const rootApiURL = `${apiRoot}/apis/v1`;
 
 
 function isInOurDialogIFrame () {
@@ -78,10 +79,10 @@ function timingLog (time0, time1, text, warnAt) {
   const duration = time1 - time0;
 
   if (duration < 1000) {
-    const niceDuration = Number.parseFloat(duration).toPrecision(4)
+    const niceDuration = Number.parseFloat(duration).toPrecision(4);
     console.log('TIMING: time to ' + text + ' ' + niceDuration + ' milliseconds.');
   } else {
-    const niceDuration = Number.parseFloat(duration/1000).toPrecision(4)
+    const niceDuration = Number.parseFloat(duration/1000).toPrecision(4);
     const msg = 'TIMING: time to voterGuideHighlightsRetrieve took ' + niceDuration + ' SECONDS.';
     if ((duration)/1000 > warnAt) {
       console.warn(msg);

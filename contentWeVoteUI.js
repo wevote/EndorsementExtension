@@ -95,7 +95,7 @@ function fixupForPdfMinerSix () {
           }
         }
       } catch (e) {
-        console.error('fixupForPdfMinerSix threw exception: ', e, ' while parsing ', markup)
+        console.error('fixupForPdfMinerSix threw exception: ', e, ' while parsing ', markup);
 
       }
     });
@@ -130,9 +130,13 @@ function initializeOrgChoiceList () {
   setTimeout(() => {
     if (weContentState.voterWeVoteId.length) {
       if (weContentState.possibleOrgsList.length) {
-        orgChoiceDialog(weContentState.possibleOrgsList)
+        orgChoiceDialog(weContentState.possibleOrgsList);
       } else if (weContentState.positionsCount === 0) {
         setSideAreaStatus('No Candidate endorsements have been captured yet for this endorsement page.');
+        setTimeout(() => {
+          console.log('Second attempt to get a weContentState.position value, 6 secs later.');
+          retryLoadPositionPanel();
+        }, 6000);
       }
     } else {
       setSideAreaStatus('You must be signed in to display Candidate information.');
@@ -372,7 +376,7 @@ function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tab
     });
 }
 
-function getRefreshedHighlights () {
+function getRefreshedHighlights (dialogClosed) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugLog('getRefreshedHighlights called');
   sendMessage({ command: 'getHighlights', url: window.location.href, doReHighlight: true },
@@ -387,7 +391,11 @@ function getRefreshedHighlights () {
         const { highlighterEditorEnabled } = weContentState;
         if (highlighterEditorEnabled) {
           console.log('getRefreshedHighlights reloading iframe (before reload)');
-          document.getElementsByClassName('weVoteEndorsementFrame')[0].contentDocument.location.reload(true);
+          if (dialogClosed) {
+            window.location.reload(true);  // Reload the Editor mode iframe from within the iframe
+          } else {
+            document.getElementsByClassName('weVoteEndorsementFrame')[0].contentDocument.location.reload(true);  // Works when called from the candidate pane
+          }
         } else {
           console.log('getRefreshedHighlights reloading endorsement page (before reload)');
           document.location.reload();  // Reload the endorsement page
@@ -435,19 +443,19 @@ function updateTopMenu (update) {
 }
 
 /* eslint-disable no-unused-vars */
-function updateHighlightsIfNeeded () {
+function updateHighlightsIfNeeded (dialogClosed) {
   console.log('updateHighlightsIfNeeded ==========================');
-  handleUpdatedOrNewPositions(false, false, false);
+  handleUpdatedOrNewPositions(false, false, false, dialogClosed);
 }
 
 function updatePositionPanelUnconditionally () {
   console.log('updatePositionPanelUnconditionally ==========================');
-  handleUpdatedOrNewPositions(true, false, false);
+  handleUpdatedOrNewPositions(true, false, false, false);
 }
 
 function updatePositionPanelConditionally (update) {
   console.log('updatePositionPanelConditionally ========================== update: ', update);
-  handleUpdatedOrNewPositions(update, false, false);
+  handleUpdatedOrNewPositions(update, false, false, false);
 }
 
 function preloadPositionsForAnotherVM () {
@@ -455,19 +463,24 @@ function preloadPositionsForAnotherVM () {
   const {location: {ancestorOrigins, origin}} = window;
   if ((ancestorOrigins.length === 0) ||       // Ok to proceed if we have no ancestor origins
       (origin === ancestorOrigins[0])) {      // or if the ancestor origin matches the current origin
-    handleUpdatedOrNewPositions(false, true, true);
+    handleUpdatedOrNewPositions(false, true, true, false);
   } else {
     console.log('preload skipped for origin: ', origin);
   }
 }
 
-function updatePositionPanelFromTheIFrame () {
+function updatePositionPanelFromTheIFrame (dialogClosed) {
   console.log('updateHighlightsIfNeeded ==========================');
-  handleUpdatedOrNewPositions(true, true, false);
+  handleUpdatedOrNewPositions(true, true, false, dialogClosed);
+}
+
+function retryLoadPositionPanel () {
+  console.log('retryLoadPositionPanel ==========================');
+  handleUpdatedOrNewPositions(true, false, true, false);
 }
 /* eslint-enable no-unused-vars */
 
-function handleUpdatedOrNewPositions (update, fromIFrame, preLoad) {
+function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogClosed) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   // console.log('/////////////////////// handleUpdatedOrNewPositions() getPositions, weContentState.voterGuidePossibilityId: ' + weContentState.voterGuidePossibilityId);
 
@@ -492,7 +505,7 @@ function handleUpdatedOrNewPositions (update, fromIFrame, preLoad) {
 
         weContentState.priorData = data;
         if (fromIFrame && !preLoad) {
-          getRefreshedHighlights();
+          getRefreshedHighlights(dialogClosed);
         }
       } else {
         // This is not necessarily an error, it could be a brand new voter guide possibility with no position possibilities yet.
@@ -941,15 +954,15 @@ function addHandlersForCandidatePaneButtons (targetDiv, number, detachedDialog) 
     const { className } = but;
     if (className.startsWith('endorse')) {
       $(but).click(() => {
-        selectOneDeselectOthers('endorse', targetDiv)
+        selectOneDeselectOthers('endorse', targetDiv);
       });
     } else if (className.startsWith('oppose')) {
       $(but).click(() => {
-        selectOneDeselectOthers('oppose', targetDiv)
+        selectOneDeselectOthers('oppose', targetDiv);
       });
     } else if (className.startsWith('info')) {
       $(but).click(() => {
-        selectOneDeselectOthers('info', targetDiv)
+        selectOneDeselectOthers('info', targetDiv);
       });
     } else if (className.startsWith('revealLeft')) {
       $(but).click((event) => {

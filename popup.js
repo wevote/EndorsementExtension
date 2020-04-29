@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     event.timer = setTimeout(() => {
       timeoutToCloseDialog && window.close();
-      getBackgroundPage().handleButtonStateChange (showHighlights, showEditor, pdfURL)
+      getBackgroundPage().handleButtonStateChange (showHighlights, showEditor, pdfURL);
     }, 1000);
   });
 
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     event.timer = setTimeout(() => {
       timeoutToCloseDialog && window.close();
-      getBackgroundPage().handleButtonStateChange (showHighlights, showEditor, pdfURL)
+      getBackgroundPage().handleButtonStateChange (showHighlights, showEditor, pdfURL);
     }, 1000);
   });
 
@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const t1 = performance.now();
   timingLog(t0, t1, 'process popoup.html in popup.js took', 4.0);
   updateButtonState();
+  getBackgroundPage().popupMenuTiming(t0, t1, 'process popoup.html in popup.js took', 4.0);
 });
 
 function updateButtonState () {

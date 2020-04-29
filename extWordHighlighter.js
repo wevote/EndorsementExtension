@@ -16,6 +16,7 @@ let HighlightsData = {};
 let activeTabIdGlobal;
 let activeUrlGlobal = '';
 let aliasNames = [];
+let createSearchMenuT0 = 0;
 let highlighterEnabled = false;   // This is changed from popup.js
 let neverHighlightOn = {};  // The first copy of this list is almost certainly as good as the last in the session
 let nameToIdMap = {};
@@ -202,7 +203,7 @@ function getIcon (typeStance) {
   }
 }
 
-function createSearchMenu (){
+function createSearchMenu () {
   /* debugE&& */
   console.log('createSearchMenu has been called');
   getPlatformInfo(
@@ -213,6 +214,11 @@ function createSearchMenu (){
       });
     }
   );
+}
+
+// Timing log appears in the background console, instead of in the popup.js console, which is destroyed when the pop up closes
+function popupMenuTiming (time0, time1, text, warnAt) {
+  timingLog(time0, time1, text, warnAt);
 }
 
 function updateContextMenu (inUrl){
@@ -227,12 +233,12 @@ function updateContextMenu (inUrl){
 
     for (let group in filteredGroups){
       if(filteredGroups[group].Type !== 'remote'){
-        sortedByModified.push([group, filteredGroups[group].Modified])
+        sortedByModified.push([group, filteredGroups[group].Modified]);
       }
     }
     sortedByModified.sort(
       function (a, b) {
-        return b[1] - a[1]
+        return b[1] - a[1];
       }
     );
     let showGroupsInRightClickMenu = false;  // Sept 17, 2019 Disable the display of groups (adding to groups) in the right click menu
@@ -638,23 +644,24 @@ function getStatusForActiveTab (tabId) {
 /**
  * Key data for each tab is stored in the tabsHighlighted object, including whether the tab is enabled, shows highlighting,
  * should display the editor panes, etc.
- * @param tabURL {string}, the href of the tab, as a backup
- * @param sendResponse {Requester~requestCallback}, the content side callback
+ * @param {string} tabURL - the href of the tab, as a backup
+ * @param {requestCallback} sendResponse - the content side callback
+ * @returns {void}
  */
 function getThisTabsStatus (tabURL, sendResponse) {
-  const {chrome: {tabs: {sendMessage, query}}} = window;
+  const {chrome: {tabs: { sendMessage, query } } } = window;
   // console.log('function getThisTabsStatus () {() called');
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
     let status = tabInfoObj;  // contains an up to date copy of highlighterEnabled
     let found = false;
     if (tabs.length) {
-      const { id: tabId, url } = tabs[0];
+      const { 0: { id: tabId, url } } = tabs;
       if (!tabsHighlighted[tabId]) {
         // console.log('getThisTabsStatus created a NEW tabsHighlighted entry for id ', tabId);
         tabsHighlighted[tabId] = status;
         Object.assign(tabsHighlighted[tabId], {highlighterEnabled, neverHighlightOn, tabId, url});
       } else {
-        // console.log('getThisTabsStatus found an EXISTING tabsHighlighted entry for id ', tabId);
+        debugE && console.log('getThisTabsStatus found an EXISTING tabsHighlighted entry for id ', tabId);
       }
       status = tabsHighlighted[tabId];
       found = true;
@@ -721,7 +728,7 @@ function getWordsBackground (inUrl) {
       return result;
     }
   }
-  debugE && console.log("getWordsBackground inURL: " + inUrl);
+  debugE && console.log('getWordsBackground inURL: ' + inUrl);
   for (let highlightData in HighlightsData.Groups) {
     let returnHighlight=false;
     if (HighlightsData.Groups[highlightData].Enabled){
