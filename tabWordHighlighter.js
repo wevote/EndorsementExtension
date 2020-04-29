@@ -44,7 +44,7 @@ let urlsForHighlights = {};
 
 
 $(() => {
-  const {chrome: {runtime: {sendMessage, lastError}}} = window;
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
 
   if (isInOurIFrame()) {
     sendMessage({
@@ -114,7 +114,7 @@ $(() => {
           } else if (request.command === 'ScrollHighlight') {
             jumpNext();
             showMarkers();
-            return false
+            return false;
           } else if (request.command === 'getMarkers') {
             sendResponse(highlightMarkers);
             return true;
@@ -156,7 +156,7 @@ $(() => {
       }
     );
   } else {
-    debug && console.log('not in a unframed endorsement page: ', window.location)
+    debug && console.log('not in a unframed endorsement page: ', window.location);
   }
 
   if (window.location.href !== 'about:blank') {  // Avoid worthless queries
@@ -358,16 +358,16 @@ function getWordsThenStartHighlighting () {
         '<iframe id="weIFrame" src="' + extensionWarmUpPage + '"></iframe>\n';
       $('body').first().prepend(markup);
       if (isInOurIFrame()) {
-        preloadPositionsForAnotherVM()  // preLoad positions for this VM, if it is a VM within an iFrame
+        preloadPositionsForAnotherVM();  // preLoad positions for this VM, if it is a VM within an iFrame
       }
       $('.weclose').click(() => {
-        // if (window.location === window.parent.location) { // if in an iframe
+        const dialogClosed = true;
         if (isInOurIFrame()) { // if in an iframe
           console.log('With editors displayed, and the endorsement page in an iFrame, the modal containing an iFrame to the webapp has closed.  Evaluating the need to update the PositionsPanel, weContentState ', weContentState);
-          updatePositionPanelFromTheIFrame();  // which calls getRefreshedHighlights() if the positions data has changed
+          updatePositionPanelFromTheIFrame(dialogClosed);  // which calls getRefreshedHighlights() if the positions data has changed
         } else {
           console.log('dialog containing iFrame has closed, either without the editor displayed, or for newly discovered positions, ie right click on highlighed position');
-          updateHighlightsIfNeeded();
+          updateHighlightsIfNeeded(dialogClosed);
         }
       });
     }
@@ -390,7 +390,7 @@ function highlightLoop (){
   ReadyToFindWords = true;
 
   HighlightLoop = setInterval(function () {
-    Highlight&&ReadyToFindWords&&findWords()
+    Highlight&&ReadyToFindWords&&findWords();
   }, HighlightLoopFrequency);
 
 }
