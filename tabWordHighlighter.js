@@ -4,7 +4,7 @@
 // These log to the console of the endorsement page (like sierraclub.org) in the browser, Aand communicate with the background script via chrome extension messages that are sent.
 // When the endorsement page is re-opened in an iframe, access to that DOM is greatly limited.
 
-/* global preloadCandidateDataForThisVM, preloadPositionsForAnotherVM */
+/* global preloadPositionsForAnotherVM, updatePositionPanelFromTheIFrame, updateHighlightsIfNeeded */
 
 /* eslint no-unused-vars: 0 */
 /* eslint init-declarations: 0 */
@@ -26,9 +26,6 @@ var HighlightWarmup=300; // min time to wait before running a highlight executio
 
 var alreadyNotified = false;
 var wordsReceived = false;
-var highlighterEnabled = true;
-let highlighterEnabledThisTab = false;
-let editorEnabledThisTab = false;
 var searchEngines = {
   'google.com': 'q',
   'bing.com': 'q'
@@ -48,23 +45,26 @@ let urlsForHighlights = {};
 
 $(() => {
   const {chrome: {runtime: {sendMessage, lastError}}} = window;
-  sendMessage({
-    command: 'myTabId',
-  }, function (response) {
-    if (lastError) {
-      console.warn(' chrome.runtime.sendMessage("myTabId")', lastError.message);
-    }
 
-    const { tabId: tab } = response;
-    tabId = tab;
-    // console.log('tabWordHighlighter this tab.id: ' + tabId);
-  });
+  if (isInOurIFrame()) {
+    sendMessage({
+      command: 'myTabId',
+    }, function (response) {
+      if (lastError) {
+        console.warn(' chrome.runtime.sendMessage("myTabId")', lastError.message);
+      }
 
-  // console.log('Hack that sets debugLocal to true in place ------------------------------------');
-  // window.debugLocal = true;
+      const {tabId: tab} = response;
+      tabId = tab;
+      // console.log('tabWordHighlighter this tab.id: ' + tabId);
+    });
 
-  // If not in an iFrame
-  if (!isInIFrame()) {
+    // console.log('Hack that sets debugLocal to true in place ------------------------------------');
+    // window.debugLocal = true;
+  }
+
+  // If not in our iFrame
+  if (!isInOurIFrame() && !isInANonWeVoteIFrame()) {
     // Check to see if we are on the WebApp signin page, and capture the device id if signed in
     if (window.location.host.indexOf('wevote.us') > -1 || window.location.host.indexOf('localhost:3000') > -1) {
       const voterDeviceId = getVoterDeviceIdFromWeVoteDomainPage();
@@ -83,7 +83,7 @@ $(() => {
     chrome.runtime.onMessage.addListener(
       // eslint-disable-next-line complexity
       function (request, sender, sendResponse) {
-        debug && console.log('onMessage.addListener() in tabWordHighlighter got a message: '+ request.command);
+        debug && console.log('onMessage.addListener() in tabWordHighlighter got a message: ' + request.command);
 
         if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
             sender.id === 'highlightthis@deboel.eu') {
@@ -93,18 +93,23 @@ $(() => {
               console.log('displayHighlightsForTabAndPossiblyEditPanes skipping PDF file');
               return false;
             }
-            const priorHighlighterEnabled = highlighterEnabled;
-            const { showHighlights, showEditor, tabId } = request;
-            console.log('displayHighlightsForTabAndPossiblyEditPanes request.showHighlights ', showHighlights, ', showEditor: ', showEditor, ', tabId: ' + tabId);
-            if (showHighlights || showEditor) {
-              highlighterEnabled = true;
-            } else if (priorHighlighterEnabled) {
+            const {highlighterEnabled: priorHighlighterEnabled} = weContentState;
+            const {highlighterEnabled, showHighlights, showEditor, tabId} = request;
+            clearPriorDataOnModeChange(showHighlights, showEditor);
+            weContentState.highlighterEnabled = highlighterEnabled;
+            weContentState.highlighterEnabledThisTab = showHighlights;
+            weContentState.highlighterEditorEnabled = showEditor;
+            // weContentState.tabId = tabId;  //TODO: Does this work for when in iframe?
+            console.log('displayHighlightsForTabAndPossiblyEditPanes request.showHighlights ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', tabId, ', href: ', window.location.href);
+            if (priorHighlighterEnabled  && (!highlighterEnabled && !showHighlights)) {
               // if we were enabled (master switch), and now we are not, reload the page -- if this proves to be a problem, we could reverse the highlighting.
+              console.log('displayHighlightsForTabAndPossiblyEditPanes (before reload)');
+              weContentState.priorData = [];
               location.reload();
             }
-            highlighterEnabledThisTab = showHighlights;
-            editorEnabledThisTab = showEditor;
-            displayHighlightingAndPossiblyEditor(showHighlights, showEditor, tabId);
+            if (window.location.href !== 'about:blank') {  // Avoid worthless queries
+              displayHighlightingAndPossiblyEditor(weContentState.highlighterEnabledThisTab, weContentState.highlighterEditorEnabled, tabId);
+            }
             return false;
           } else if (request.command === 'ScrollHighlight') {
             jumpNext();
@@ -117,8 +122,8 @@ $(() => {
             highlightMarkers = {};
             return false;
           } else if (request.command === 'ReHighlight') {
-            highlighterEnabled = true;
-            highlighterEnabledThisTab = true;
+            weContentState.highlighterEnabled = true;
+            weContentState.highlighterEnabledThisTab = true;
             reHighlight(request.words);
             return false;
           } else if (request.command === 'createEndorsement') {
@@ -129,14 +134,21 @@ $(() => {
             return false;
           } else if (request.command === 'getTabStatusValues') {
             const encodedHref = encodeURIComponent(location.href);
-            const {orgName, organizationWeVoteId, organizationTwitterHandle} = state;
-            debug && console.log('getTabStatusValues tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', editorEnabledThisTab: ' + editorEnabledThisTab);
-            sendResponse({ highlighterEnabledThisTab, editorEnabledThisTab, orgName, organizationWeVoteId, organizationTwitterHandle, encodedHref });
+            const {orgName, organizationWeVoteId, organizationTwitterHandle, highlighterEnabledThisTab, highlighterEditorEnabled} = weContentState;
+            console.log('getTabStatusValues tabId: ', tabId, ', highlighterEnabledThisTab: ', highlighterEnabledThisTab, ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', href: ', window.location.href);
+            sendResponse({
+              highlighterEnabledThisTab,
+              highlighterEditorEnabled,
+              orgName,
+              organizationWeVoteId,
+              organizationTwitterHandle,
+              encodedHref
+            });
             return false;
           } else if (request.command === 'disableExtension') {
             enableHighlightsForAllTabs(false);
             return false;
-          } else  {
+          } else {
             console.error('tabWordHighlighter in chrome.runtime.onMessage.addListener received unknown command: ' + request.command);
             return false;
           }
@@ -144,20 +156,11 @@ $(() => {
       }
     );
   } else {
-    debug && console.log('not in main page', window.location)
+    debug && console.log('not in a unframed endorsement page: ', window.location)
   }
 
-  if (isInIFrame()) {   // if in an iframe
-    debug && console.log('bottom of page init window.self: ', window.self);
-    const urlObj = new URL(window.location);
-    if (!urlObj.host.includes('wevote') &&
-      !urlObj.host.includes('twitter') &&
-      !urlObj.host.includes('stripe') &&
-      !urlObj.host.includes('addthis') &&
-      urlObj.host !== '') {  // this filter is not life or death, it just cuts out some common waste
-      debug && console.log('------------- host ', urlObj.host);
-      sendGetStatus();
-    }
+  if (window.location.href !== 'about:blank') {  // Avoid worthless queries
+    sendGetStatus();  // Initial get statos
   }
 });
 
@@ -219,7 +222,7 @@ function reHighlight (words) {
       }
     }
   }
-  console.log('reHighlight before findWords --------------------------- namesToIds: ', namesToIds, ', tabId: ', state.tabId);
+  console.log('reHighlight before findWords --------------------------- namesToIds: ', namesToIds, ', tabId: ', weContentState.tabId);
 
   findWords();
 }
@@ -238,21 +241,43 @@ function getVoterDeviceIdFromWeVoteDomainPage () {
 // on the endorsement page that is displayed in the tab (for example, https://www.sierraclub.org/california/2020-endorsements/).
 function sendGetStatus () {
   const {chrome: {runtime: {sendMessage, lastError}}} = window;
-  sendMessage({command: 'getStatus'}, function (response) {
+
+  for (let i = 0; i < weContentState.neverHighlightOn.length; i++) {
+    let reg = new RegExp(weContentState.neverHighlightOn[i].replace('*', '.*?'));
+    if (window.location.hostname.match(reg)) {
+      debug && console.log('sendGetStatus found a neverHighlightOn match: ', window.location.hostname);
+      return;
+    }
+  }
+
+  sendMessage({command: 'getStatus', tabURL: window.location.href}, function (response) {
     console.log('chrome.runtime.sendMessage({command: \'getStatus\'}', document.URL);
     if (lastError) {
       console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
       return;
     }
-    debug && console.log('reponse from getStatus', window.location);
-    highlighterEnabled = response.highlighterEnabled;
-    highlighterEnabledThisTab  = response.highlighterEnabled;  // These start out identical, but this one is initialized us false
-    // console.log('response from sendStatus highlighterEnabled: ', highlighterEnabled, ', highlighterEnabledThisTab: ', highlighterEnabledThisTab);
-    if (highlighterEnabled) {
+    const { highlighterEnabled, neverHighlightOn, showHighlights, showEditor, tabId } = response;
+    debug && console.log('response from getStatus', response);
+    clearPriorDataOnModeChange(showHighlights, showEditor);
+    weContentState.highlighterEnabled = highlighterEnabled;
+    weContentState.highlighterEnabledThisTab  = showHighlights;
+    weContentState.highlighterEditorEnabled = showEditor;
+    if (tabId > 0) weContentState.tabId = tabId;
+    weContentState.neverHighlightOn = neverHighlightOn;
+
+    // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary TODO: April 26, 2020, do we even need 'myTabId' msg chain?
+    if (weContentState.highlighterEnabledThisTab) {
       debug && console.log('about to get words', window.location);
       getWordsThenStartHighlighting();
     }
   });
+}
+
+function clearPriorDataOnModeChange (showHighlights, showEditor) {
+  if ((!showHighlights && !showEditor) ||
+    (weContentState.highlighterEnabledThisTab && weContentState.highlighterEditorEnabled !== showEditor)) {
+    weContentState.priorData = [];  // Needed to avoid the 'unchanged data ... abort' when swapping display editor/highlights only
+  }
 }
 
 function getWordsThenStartHighlighting () {
@@ -332,11 +357,13 @@ function getWordsThenStartHighlighting () {
         '</div>\n' +
         '<iframe id="weIFrame" src="' + extensionWarmUpPage + '"></iframe>\n';
       $('body').first().prepend(markup);
-      preloadPositionsForAnotherVM()  // preLoad positions for this VM, if it is a VM within an iFrame
+      if (isInOurIFrame()) {
+        preloadPositionsForAnotherVM()  // preLoad positions for this VM, if it is a VM within an iFrame
+      }
       $('.weclose').click(() => {
         // if (window.location === window.parent.location) { // if in an iframe
-        if (isInIFrame()) { // if in an iframe
-          console.log('With editors displayed, and the endorsement page in an iFrame, the modal containing an iFrame to the webapp has closed.  Evaluating the need to update the PositionsPanel, state ', state);
+        if (isInOurIFrame()) { // if in an iframe
+          console.log('With editors displayed, and the endorsement page in an iFrame, the modal containing an iFrame to the webapp has closed.  Evaluating the need to update the PositionsPanel, weContentState ', weContentState);
           updatePositionPanelFromTheIFrame();  // which calls getRefreshedHighlights() if the positions data has changed
         } else {
           console.log('dialog containing iFrame has closed, either without the editor displayed, or for newly discovered positions, ie right click on highlighed position');
@@ -518,7 +545,8 @@ function revealRightAction (selection, pageURL, tabId) {
 
 // This allows the popup to find out if this tab is highlighted and/or editors are displayed
 function getDisplayedTabStatus (tabId) {
-  debug && console.log('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', editorEnabledThisTab: ' + editorEnabledThisTab);
+  const { highlighterEnabledThisTab, highlighterEditorEnabled} = weContentState;
+  debug && console.log('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', highlighterEditorEnabled: ' + highlighterEditorEnabled);
   return {
     highlighterEnabledThisTab,
     editorEnabledThisTab,

@@ -27,19 +27,19 @@ function getHighlightsListFromApiServer (locationHref, doReHighlight, sendRespon
 
 function processHighlightsRetrieve (res, doReHighlight, sendResponse) {
   let highlightsList = res['highlight_list'];
-  let neverHighLightOn = res['never_highlight_on'];
+  let neverHighLightOnLocal = res['never_highlight_on'];
 
 
   // February 2020, these are temporary and can be removed once the python server is updated
-  neverHighLightOn.push('blank');
-  neverHighLightOn.push('platform.twitter.com');
-  neverHighLightOn.push('s7.addthis.com');
-  neverHighLightOn.push('vars.hotjar.com');
-  neverHighLightOn.push('*.google.com');
-  neverHighLightOn.push('regex101.com');
+  neverHighLightOnLocal.push('about:blank');
+  neverHighLightOnLocal.push('platform.twitter.com');
+  neverHighLightOnLocal.push('s7.addthis.com');
+  neverHighLightOnLocal.push('vars.hotjar.com');
+  neverHighLightOnLocal.push('*.google.com');
+  neverHighLightOnLocal.push('regex101.com');
   debug && console.log('get json highlightsList: ', highlightsList);
   debug && console.log('get json highlightsList.length: ', highlightsList.length);
-  initializeHighlightsData(highlightsList, neverHighLightOn);
+  initializeHighlightsData(highlightsList, neverHighLightOnLocal);
   if (doReHighlight) {
     requestReHighlight();
   }
@@ -72,17 +72,24 @@ function getOrganizationFound (locationHref, sendResponse) {
       voterGuidePossibilityIdCache[locationHref] = voterGuidePossibilityId;
       debug && console.log('voter_guide_possibility_id:', voterGuidePossibilityId);
 
-      data = {
-        email,
-        orgName,
-        twitterHandle,
-        weVoteId,
-        orgWebsite,
-        orgLogo,
-        possibilityUrl,
-        voterGuidePossibilityId,
-        noExactMatchOrgList
-      };
+      for (let tabId in tabsHighlighted) {
+        const { url } = tabsHighlighted[tabId];
+        if (url === locationHref) {
+          data = Object.assign(tabsHighlighted[tabId], {
+            highlighterEnabled,
+            email,
+            orgName,
+            twitterHandle,
+            weVoteId,
+            orgWebsite,
+            orgLogo,
+            possibilityUrl,
+            voterGuidePossibilityId,
+            noExactMatchOrgList
+          });
+          break;
+        }
+      }
     } else {
       console.log('ERROR: voterGuidePossibilityRetrieve returned with a undefined or null, res or res.organization');
       data = {};
@@ -143,8 +150,12 @@ function getPossiblePositions (voterGuidePossibilityId, hrefURL, isIFrame, sendR
   let voterDeviceId = localStorage['voterDeviceId'];
   if (voterDeviceId && voterDeviceId.length > 0) {
     let vGPId = voterGuidePossibilityId;
-    if (!voterGuidePossibilityId || voterGuidePossibilityId === 0 || voterGuidePossibilityId === '') {
+    if (!voterGuidePossibilityId || voterGuidePossibilityId === 0 || voterGuidePossibilityId === '' || voterGuidePossibilityId === 'undefined') {
+      debug && console.log('getPossiblePositions called without a voterGuidePossibilityIdCache');
       vGPId = voterGuidePossibilityIdCache[hrefURL];
+      if (!vGPId || vGPId.length === 0) {
+        debug && console.log('No received or cached voterGuidePossibilityIdCache in getPossiblePositions for URL ', hrefURL);
+      }
     }
     const apiURL = `${rootApiURL}/voterGuidePossibilityPositionsRetrieve/?voter_device_id=${voterDeviceId}&voter_guide_possibility_id=${vGPId}`;
     debug && console.log('getPossiblePositions: ' + apiURL);

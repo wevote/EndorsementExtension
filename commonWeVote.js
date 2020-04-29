@@ -41,9 +41,18 @@ const apiRoot = useProductionAPIs ? 'https://api.wevoteusa.org' : 'http://localh
 const rootApiURL = `${apiRoot}/apis/v1`
 
 
-function isInIFrame () {
-  return window.self !== window.top;  // true if in an iframe
+function isInOurDialogIFrame () {
+  return $('.weVoteEndorsementFrame').length > 0;   // this is true if in our dialog's iframe containing the WebApp at wevote.us
 }
+
+function isInOurIFrame () {
+  return $('div#wedivheader').length > 0;   // this is true if in our highlighted "Endorsement Page" that is framed by the "Open Edit Panel" button action}
+}
+
+function isInANonWeVoteIFrame () {
+  return (window.self !== window.top  && $('.weVoteEndorsementFrame').length === 0) || window.location.href === 'about:blank';
+}
+
 
 // SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
 function markupForThumbSvg (classString, type, fillColor) {

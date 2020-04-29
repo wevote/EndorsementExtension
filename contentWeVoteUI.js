@@ -1,53 +1,59 @@
 /* global $, markupForThumbSvg, extensionSignInPage, extensionSignInPage, addCandidateExtensionWebAppURL, colors,
-   isInIFrame */
+   isInOurIFrame */
 
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
 
-let state = {
-  voterGuidePossibilityId: '',
-  organizationWeVoteId: '',
-  organizationTwitterHandle: '',
-  orgName: '',
-  candidateName: '',
+let weContentState = {
   allNames: '',
-  possibleOrgsList: [],
-  positionsCount: 0,
-  voterWeVoteId: '',
-  positions: [],
-  voterIsSignedIn: false,
-  tabId: 0,
+  candidateName: '',
+  highlighterEditorEnabled: false,
+  highlighterEnabled: false,
+  highlighterEnabledThisTab: false,
   isFromPDF:  false,
+  neverHighlightOn: ['*.wevote.us', 'api.wevoteusa.org', 'localhost', 'platform.twitter.com', '*.addthis.com'],
+  orgName: '',
+  organizationTwitterHandle: '',
+  organizationWeVoteId: '',
+  positions: [],
+  positionsCount: 0,
+  possibleOrgsList: [],
   priorData: [],
+  tabId: 0,
+  voterGuidePossibilityId: '',
+  voterIsSignedIn: false,
+  voterWeVoteId: '',
 };
 
 
 /**
  * Display (or remove) the highlighting on the endorsement page, and optionaly the editor
- * @param {boolean} showHighlights - true to display the highlighting, false to remove it and the editor
- * @param {boolean} showEditor - true to display the editor
+ * @param {boolean} highlighterEnabledThisTab - true to display the highlighting, false to remove it and the editor
+ * @param {boolean} highlighterEditorEnabled - true to display the editor
  * @param {number} tabId - chromes tab number for currently displayed tab
  * @returns {boolean} - return true to indicate that we want to call the response function asynchronously
  */
-function displayHighlightingAndPossiblyEditor (showHighlights, showEditor, tabId) {  // eslint-disable-line no-unused-vars
-  // console.log('displayHighlightingAndPossiblyEditor showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', tabId);
+function displayHighlightingAndPossiblyEditor (highlighterEnabledThisTab, highlighterEditorEnabled, tabId) {  // eslint-disable-line no-unused-vars
+  // console.log('displayHighlightingAndPossiblyEditor highlighterEnabledThisTab: ', highlighterEnabledThisTab, ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', tabId: ', tabId);
   if (tabId && tabId.length > 0) {
-    state.tabId = tabId;
+    weContentState.tabId = tabId;
   }
 
   const urlToQuery = $('input[name="pdfFileName"]').val();
-  state.isFromPDF = urlToQuery && urlToQuery.length > 0;   // This is for PDFs that have been converted to HTML by PDFMinerSix
-  if (state.isFromPDF) {
+  weContentState.isFromPDF = urlToQuery && urlToQuery.length > 0;   // This is for PDFs that have been converted to HTML by PDFMinerSix
+  if (weContentState.isFromPDF) {
     fixupForPdfMinerSix();
   }
 
   try {
-    if(showHighlights || showEditor) {
+    if (highlighterEnabledThisTab) {
       console.log('displayHighlightingAndPossiblyEditor ----- for tab: ' + tabId);
-      getHighlights(showHighlights, showEditor, tabId);   // Calls BuildUI when the API query completes
-    } else {
-      // Disable UI (reload the page)
-      console.log('Unloading displayHighlightingAndPossiblyEditor ----- for tab: ' + tabId);
+      getHighlights(highlighterEnabledThisTab, highlighterEditorEnabled, tabId);   // Calls BuildUI when the API query completes
+    } else if (isInOurIFrame()) { // Disable UI (reload the page)
+      console.log('Unloading displayHighlightingAndPossiblyEditor as requested from popup (before reload) in iFrame----- for tab: ' + tabId);
       location.reload();
+    } else {
+      console.log('Unloading displayHighlightingAndPossiblyEditor as requested from popup (before reload) NOT in our iFrame----- for tab: ' + tabId);
+      location.href += '';
     }
   } catch (err) {
     console.log('jQuery dialog in contentWeVoteUI threw: ', err);
@@ -122,10 +128,10 @@ function displayEditPanes () {
 
 function initializeOrgChoiceList () {
   setTimeout(() => {
-    if (state.voterWeVoteId.length) {
-      if (state.possibleOrgsList.length) {
-        orgChoiceDialog(state.possibleOrgsList)
-      } else if (state.positionsCount === 0) {
+    if (weContentState.voterWeVoteId.length) {
+      if (weContentState.possibleOrgsList.length) {
+        orgChoiceDialog(weContentState.possibleOrgsList)
+      } else if (weContentState.positionsCount === 0) {
         setSideAreaStatus('No Candidate endorsements have been captured yet for this endorsement page.');
       }
     } else {
@@ -168,7 +174,7 @@ function signIn (attemptLogin) {
         console.warn(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
       const {success, error, err, voterName, photoURL, weVoteId, voterEmail, isSignedIn} = response.data;
-      state.voterWeVoteId = weVoteId || '';
+      weContentState.voterWeVoteId = weVoteId || '';
       debugLog('signIn response: ', response);
       let voterInfo = {
         success: success,
@@ -189,10 +195,11 @@ function signIn (attemptLogin) {
         // handleUpdatedOrNewPositions(true, false, false);
         const interval = setInterval(function (){
           try {
-            // debugLog('loop update position panel, interval ', interval);
-            updatePositionPanelUnconditiionally();
+            // console.log('loop update position panel, interval ', interval);
+            updatePositionPanelConditionally(true);
           } catch (e) {
             // exception for context invalidated, ie the page refreshed
+            console.log('loop update stopped XXXXXX on exception ', e, interval);
             clearInterval(interval);
           }
         }, 10000);
@@ -213,9 +220,9 @@ function signIn (attemptLogin) {
     }, 90000);
 
     const interval = setInterval(function (){
-      // console.log('loop state.voterIsSignedIn: ', state.voterIsSignedIn);
+      // console.log('loop weContentState.voterIsSignedIn: ', weContentState.voterIsSignedIn);
       getVoterInfo();
-      if (state.voterIsSignedIn || stopWaiting) {
+      if (weContentState.voterIsSignedIn || stopWaiting) {
         clearInterval(interval);
       }
     }, 100);
@@ -258,7 +265,7 @@ function getVoterInfo () {
         console.warn(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
       const { success, error, err, voterName, photoURL, weVoteId, voterEmail, isSignedIn } = response.data;
-      state.voterWeVoteId = weVoteId || '';
+      weContentState.voterWeVoteId = weVoteId || '';
       debugLog('signIn response: ', response);
       let voterInfo = {
         success: success,
@@ -271,12 +278,12 @@ function getVoterInfo () {
         isSignedIn
       };
       if (success) {
-        state.voterIsSignedIn = isSignedIn;
+        weContentState.voterIsSignedIn = isSignedIn;
       }
 
       if (success && isSignedIn) {
         setSignInOutMarkup (voterInfo);
-        updatePositionPanelUnconditiionally ();
+        updatePositionPanelUnconditionally ();
         return true;
       }
       return false;
@@ -326,10 +333,11 @@ function topMenu () {
 }
 
 // Get the href into the extension
-function getHighlights (showHighlights, showEditor, tabId) {
+function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tabId) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   const t0 = performance.now();
-  debugLog('getHighlights() called');
+  console.log('getHighlights() called ========================== highlighterEnabledThisTab, ', highlighterEnabledThisTab,
+    ', highlighterEditorEnabled ', highlighterEditorEnabled, ', tabId', tabId);
   let urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML
   if (!urlToQuery || urlToQuery.length < 1) {
     urlToQuery = window.location.href;
@@ -346,9 +354,9 @@ function getHighlights (showHighlights, showEditor, tabId) {
       if (response) {
         const t1 = performance.now();
         timingLog(t0, t1, 'getHighlights took', 8.0);
-        debugLog('SUCCESS: getHighlights received a response: ', response, '  showEditor:', showEditor, ', tabId: ', tabId);
+        debugLog('SUCCESS: getHighlights received a response: ', response, '  highlighterEditorEnabled:', highlighterEditorEnabled, ', tabId: ', tabId);
         namesToIds = response.nameToIdMap;  // This one only works if NOT in an iFrame
-        if (showEditor) {
+        if (highlighterEditorEnabled) {
           displayEditPanes();
           timingLog(t1, performance.now(), 'displayEditPanes took', 5.0);
         } else {
@@ -356,8 +364,8 @@ function getHighlights (showHighlights, showEditor, tabId) {
           // The same endorsement page, when opened in an iframe will immediately reload and must call sendGetStatus from that DOM, at that moment.
           // See the call to sendGetStatus in the initialization code for tabWordHighlighter
           updateTopMenu(false);  // Get the voterGuidePossiblityId without attempting to update the non-existent top menu
-          sendGetStatus();
         }
+        sendGetStatus();
       } else {
         console.log('ERROR: getHighlights received empty response');
       }
@@ -372,12 +380,18 @@ function getRefreshedHighlights () {
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getRefreshedHighlights") ', lastError.message);
       }
-      // console.log('getRefreshedHighlights() response', response);
+      console.log('getRefreshedHighlights() response', response);
 
       if (response) {
         debugLog('SUCCESS: getRefreshedHighlights received a response', response);
-        console.log('getRefreshedHighlights reloading iframe');
-        document.location.reload();
+        const { highlighterEditorEnabled } = weContentState;
+        if (highlighterEditorEnabled) {
+          console.log('getRefreshedHighlights reloading iframe (before reload)');
+          document.getElementsByClassName('weVoteEndorsementFrame')[0].contentDocument.location.reload(true);
+        } else {
+          console.log('getRefreshedHighlights reloading endorsement page (before reload)');
+          document.location.reload();  // Reload the endorsement page
+        }
       } else {
         console.log('ERROR: getRefreshedHighlights received empty response');
       }
@@ -396,12 +410,13 @@ function updateTopMenu (update) {
       debugLog('updateTopMenu() response', response);
 
       if (response && Object.entries(response).length > 0) {
-        const { orgName, orgLogo, voterGuidePossibilityId, noExactMatchOrgList, twitterHandle, weVoteId, } = response.data;
-        state.organizationWeVoteId = weVoteId;
-        state.organizationTwitterHandle = twitterHandle;
-        state.orgName = orgName;
-        state.voterGuidePossibilityId = voterGuidePossibilityId;
-        state.possibleOrgsList = noExactMatchOrgList;
+        const { orgName, orgLogo, voterGuidePossibilityId, noExactMatchOrgList, twitterHandle, weVoteId, tabId } = response.data;
+        weContentState.organizationWeVoteId = weVoteId;
+        weContentState.organizationTwitterHandle = twitterHandle;
+        weContentState.orgName = orgName;
+        weContentState.voterGuidePossibilityId = voterGuidePossibilityId;
+        weContentState.possibleOrgsList = noExactMatchOrgList;
+        if (tabId > 0) weContentState.tabId = tabId;
 
         if (update) {
           $('#orgLogo').attr('src', orgLogo);
@@ -409,8 +424,9 @@ function updateTopMenu (update) {
           $('#sendTopComment').click(() => {
             sendTopComment();
           });
-          debugLog('updateTopMenu voterGuidePossibilityId: ' + state.voterGuidePossibilityId);
+          debugLog('updateTopMenu voterGuidePossibilityId: ' + weContentState.voterGuidePossibilityId);
         }
+        // console.log('updateTopMenu updatePositionPanelConditionally update: ' + update);
         updatePositionPanelConditionally(update);
       } else {
         console.error('ERROR: updateTopMenu received empty response');
@@ -418,30 +434,44 @@ function updateTopMenu (update) {
     });
 }
 
+/* eslint-disable no-unused-vars */
 function updateHighlightsIfNeeded () {
+  console.log('updateHighlightsIfNeeded ==========================');
   handleUpdatedOrNewPositions(false, false, false);
 }
 
-function updatePositionPanelUnconditiionally () {
+function updatePositionPanelUnconditionally () {
+  console.log('updatePositionPanelUnconditionally ==========================');
   handleUpdatedOrNewPositions(true, false, false);
 }
 
 function updatePositionPanelConditionally (update) {
+  console.log('updatePositionPanelConditionally ========================== update: ', update);
   handleUpdatedOrNewPositions(update, false, false);
 }
 
 function preloadPositionsForAnotherVM () {
-  handleUpdatedOrNewPositions(false, true, true);
+  console.log('preloadPositionsForAnotherVM ==========================');
+  const {location: {ancestorOrigins, origin}} = window;
+  if ((ancestorOrigins.length === 0) ||       // Ok to proceed if we have no ancestor origins
+      (origin === ancestorOrigins[0])) {      // or if the ancestor origin matches the current origin
+    handleUpdatedOrNewPositions(false, true, true);
+  } else {
+    console.log('preload skipped for origin: ', origin);
+  }
 }
 
 function updatePositionPanelFromTheIFrame () {
+  console.log('updateHighlightsIfNeeded ==========================');
   handleUpdatedOrNewPositions(true, true, false);
 }
+/* eslint-enable no-unused-vars */
 
 function handleUpdatedOrNewPositions (update, fromIFrame, preLoad) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
-  debugLog('handleUpdatedOrNewPositions() getPositions, state.voterGuidePossibilityId: ' + state.voterGuidePossibilityId);
-  sendMessage({ command: 'getPositions', hrefURL: window.location.href, isIFrame: isInIFrame(), voterGuidePossibilityId: state.voterGuidePossibilityId },
+  // console.log('/////////////////////// handleUpdatedOrNewPositions() getPositions, weContentState.voterGuidePossibilityId: ' + weContentState.voterGuidePossibilityId);
+
+  sendMessage({ command: 'getPositions', hrefURL: window.location.href, isIFrame: isInOurIFrame(), voterGuidePossibilityId: weContentState.voterGuidePossibilityId },
     function (response) {
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getPositions")', lastError.message);
@@ -449,21 +479,20 @@ function handleUpdatedOrNewPositions (update, fromIFrame, preLoad) {
       debugLog('handleUpdatedOrNewPositions() response', response);
       if ((response && Object.entries(response).length > 0) && (response.data !== undefined) && (response.data.length > 0)) {
         let {data} = response;
-        debugLog('--------------- handleUpdatedOrNewPositions: booleans, response and previous', update, fromIFrame, preLoad, data, state.priorData);
+        // console.log('--------------- handleUpdatedOrNewPositions: booleans, response and previous', update, fromIFrame, preLoad, data, weContentState.priorData);
         if (!preLoad && !hasCandidateDataChanged(data)) {
-          debugLog('handleUpdatedOrNewPositions -------------- no change in data, aborting update of positions panel');
+          // console.log('handleUpdatedOrNewPositions -------------- no change in data, aborting update of positions panel');
           return;
         }
-        state.priorData = data;
 
-        if (!preLoad) {
-          if (fromIFrame || !update) {
-            getRefreshedHighlights();
-          }
-          if (update) {
-            $('.candidateWe').remove();   // Remove all the existing candidates, and then redraw them
-            coreUpdatePositions(data, update);
-          }
+        if (update && !fromIFrame) {
+          $('.candidateWe').remove();   // Remove all the existing candidates, and then redraw them
+          coreUpdatePositions(data, update);
+        }
+
+        weContentState.priorData = data;
+        if (fromIFrame && !preLoad) {
+          getRefreshedHighlights();
         }
       } else {
         // This is not necessarily an error, it could be a brand new voter guide possibility with no position possibilities yet.
@@ -474,17 +503,17 @@ function handleUpdatedOrNewPositions (update, fromIFrame, preLoad) {
 }
 
 function hasCandidateDataChanged (data) {
-  if (data.length !== state.priorData.length) {
+  if (data.length !== weContentState.priorData.length) {
     return true;
   }
   for (let i =0; i< data.length; i++) {
-    if (data[i].position_stance !== state.priorData[i].position_stance) {
+    if (data[i].position_stance !== weContentState.priorData[i].position_stance) {
       return true;
     }
-    if (data[i].statement_text !== state.priorData[i].statement_text) {
+    if (data[i].statement_text !== weContentState.priorData[i].statement_text) {
       return true;
     }
-    if (data[i].more_info_url !== state.priorData[i].more_info_url) {
+    if (data[i].more_info_url !== weContentState.priorData[i].more_info_url) {
       return true;
     }
   }
@@ -494,13 +523,13 @@ function hasCandidateDataChanged (data) {
 function coreUpdatePositions (data, update) {
   let names = [];
   let positions = [];
-  state.positionsCount = data.length;
+  weContentState.positionsCount = data.length;
   let selector = $('#sideArea');
-  if (state.positionsCount > 0) {
+  if (weContentState.positionsCount > 0) {
     setSideAreaStatus();
     let insert = 0;
     let allHtml = $('#noDisplayPageBeforeFraming').html();
-    for (let i = 0; i < state.positionsCount; i++) {
+    for (let i = 0; i < weContentState.positionsCount; i++) {
       debugLog('coreUpdatePositions data: ', data[i]);
       // be sure not to use position_stance_stored, statement_text_stored, or more_info_url_stored -- we want the possibilities, not the live data
       let {
@@ -525,7 +554,7 @@ function coreUpdatePositions (data, update) {
       }
       names.push(name.toLowerCase());
 
-      state.organizationWeVoteId = organizationWeVoteId;
+      weContentState.organizationWeVoteId = organizationWeVoteId;
 
       let position = {
         name,
@@ -570,7 +599,7 @@ function coreUpdatePositions (data, update) {
       return a.sortOffset > b.sortOffset ? 1 : -1;
     });
   }
-  state.positions = positions;
+  weContentState.positions = positions;
 
   if (update) {
     for (let k = 0; k < positions.length; k++) {
@@ -831,7 +860,7 @@ function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDi
   sendMessage({
     command: 'savePosition',
     itemName,
-    voterGuidePossibilityId: state.voterGuidePossibilityId,
+    voterGuidePossibilityId: weContentState.voterGuidePossibilityId,
     voterGuidePossibilityPositionId,
     stance,
     statementText,
@@ -847,7 +876,7 @@ function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDi
     if (detachedDialog) {
       $('div.ui-dialog').remove();
       setSideAreaStatus();
-      updatePositionPanelUnconditiionally();
+      updatePositionPanelUnconditionally();
     } else {
       console.log(remove);
       if (remove) {
@@ -895,9 +924,9 @@ function unfurlOnePositionPane (event, forceNumber) {
     targetFurl = '#' + targetCand.replace('candidateWe candidateWe', 'furlable');
     number = targetFurl.substring(targetFurl.indexOf('-') + 1);
     let selectorForName = '#' + event.currentTarget.classList[1].replace('candidateWe', 'candidateName');
-    state.candidateName = $(selectorForName).val();
+    weContentState.candidateName = $(selectorForName).val();
     let selectorForAllNames = '#' + event.currentTarget.classList[1].replace('candidateWe', 'allNames');
-    state.allNames = $(selectorForAllNames).val();
+    weContentState.allNames = $(selectorForAllNames).val();
   }
   const element = document.getElementById('unfurlable-' + number);
   element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }); // alignTioTop
@@ -926,7 +955,7 @@ function addHandlersForCandidatePaneButtons (targetDiv, number, detachedDialog) 
       $(but).click((event) => {
         event.stopPropagation();
         // Try each name, hopefully only one will be on the screen, if not we will end up at the last matching name
-        let aliases = state.allNames.split(',');
+        let aliases = weContentState.allNames.split(',');
         for (let i = 0; i < aliases.length; i++) {
           const emphasizedElement = $('#frame:first').contents().find(':contains(' + aliases[i] + '):last');
           if (emphasizedElement.length) {
@@ -1184,9 +1213,9 @@ function orgChoiceDialog (orgList) {
       sendMessage({
         command: 'voterGuidePossibilitySave',
         organizationWeVoteId: organizationWeVoteId,
-        voterGuidePossibilityId: state.voterGuidePossibilityId,
+        voterGuidePossibilityId: weContentState.voterGuidePossibilityId,
         internalNotes: 'Proposed endorsement page: ' + href,
-        voterWeVoteId : state.voterWeVoteId,
+        voterWeVoteId : weContentState.voterWeVoteId,
       },
       function (res) {
         if (lastError) {
@@ -1209,11 +1238,11 @@ function sendTopComment () {
   // console.log('orgChoiceDialog  button onclick:  ' + event.currentTarget.id);
   sendMessage({
     command: 'voterGuidePossibilitySave',
-    organizationWeVoteId: state.organizationWeVoteId,
-    voterGuidePossibilityId: state.voterGuidePossibilityId,
+    organizationWeVoteId: weContentState.organizationWeVoteId,
+    voterGuidePossibilityId: weContentState.voterGuidePossibilityId,
     internalNotes: $('#topComment').val(),
     contributorEmail: $('#emailWe').val(),
-    voterWeVoteId : state.voterWeVoteId,
+    voterWeVoteId : weContentState.voterWeVoteId,
   },
   function (res) {
     if (lastError) {
