@@ -294,7 +294,7 @@ function Hilitor (id, tag) {
         '&candidate_we_vote_id=' + candidateId +
         '&endorsement_page_url=' + encodeURIComponent(location.href) +
         '&candidate_specific_endorsement_url=' + candidateHomePage +
-        '&voter_guide_possibility_id=' + state.voterGuidePossibilityId;
+        '&voter_guide_possibility_id=' + weContentState.voterGuidePossibilityId;
       // console.log('frameUrl ==================== ' + frameUrl);
       const clickIFrame = 'setModal(true, \'' + frameUrl + '\', \'' + id + '\', event)';
 

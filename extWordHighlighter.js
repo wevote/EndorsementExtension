@@ -12,17 +12,37 @@ const { chrome: { runtime: { getPlatformInfo}, contextMenus: { create, removeAll
 /* eslint complexity: 0 */
 
 const debugE = false;
-let highlighterEnabled = false;  // Don't globally change var to let! see note above.  This is changed from popup.js
-let showFoundWords = false;
-let printHighlights = true;
 let HighlightsData = {};
-let noContextMenu = ['_generated_background_page.html'];
-let uniqueNames = [];
 let activeTabIdGlobal;
 let activeUrlGlobal = '';
 let aliasNames = [];
+let highlighterEnabled = false;   // This is changed from popup.js
+let neverHighlightOn = {};  // The first copy of this list is almost certainly as good as the last in the session
 let nameToIdMap = {};
+let noContextMenu = ['_generated_background_page.html'];
+let printHighlights = true;
+let showFoundWords = false;
+let tabsHighlighted = {};
+let uniqueNames = [];
 
+const tabInfoObj = {
+  email: '',
+  encodedHref: '',
+  highlighterEnabled,  // Non authoritative copy, this can get stale
+  neverHighlightOn,    // Non authoritative copy, but will super rarely be stale, only would effect performance a bit
+  noExactMatchOrgList: {},
+  orgLogo: '',
+  orgName: '',
+  orgWebsite: '',
+  possibilityUrl: '',
+  showEditor: false,
+  showHighlights: false,
+  tabId: -1,
+  twitterHandle: '',
+  url: null,
+  voterGuidePossibilityId: -1,
+  weVoteId: '',
+};
 
 $(() => {
   console.log('extWordHighlighter constructor');
@@ -89,13 +109,14 @@ function promoteAliasesThatArriveAsDefault (highlightsList) {
   }
 }
 
-function initializeHighlightsData (highlightsList, neverHighLightOn) {
+function initializeHighlightsData (highlightsList, neverHighLightOnLocal) {
   console.log('START START START initializeHighlightsData');
   promoteAliasesThatArriveAsDefault(highlightsList);
 
   HighlightsData.Version = '12';
-  HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOn);
-  console.log('neverHighLightOn:', neverHighLightOn);
+  HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOnLocal);
+  neverHighlightOn = HighlightsData.neverHighlightOn;
+  // console.log('neverHighLightOn:', HighlightsData.neverHighLightOn);
   // HighlightsData.ShowFoundWords = true;
   HighlightsData.PrintHighlights = true;
   let today = new Date();
@@ -280,37 +301,57 @@ function processUniqueNames (uniqueNamesFromPage) {
 // Called by the "highlight this tab" button on the popup
 // This receives the tab not the tabid!
 function setEnableForActiveTab (showHighlights, showEditor, tab) {
-  const { chrome: { tabs: { sendMessage, lastError } } } = window;
+  const { chrome: { tabs: { getAllInWindow, sendMessage, lastError } } } = window;
   console.log('enabling highlights on active tab ', tab, ' ------- ext, showEditor: ', showEditor);
+  let tabID = tab ? tab.id : activeTabIdGlobal;
+  if (!tabID) {
+    console.error('setEnableForActiveTab received invalid tab object, and activeTabIdGlobal was undefined');
+  }
+
+  let tentativeURL = activeUrlGlobal;
+  if (tab) {
+    tentativeURL = tab.url.length ? tab.url : tab.pendingUrl;
+  }
 
   // Ignore if on a 'neverHighlightOn' page
   if (HighlightsData.neverHighlightOn === undefined) {
     HighlightsData.neverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org', 'localhost'];
   }
   for (let neverShowOn in HighlightsData.neverHighlightOn) {
-    const tentativeURL = tab.url.length ? tab.url : tab.pendingUrl;
     if (tentativeURL.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
-      showHighlightsCount('x', 'red', tab.id);
+      showHighlightsCount('x', 'red', tabID);
       setTimeout(function () {
-        showHighlightsCount('', 'white', tab.id);
+        showHighlightsCount('', 'white', tabID);
       }, 500);
       return;
     }
   }
 
-  console.log('ENABLED STATE CHANGE, now showHighlights = ' + showHighlights + ', showEditor = ' + showEditor + ', tab.id = ' + tab.id + ', tab.url = ' + tab.url);
-  const { id: tabId, url } = tab;
+  console.log('ENABLED STATE CHANGE, now showHighlights = ' + showHighlights + ', showEditor = ' + showEditor + ', tab.id = ' + tabID + ', tab.url = ' + tentativeURL);
 
-  // Shouldn't be necessary ... Feb 27, 2019
   if (showHighlights || showEditor) {
     highlighterEnabled = true;
   }
 
-  sendMessage(tabId, {
-    command: 'displayHighlightsForTabAndPossiblyEditPanes',
+  if (!tabsHighlighted[tabID]) {
+    tabsHighlighted[tabID] = tabInfoObj;
+  }
+  Object.assign(tabsHighlighted[tabID], {
+    highlighterEnabled,
+    neverHighlightOn,
     showHighlights,
     showEditor,
-    tabId,
+    url: tentativeURL,
+  });
+
+  sendMessage(tabID, {
+    command: 'displayHighlightsForTabAndPossiblyEditPanes',
+    highlighterEnabled,
+    neverHighlightOn,
+    showHighlights,
+    showEditor,
+    url: tentativeURL,
+    tabId: tabID,
   }, function (result) {
     if (lastError) {
       console.warn(' chrome.runtime.sendMessage("displayHighlightsForTabAndPossiblyEditPanes")', lastError.message);
@@ -319,6 +360,7 @@ function setEnableForActiveTab (showHighlights, showEditor, tab) {
   });
 }
 
+// Enable or Disable highlights for all tabs
 function enableHighlightsForAllTabs (showHighlights) {
   const { chrome: { runtime: { sendMessage, lastError }, tabs: {getAllInWindow} } } = window;
   // Here we are telling all tabs to enable/disable highlighting
@@ -334,11 +376,25 @@ function enableHighlightsForAllTabs (showHighlights) {
         }
       }
       if (!skip) {
+        const showEditor = tabsHighlighted[tabId] && showHighlights ? tabsHighlighted[tabId].showEditor : false;
+        if (showHighlights) {
+          Object.assign(tabsHighlighted[tabId], {
+            highlighterEnabled,
+            neverHighlightOn,
+            showHighlights: true,
+            showEditor,
+            url,
+          });
+        } else {
+          delete tabsHighlighted[tabId];
+        }
+
         sendMessage(tabId, {
           command: 'displayHighlightsForTabAndPossiblyEditPanes',
           showHighlights,
-          showEditor: false,          // todo:  See if editor is already enabled and then send that value
+          showEditor,
           tabId,
+          url,
         }, function (result) {
           if (lastError) {
             console.warn(' chrome.runtime.sendMessage("displayHighlightsForTabAndPossiblyEditPanes")', lastError.message);
@@ -532,7 +588,7 @@ chrome.runtime.onMessage.addListener(
       document.body.innerHTML += '<audio src="beep.wav" autoplay="autoplay"/>';
     } else if(request.command === 'getStatus') {
       // console.log('if(request.command === \'getStatus\') highlighterEnabled: ', highlighterEnabled);
-      sendResponse({highlighterEnabled});
+      getThisTabsStatus(request.tabURL, sendResponse);
     } else if(request.command === 'updateContextMenu'){
       updateContextMenu(request.url);
       sendResponse({success: 'ok'});
@@ -571,6 +627,57 @@ chrome.runtime.onMessage.addListener(
     return true;
   });
 
+function getStatusForActiveTab (tabId) {
+  let status = tabsHighlighted[tabId];
+  if (!status) {
+    status = tabInfoObj;
+  }
+  return status;
+}
+
+/**
+ * Key data for each tab is stored in the tabsHighlighted object, including whether the tab is enabled, shows highlighting,
+ * should display the editor panes, etc.
+ * @param tabURL {string}, the href of the tab, as a backup
+ * @param sendResponse {Requester~requestCallback}, the content side callback
+ */
+function getThisTabsStatus (tabURL, sendResponse) {
+  const {chrome: {tabs: {sendMessage, query}}} = window;
+  // console.log('function getThisTabsStatus () {() called');
+  chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+    let status = tabInfoObj;  // contains an up to date copy of highlighterEnabled
+    let found = false;
+    if (tabs.length) {
+      const { id: tabId, url } = tabs[0];
+      if (!tabsHighlighted[tabId]) {
+        // console.log('getThisTabsStatus created a NEW tabsHighlighted entry for id ', tabId);
+        tabsHighlighted[tabId] = status;
+        Object.assign(tabsHighlighted[tabId], {highlighterEnabled, neverHighlightOn, tabId, url});
+      } else {
+        // console.log('getThisTabsStatus found an EXISTING tabsHighlighted entry for id ', tabId);
+      }
+      status = tabsHighlighted[tabId];
+      found = true;
+    } else {
+      for (let tabId in tabsHighlighted) {
+        const { url } = tabsHighlighted[tabId];
+        if (url === tabURL) {
+          Object.assign(tabsHighlighted[tabId], {highlighterEnabled, neverHighlightOn, tabId, url});
+          status = tabsHighlighted[tabId];
+          // console.log('getThisTabsStatus lookup by URL, found an EXISTING tabsHighlighted entry for id ', tabId);
+          found = true;
+          break;
+        }
+      }
+    }
+    if(!found) {
+      // console.log('getThisTabsStatus DID NOT FIND AN EXISTING tabsHighlighted and created a new tabInfoObj entry');
+    }
+
+    // console.log('getThisTabsStatus: ', status);
+    sendResponse(status);
+  });
+}
 
 function requestReHighlight (){
   const {chrome: {tabs: {sendMessage, query}}} = window;
@@ -864,6 +971,21 @@ function reloadPdfTabAsHTML (pdfURL, showEditor, tab) {
   });
 }
 
+function handleButtonStateChange (showHighlights, showEditor, pdfURL) {
+  const {chrome: {tabs: {query}}} = window;
+  query({active: true, currentWindow: true}, function (tabs) {
+    const tab = tabs && tabs.length ? tabs[0] : undefined;
+    const tabID = tab ? tab.id : activeTabIdGlobal;
+
+    // console.log('enabling editor on active tab from openEditPanelButton, handleButtonStateChange tab.id: ', tabID, 'showHighlights:', showHighlights, 'showEditor:',showEditor);
+    if (pdfURL) {
+      console.log('enabling highlights on active tab FOR A PDF -- popup.js tab.id: ', tabID, pdfURL);
+      reloadPdfTabAsHTML(pdfURL, showEditor, tab);
+    } else {
+      setEnableForActiveTab(showHighlights, showEditor, tab);
+    }
+  });
+}
 
 // // This works on all devices/browsers, and uses IndexedDBShim as a final fallback
 // var indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB || window.shimIndexedDB;
