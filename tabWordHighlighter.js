@@ -38,13 +38,28 @@ var printHighlights = true;
 let voterInfo = {};
 let uniqueNameMatches = [];
 let voterDeviceId = '';
-let tabId = -1;
 var debug = false;
 let urlsForHighlights = {};
 
 
 $(() => {
+  // 5/11/20 This commented out code would be great, it would eliminate all the noise from iFrames on the endorsement page, but for some reason it breaks
+  // our highlighting when we purposefully put it into an iFrame for "Open Edit Pane for this Tab"
+  // if(isInANonWeVoteIFrame()) {
+  //   // If we are in an iFrame on the Endorsement Page eg. addthis.com, syndication.twitter.com, hotjars.com etc.
+  //   // Don't do any futher processing of this instance, that will not show up in the chrome.tabs.query requests
+  //   console.log('############ tabWordHighligher initial DID NOT PROCESS iframed url: ', window.location.href);
+  //   return;
+  // }
+  debug && console.log('############ tabWordHighligher initialzed with url: ', window.location.href);
+
+  if (window.location.href === 'about:blank') {
+    console.log('tabWordHighlighter not initializing for an "about:blank" page');
+    return;
+  }
+
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
+  weContentState.neverHighlightOn = defaultNeverHighlightOn;
 
   if (isInOurIFrame()) {
     sendMessage({
@@ -55,7 +70,7 @@ $(() => {
       }
 
       const {tabId: tab} = response;
-      tabId = tab;
+      weContentState.tabId = tab;
       // console.log('tabWordHighlighter this tab.id: ' + tabId);
     });
 
@@ -93,22 +108,23 @@ $(() => {
               console.log('displayHighlightsForTabAndPossiblyEditPanes skipping PDF file');
               return false;
             }
-            const {highlighterEnabled: priorHighlighterEnabled} = weContentState;
+            const {priorHighligherEnabledThisTab} = weContentState;
             const {highlighterEnabled, showHighlights, showEditor, tabId} = request;
             clearPriorDataOnModeChange(showHighlights, showEditor);
             weContentState.highlighterEnabled = highlighterEnabled;
-            weContentState.highlighterEnabledThisTab = showHighlights;
+            weContentState.highlighterEnabledThisTab = showHighlights;  // Will always be true if showEditor is true
             weContentState.highlighterEditorEnabled = showEditor;
-            // weContentState.tabId = tabId;  //TODO: Does this work for when in iframe?
-            console.log('displayHighlightsForTabAndPossiblyEditPanes request.showHighlights ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', tabId, ', href: ', window.location.href);
-            if (priorHighlighterEnabled  && (!highlighterEnabled && !showHighlights)) {
-              // if we were enabled (master switch), and now we are not, reload the page -- if this proves to be a problem, we could reverse the highlighting.
+            if (tabId > 0) weContentState.tabId = tabId;
+            console.log('displayHighlightsForTabAndPossiblyEditPanes request.showHighlights ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', weContentState.tabId, ', href: ', window.location.href);
+            if (!showHighlights) {
+              // if we were enabled (master switch), and now we are not, reload the page -- if this proves to be a problem, we could remove the highlighting in the DOM.
               console.log('displayHighlightsForTabAndPossiblyEditPanes (before reload)');
               weContentState.priorData = [];
+              weContentState.priorHighligherEnabledThisTab = false;
               location.reload();
             }
-            if (window.location.href !== 'about:blank') {  // Avoid worthless queries
-              displayHighlightingAndPossiblyEditor(weContentState.highlighterEnabledThisTab, weContentState.highlighterEditorEnabled, tabId);
+            if (window.location.href !== 'about:blank' && weContentState.highlighterEnabledThisTab) {  // Avoid worthless queries
+              displayHighlightingAndPossiblyEditor(weContentState.highlighterEnabledThisTab, weContentState.highlighterEditorEnabled, weContentState.tabId);
             }
             return false;
           } else if (request.command === 'ScrollHighlight') {
@@ -134,7 +150,7 @@ $(() => {
             return false;
           } else if (request.command === 'getTabStatusValues') {
             const encodedHref = encodeURIComponent(location.href);
-            const {orgName, organizationWeVoteId, organizationTwitterHandle, highlighterEnabledThisTab, highlighterEditorEnabled} = weContentState;
+            const {orgName, organizationWeVoteId, organizationTwitterHandle, tabId, highlighterEnabledThisTab, highlighterEditorEnabled} = weContentState;
             console.log('getTabStatusValues tabId: ', tabId, ', highlighterEnabledThisTab: ', highlighterEnabledThisTab, ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', href: ', window.location.href);
             sendResponse({
               highlighterEnabledThisTab,
@@ -256,14 +272,26 @@ function sendGetStatus () {
       console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
       return;
     }
-    const { highlighterEnabled, neverHighlightOn, showHighlights, showEditor, tabId } = response;
+    const { highlighterEnabled, neverHighlightOn, showHighlights, showEditor, tabId, url } = response;
     debug && console.log('response from getStatus', response);
+
+    // if (!existenceOfTab) {
+    //   console.log('"getStatus called for a url that is not a tabUrl, probably for an iframe within a tab: ', url);
+    //   return;
+    // }
+
+    // bs detector, work around a likely chrome.tabs bug - May, 2020
+    if (url && !url.includes(window.location.host)) {
+      console.warn('sendMessage for getStatus aborted on page ', window.location.host, ' returned url: ', url, ', with probably wrong tab id: ', tabId);
+      return;
+    }
+
     clearPriorDataOnModeChange(showHighlights, showEditor);
     weContentState.highlighterEnabled = highlighterEnabled;
     weContentState.highlighterEnabledThisTab  = showHighlights;
     weContentState.highlighterEditorEnabled = showEditor;
     if (tabId > 0) weContentState.tabId = tabId;
-    weContentState.neverHighlightOn = neverHighlightOn;
+    weContentState.neverHighlightOn = neverHighlightOn && neverHighlightOn.length ? neverHighlightOn : weContentState.neverHighlightOn;
 
     // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary TODO: April 26, 2020, do we even need 'myTabId' msg chain?
     if (weContentState.highlighterEnabledThisTab) {
@@ -282,45 +310,48 @@ function clearPriorDataOnModeChange (showHighlights, showEditor) {
 
 function getWordsThenStartHighlighting () {
   const {chrome: {runtime: {sendMessage, lastError}}} = window;
-  console.log('Called getWordsThenStartHighlighting() tabId: ', tabId, 'URL', document.URL);
+  console.log('Called \'getWords\' in getWordsThenStartHighlighting');
+
   sendMessage({
     command: 'getWords',
     url: location.href.replace(location.protocol + '//', ''),
     id: getVoterDeviceIdFromWeVoteDomainPage()  // is this nonsense?
   }, function (response) {
-    debug && console.log('Received response in getWordsThenStartHighlighting');
+    const { url, storedDeviceId, words } = response;
+    console.log('Received response getWordsThenStartHighlighting() URL: ', url);
+
     if (lastError) {
       console.warn('chrome runtime sendMessage("getWords")',lastError.message);
       return;
     }
-    debug && console.log('got words response: ', response);
-    const id = response.storedDeviceId ? response.storedDeviceId : '';
-    if (response.storedDeviceId && response.storedDeviceId.length > 0) {
+    console.log('got words response: ', response);
+    const id = storedDeviceId ? storedDeviceId : '';
+    if (storedDeviceId && storedDeviceId.length > 0) {
       voterDeviceId = id;
     }
 
-    for (let group in response.words) {
-      if (response.words[group].Enabled) {
-        for (word in response.words[group].Words) {
-          debug && console.log('getWords response, ' + word + ', group: ' + group + ', findWords: ' + response.words[group].FindWords + ' icon: ' + response.words[group].Icon);
-          let wordText = response.words[group].Words[word];
+    for (let group in words) {
+      if (words[group].Enabled) {
+        for (word in words[group].Words) {
+          debug && console.log('getWords response, ' + word + ', group: ' + group + ', findWords: ' + words[group].FindWords + ' icon: ' + words[group].Icon);
+          let wordText = words[group].Words[word];
           if (wordText) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
             wordsArray.push({
-              word: response.words[group].Words[word].toLowerCase(),
-              'regex': globStringToRegex(response.words[group].Words[word]),
-              'Color': response.words[group].Color,
-              'Fcolor': response.words[group].Fcolor,
-              'Icon': response.words[group].Icon,
-              'FindWords': response.words[group].FindWords,
-              'ShowInEditableFields': response.words[group].ShowInEditableFields
+              word: words[group].Words[word].toLowerCase(),
+              'regex': globStringToRegex(words[group].Words[word]),
+              'Color': words[group].Color,
+              'Fcolor': words[group].Fcolor,
+              'Icon': words[group].Icon,
+              'FindWords': words[group].FindWords,
+              'ShowInEditableFields': words[group].ShowInEditableFields
             });
           }
         }
       }
     }
 
-    if (response.words.nameToIdMap) {
-      namesToIds = response.words.nameToIdMap;  // This is the one that delivers, when in an iFrame.  It probably is all we need if not in a frame.
+    if (words.nameToIdMap) {
+      namesToIds = words.nameToIdMap;  // This is the one that delivers, when in an iFrame.  It probably is all we need if not in a frame.
     }
 
     debug && console.log('processed words');
@@ -508,19 +539,24 @@ function findWords () {
             }
           });
         } catch (e) {
-          console.log('EXPERIMENTAL showHighlightsCount ', e);
+          console.log('Caught showHighlightsCount > 0: ', e);
         }
       } else {
-        sendMessage({
-          command: 'showHighlightsCount',
-          label: '0',
-          uniqueNames: [],
-          altColor: 'darkgreen',
-        }, function (response) {
-          if (lastError) {
-            console.warn(' chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
-          }
-        });
+        try {
+          sendMessage({
+            command: 'showHighlightsCount',
+            label: '0',
+            uniqueNames: [],
+            altColor: 'darkgreen',
+          }, function (response) {
+            if (lastError) {
+              console.warn(' chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
+            }
+          });
+        } catch (e) {
+          console.log('Caught showHighlightsCount === 0 ', e);
+        }
+
       }
       //setTimeout(function () {
       ReadyToFindWords = true;

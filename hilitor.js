@@ -13,22 +13,22 @@
 
 function Hilitor (id, tag) {
 
-  var targetNode = document.body;
-  var hiliteTag = tag || 'EM';
-  var hiliteClassname = 'Highlight';
-  var skipTags = new RegExp('^(?:SCRIPT|HEAD|NOSCRIPT|STYLE|TEXTAREA)$');
-  var skipClasses = new RegExp('(ui-datepicker)','gi');
-  var colors = ['#ff6', '#a0ffff', '#9f9', '#f99', '#f6f'];
-  var wordColor = [];
+  let debugH = false;
   var colorIdx = 0;
+  var colors = ['#ff6', '#a0ffff', '#9f9', '#f99', '#f6f'];
+  var highlightMarkers = {};
+  var highlights = {}; //added
+  var hiliteClassname = 'Highlight';
+  var hiliteTag = tag || 'EM';
   var matchRegex = '';
   var matchRegexEditable = '';
+  var numberOfHighlights = 0; //added
   var openLeft = false;
   var openRight = false;
-  var numberOfHighlights = 0; //added
-  var highlights = {}; //added
-  var highlightMarkers = {};
-  let debugH = false;
+  var skipClasses = new RegExp('(ui-datepicker)','gi');
+  var skipTags = new RegExp('^(?:SCRIPT|HEAD|NOSCRIPT|STYLE|TEXTAREA)$');
+  var targetNode = document.body;
+  var wordColor = [];
   const urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML
   const isFromPDF = (urlToQuery && urlToQuery.length > 0);
 
@@ -161,10 +161,22 @@ function Hilitor (id, tag) {
       skipClasses.test(node.className) ||
       node.id === 'u2i-id-1' ||                         // jQuery UI Dialogs
       node.id === 'noDisplayPageBeforeFraming' ||
-      node.id === 'weContainer') {
-      debugH && console.log('hiliteWords early recursive return node.id: ' + node.id);
+      node.id === 'sideArea' ||
+      node.id === 'wediv' ||
+      node.id === 'topMenu') {
+      debugH && console.log('<><><><><>hiliteWords early recursive STOP return node.id: ' + node.id);
       return;
     }
+    // if (node.id === 'frame') {
+    //   console.log('node.id === frame, src: ', node.src);
+    // }
+    // if (node.id === '' && node.tagName !== 'BODY') {
+    //   console.log('node.id === "", tag:', node.tagName, ', textContent: ', node.textContent);
+    // }
+    // if (node.tagName === 'BODY') {
+    //   console.log('node.id === "", tag: "BODY" 2');
+    // }
+
     debugH && console.log('hiliteWords early recursive CONTINUE node.id: ' + node.id);
     // console.log('before iterating Through every child node using highlight words cnt: ' + (node.hasChildNodes() ? node.childNodes.length : 0));
     // End of modification for WeVote

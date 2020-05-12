@@ -1,6 +1,7 @@
 const {$} = window;
 const voterGuidePossibilityIdCache = {};  // we lose the current value when we reload in a iFrame, so cache it here
 let debug = false;
+let voterGuidePossibilityRetrieveT0 = 0;
 
 // All the functions would be flagged without the following
 /* eslint-disable no-unused-vars */
@@ -16,7 +17,7 @@ function getHighlightsListFromApiServer (locationHref, doReHighlight, sendRespon
 
   $.getJSON(apiURL, '', (res) => {
     debug && console.log('voterGuideHighlightsRetrieve API SUCCESS', res);
-    console.log('------------------- voterGuideHighlightsRetrieve API SUCCESS apiURL: ' + apiURL);
+    debug &&  console.log('------------------- voterGuideHighlightsRetrieve API SUCCESS apiURL: ' + apiURL);
     const t2 = performance.now();
     timingLog(t1, t2, 'voterGuideHighlightsRetrieve took', 8.0);
     processHighlightsRetrieve(res, doReHighlight, sendResponse);
@@ -39,7 +40,9 @@ function processHighlightsRetrieve (res, doReHighlight, sendResponse) {
   neverHighLightOnLocal.push('regex101.com');
   debug && console.log('get json highlightsList: ', highlightsList);
   debug && console.log('get json highlightsList.length: ', highlightsList.length);
+  const t0 = performance.now();
   initializeHighlightsData(highlightsList, neverHighLightOnLocal);
+  timingLog(t0, performance.now(), 'initializeHighlightsData took', 5.0);
   if (doReHighlight) {
     requestReHighlight();
   }
@@ -75,6 +78,7 @@ function getOrganizationFound (locationHref, sendResponse) {
       for (let tabId in tabsHighlighted) {
         const { url } = tabsHighlighted[tabId];
         if (url === locationHref) {
+          debug && console.log('^^^^^^^^ getOrganizationFound before:', tabId, tabsHighlighted[tabId]);
           data = Object.assign(tabsHighlighted[tabId], {
             highlighterEnabled,
             email,
@@ -87,6 +91,7 @@ function getOrganizationFound (locationHref, sendResponse) {
             voterGuidePossibilityId,
             noExactMatchOrgList
           });
+          debug && console.log('^^^^^^^^ getOrganizationFound after:', tabId, tabsHighlighted[tabId]);
           break;
         }
       }
@@ -103,7 +108,7 @@ function getOrganizationFound (locationHref, sendResponse) {
 
 function getVoterSignInInfo (sendResponse) {
   let data = {};
-  let voterDeviceId = localStorage['voterDeviceId'];
+  const { voterDeviceId } = localStorage;
   const apiURL = `${rootApiURL}/voterRetrieve/?voter_device_id=${voterDeviceId}`;
   console.log('getVoterSignInInfo apiURL: ' + apiURL);
 
@@ -147,7 +152,10 @@ function getVoterSignInInfo (sendResponse) {
 
 function getPossiblePositions (voterGuidePossibilityId, hrefURL, isIFrame, sendResponse) {
   // https://api.wevoteusa.org/apis/v1/voterGuidePossibilityPositionsRetrieve/?voter_device_id=cYBPkwago&voter_guide_possibility_id=65
-  let voterDeviceId = localStorage['voterDeviceId'];
+  if (debug && voterGuidePossibilityRetrieveT0 > 0) {
+    timingLog(voterGuidePossibilityRetrieveT0, performance.now(), 'period between voterGuidePossibilityPositionsRetrieve calls ', 5.0);
+  }
+  const { voterDeviceId } = localStorage;
   if (voterDeviceId && voterDeviceId.length > 0) {
     let vGPId = voterGuidePossibilityId;
     if (!voterGuidePossibilityId || voterGuidePossibilityId === 0 || voterGuidePossibilityId === '' || voterGuidePossibilityId === 'undefined') {
@@ -165,7 +173,7 @@ function getPossiblePositions (voterGuidePossibilityId, hrefURL, isIFrame, sendR
       const {possible_position_list: possiblePositions} = res;
 
       sendResponse({data: possiblePositions});
-
+      voterGuidePossibilityRetrieveT0 = performance.now();
     }).fail((err) => {
       console.log('getPossiblePositions error', err);
     });
@@ -173,7 +181,7 @@ function getPossiblePositions (voterGuidePossibilityId, hrefURL, isIFrame, sendR
 }
 
 function updatePossibleVoterGuide (voterGuidePossibilityId, orgName, orgTwitter, orgState, comments, sendResponse) {
-  let voterDeviceId = localStorage['voterDeviceId'];
+  const { voterDeviceId } = localStorage;
   debug && console.log('updatePossibleVoterGuide voterGuidePossibilitySave voterGuidePossibilityId: ' + voterGuidePossibilityId);
   if (voterDeviceId && voterDeviceId.length > 0) {
     const apiURL = `${rootApiURL}/voterGuidePossibilitySave/?voter_device_id=${voterDeviceId}&voter_guide_possibility_id=${voterGuidePossibilityId}` +
@@ -201,7 +209,7 @@ function voterGuidePossibilityPositionSave (itemName, voterGuidePossibilityId, v
   //  Enter the "possibility_position_id" into the "voter_guide_possibility_position_id" field in the try it now form
   //  Do not send empty values on the url, since that might clear out good data on the Python side
   //  Steve: voter_guide_possibility_position_id completely specifies the possibility and nothing else is needed for the search/match
-  let voterDeviceId = localStorage['voterDeviceId'];
+  const { voterDeviceId } = localStorage;
   console.log('voterGuidePossibilityPositionSave voterGuidePossibilityPositionId: ' + voterGuidePossibilityPositionId);
   if (voterDeviceId && voterDeviceId.length > 0) {
     let apiURL = `${rootApiURL}/voterGuidePossibilityPositionSave/?voter_device_id=${voterDeviceId}` +
