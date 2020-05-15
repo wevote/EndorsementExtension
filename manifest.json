@@ -37,8 +37,8 @@
    },
    "manifest_version": 2,
    "name": "We Vote Endorsement Tool",
-   "permissions": [ "tabs", "contextMenus", "notifications", "activeTab", "alarms", "downloads", "storage" ],
+   "permissions": [ "tabs", "contextMenus", "activeTab" ],
    "short_name": "We Vote Chrome Extension",
    "update_url": "https://clients2.google.com/service/update2/crx",
-   "version": "0.0.0.10"
+   "version": "0.0.0.15"
 }
