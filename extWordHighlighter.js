@@ -474,28 +474,29 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
     if (HighlightsData.Groups[groupName].Words.indexOf(info.selectionText) > -1) {
       wordAlreadyAdded = true;
     }
-    if (wordAlreadyAdded) {
-      chrome.notifications.create('1', {
-        'type': 'basic',
-        'iconUrl': 'Plugin96.png',
-        //"requireInteraction": false,
-        'title': 'Highlight This',
-        'message': info.selectionText + ' was already assigned to the word list'
-      });
-      //window.alert(info.selectionText + " was already assigned to the word list");
-    } else {
-      HighlightsData.Groups[groupName].Words.push(info.selectionText);
-      HighlightsData.Groups[groupName].Modified = Date.now();
-      chrome.notifications.create('1', {
-        'type': 'basic',
-        'iconUrl': 'Plugin96.png',
-        // "requireInteraction": false,
-        'title': 'Added new word',
-        'message': info.selectionText + ' has been added to ' + groupName + '.\nRefresh the page to see new highlights.'
-      });
-
-      updateContextMenu(tab.url);
-    }
+    // Removed May 2020, so that we do not have to request the notificatons permission
+    // if (wordAlreadyAdded) {
+    //   chrome.notifications.create('1', {
+    //     'type': 'basic',
+    //     'iconUrl': 'Plugin96.png',
+    //     //"requireInteraction": false,
+    //     'title': 'Highlight This',
+    //     'message': info.selectionText + ' was already assigned to the word list'
+    //   });
+    //   //window.alert(info.selectionText + " was already assigned to the word list");
+    // } else {
+    //   HighlightsData.Groups[groupName].Words.push(info.selectionText);
+    //   HighlightsData.Groups[groupName].Modified = Date.now();
+    //   chrome.notifications.create('1', {
+    //     'type': 'basic',
+    //     'iconUrl': 'Plugin96.png',
+    //     // "requireInteraction": false,
+    //     'title': 'Added new word',
+    //     'message': info.selectionText + ' has been added to ' + groupName + '.\nRefresh the page to see new highlights.'
+    //   });
+    //
+    //   updateContextMenu(tab.url);
+    // }
   } else if (info.menuItemId === 'Highlight') {
     query({active: true, currentWindow: true}, function (tabs) {
       sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
@@ -606,8 +607,8 @@ chrome.runtime.onMessage.addListener(
       sendResponse({success:addWord(request.word)});
     } else if(request.command === 'addWords') {
       sendResponse({success:addWords(request.words)});
-    } else if(request.command === 'syncList') {
-      sendResponse({success:syncWordList(HighlightsData.Groups[request.group], true,request.group)});
+    // } else if(request.command === 'syncList') {
+    //   sendResponse({success:syncWordList(HighlightsData.Groups[request.group], true,request.group)});
     } else if(request.command === 'setWords') {
       sendResponse({success:setWords(request.words, request.group, request.color, request.fcolor, request.findwords,
         request.showon, request.dontshowon,  request.newname, request.groupType, request.remoteConfig,request.regex, request.showInEditableFields)});
@@ -906,44 +907,44 @@ function globStringToRegex (str) {
 //   }
 // }
 
-function syncWordList (list, notify, listname){
-  debugE && console.log('syncing ' + list);
-  let xhr = new XMLHttpRequest();
-  switch(list.RemoteConfig.type) {
-    case 'pastebin':
-      getSitesUrl='https://pastebin.com/raw/'+list.RemoteConfig.id;
-      break;
-    case 'web':
-      getSitesUrl=list.RemoteConfig.url;
-      break;
-  }
-  xhr.open('GET', getSitesUrl, true);
-  xhr.onreadystatechange = function () {
-    if (xhr.readyState === 4 && xhr.status === 200) {
-      let resp = sanitizeHtml(xhr.responseText,{allowedTags: [], allowedAttributes: []});
-      wordsToAdd = resp.split('\n').filter(function (e) {
-        return e;
-      });
-      for(word in wordsToAdd){
-        wordsToAdd[word]=wordsToAdd[word].replace(/(\r\n|\n|\r)/gm,'');
-      }
-      list.Words=wordsToAdd;
-      list.RemoteConfig.lastUpdated=Date.now();
-      if(notify){
-        chrome.notifications.create('1', {
-          'type': 'basic',
-          'iconUrl': 'Plugin96.png',
-          //"requireInteraction": false,
-          'title': 'List sync-ed',
-          'message': "'"+listname+"' has been updated"
-        });
-
-
-      }
-    }
-  };
-  xhr.send();
-}
+// function syncWordList (list, notify, listname){
+//   debugE && console.log('syncing ' + list);
+//   let xhr = new XMLHttpRequest();
+//   switch(list.RemoteConfig.type) {
+//     case 'pastebin':
+//       getSitesUrl='https://pastebin.com/raw/'+list.RemoteConfig.id;
+//       break;
+//     case 'web':
+//       getSitesUrl=list.RemoteConfig.url;
+//       break;
+//   }
+//   xhr.open('GET', getSitesUrl, true);
+//   xhr.onreadystatechange = function () {
+//     if (xhr.readyState === 4 && xhr.status === 200) {
+//       let resp = sanitizeHtml(xhr.responseText,{allowedTags: [], allowedAttributes: []});
+//       wordsToAdd = resp.split('\n').filter(function (e) {
+//         return e;
+//       });
+//       for(word in wordsToAdd){
+//         wordsToAdd[word]=wordsToAdd[word].replace(/(\r\n|\n|\r)/gm,'');
+//       }
+//       list.Words=wordsToAdd;
+//       list.RemoteConfig.lastUpdated=Date.now();
+//       if(notify){
+//         chrome.notifications.create('1', {
+//           'type': 'basic',
+//           'iconUrl': 'Plugin96.png',
+//           //"requireInteraction": false,
+//           'title': 'List sync-ed',
+//           'message': "'"+listname+"' has been updated"
+//         });
+//
+//
+//       }
+//     }
+//   };
+//   xhr.send();
+// }
 
 function getWeVoteTabs () {
   const { chrome: {tabs: {getAllInWindow}}} = window;

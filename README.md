@@ -55,8 +55,13 @@ Get the login credentials for chrome@wevoteeducation.org from Dale.
 
 Login to the chrome developer console [https://chrome.google.com/webstore/developer/edit/eofojjpbgfdogalmibgljcgdipkhoclc?authuser=3](https://chrome.google.com/webstore/developer/edit/eofojjpbgfdogalmibgljcgdipkhoclc?authuser=3)
 
-
 ![ScreenShot](docs/images/ChromeWebStoreUpload.png)
+
+May 2020: The boiler plate needed for the "new chrome store website", you will have to type this in for each release.
+![ScreenShot](docs/images/ChromeStorePackageTab.png)
+![ScreenShot](docs/images/ChromeStoreStoreListingTopTab.png)
+![ScreenShot](docs/images/ChromeStoreStoreListingBottomTab.png)
+![ScreenShot](ddocs/images/ChromeStorePrivacyTab.png)
 
 And at the very bottom of the page, press the `Publish changes` button.  And press `Ok` on the confirm dialog.  The you
 will see a dialog that says something like "Your item is in the process of being published and may take up to 60 minutes to appear in the Chrome Web Store." -- Then you are done.
