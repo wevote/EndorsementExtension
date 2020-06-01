@@ -40,6 +40,7 @@ const extensionWarmUpPage = `${webAppRoot}/extension.html`;
 const extensionSignInPage = `${webAppRoot}/more/extensionsignin`;
 const apiRoot = useProductionAPIs ? 'https://api.wevoteusa.org' : 'http://localhost:8000';
 const rootApiURL = `${apiRoot}/apis/v1`;
+const defaultNeverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org', 'localhost', 'platform.twitter.com', '*.addthis.com', 'localhost'];
 
 
 function isInOurDialogIFrame () {
@@ -80,12 +81,13 @@ function timingLog (time0, time1, text, warnAt) {
 
   if (duration < 1000) {
     const niceDuration = Number.parseFloat(duration).toPrecision(4);
-    console.log('TIMING: time to ' + text + ' ' + niceDuration + ' milliseconds.');
+    console.log('ttttt TIMING: time to ' + text + ' ' + niceDuration + ' milliseconds.');
   } else {
     const niceDuration = Number.parseFloat(duration/1000).toPrecision(4);
-    const msg = 'TIMING: time to voterGuideHighlightsRetrieve took ' + niceDuration + ' SECONDS.';
+    const msg = 'ttttt TIMING: time to ' + text + '  ' + niceDuration + ' SECONDS.';
     if ((duration)/1000 > warnAt) {
-      console.warn(msg);
+      // console.warn(msg);  // too heavy handed for the extension log file
+      console.log('WARNING ' + msg);
     } else {
       console.log(msg);
     }

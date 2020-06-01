@@ -9,8 +9,9 @@ let weContentState = {
   highlighterEditorEnabled: false,
   highlighterEnabled: false,
   highlighterEnabledThisTab: false,
+  priorHighligherEnabledThisTab: false,
   isFromPDF:  false,
-  neverHighlightOn: ['*.wevote.us', 'api.wevoteusa.org', 'localhost', 'platform.twitter.com', '*.addthis.com'],
+  neverHighlightOn: {},
   orgName: '',
   organizationTwitterHandle: '',
   organizationWeVoteId: '',
@@ -18,7 +19,7 @@ let weContentState = {
   positionsCount: 0,
   possibleOrgsList: [],
   priorData: [],
-  tabId: 0,
+  tabId: -1,
   voterGuidePossibilityId: '',
   voterIsSignedIn: false,
   voterWeVoteId: '',
@@ -128,8 +129,8 @@ function displayEditPanes () {
 
 function initializeOrgChoiceList () {
   setTimeout(() => {
-    if (weContentState.voterWeVoteId.length) {
-      if (weContentState.possibleOrgsList.length) {
+    if (weContentState.voterWeVoteId && weContentState.voterWeVoteId.length) {
+      if (weContentState.possibleOrgsList && weContentState.possibleOrgsList.length) {
         orgChoiceDialog(weContentState.possibleOrgsList);
       } else if (weContentState.positionsCount === 0) {
         setSideAreaStatus('No Candidate endorsements have been captured yet for this endorsement page.');

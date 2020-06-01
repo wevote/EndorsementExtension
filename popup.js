@@ -1,6 +1,7 @@
 /* global $, ballotWebAppURL */
 // var onPageShown = false;
-var debug=false;
+var debug = false;
+const {chrome: {extension: { getBackgroundPage } } } = window;
 let timeoutToCloseDialog = true;
 const removeEditText = 'Remove Edit Panel From This Tab';
 const openEditText = 'Open Edit Panel for this Tab';
@@ -10,16 +11,16 @@ const highlightThisPDF = 'Highlight Candidates found on this PDF';
 const removeHighlightThisText = 'Remove Highlights From This Tab';
 let pdfURL = null;
 
+
 // When popup.html is loaded by clicking on the W icon as specified in th manifest.json
 document.addEventListener('DOMContentLoaded', function () {
-  const {chrome: {extension: {getBackgroundPage}}} = window;
-
   const t0 = performance.now();
   let highlightingEnabled = false;
   let highlightCandidatesOnAllTabs = localStorage['highlightCandidatesOnAllTabs'] === 'true';
-  debug && dumpTabStatus();
+  if (highlightCandidatesOnAllTabs) getBackgroundPage().highlighterEnabled = true;
 
   console.log('chrome.extension.getBackgroundPage().highlighterEnabled: ' + getBackgroundPage().highlighterEnabled);
+  getBackgroundPage().popupLogger('>>>>>>>> chrome.extension.getBackgroundPage().highlighterEnabled: ' + getBackgroundPage().highlighterEnabled);
   // console.log('localStorage[\'highlightCandidatesOnThisTab\']', localStorage['highlightCandidatesOnThisTab']);
   console.log('localStorage[\'highlightCandidatesOnAllTabs\']', localStorage['highlightCandidatesOnAllTabs']);
   if (getBackgroundPage().highlighterEnabled === undefined) {
@@ -43,34 +44,39 @@ document.addEventListener('DOMContentLoaded', function () {
       getBackgroundPage().highlighterEnabled = true;
     } else {
       getBackgroundPage().highlighterEnabled = false;
-      getBackgroundPage().enableHighlightsForAllTabs(false);
 
       localStorage['highlightCandidatesOnAllTabs'] = 'false';
       $('#highlightCandidatesOnAllTabsSwitch').prop('checked', false);
     }
     event.timer = setTimeout(() => {
       timeoutToCloseDialog && window.close();
+      if (!getBackgroundPage().highlighterEnabled) {
+        getBackgroundPage().removeHighlightsForAllTabs();
+      }
     }, 2000);
-
   });
 
   $('#highlightCandidatesOnAllTabsSwitch').prop('checked', highlightCandidatesOnAllTabs).click(() => {
+    event.timer = setTimeout(() => {
+      timeoutToCloseDialog && window.close();
+    }, 2000);
+    window.close();
     if ($('#highlightCandidatesOnAllTabsSwitch').is(':checked')) {
       $('#highlightingMasterSwitch').prop('checked', true);
       localStorage['highlightCandidatesOnAllTabs'] = 'true';
       getBackgroundPage().highlighterEnabled = true;
       getBackgroundPage().enableHighlightsForAllTabs(true);
     } else {
-      getBackgroundPage().enableHighlightsForAllTabs(false);
       localStorage['highlightCandidatesOnAllTabs'] = 'false';
+      getBackgroundPage().highlighterEnabled = false;
+      getBackgroundPage().enableHighlightsForAllTabs(false);
     }
-    event.timer = setTimeout(() => {
-      timeoutToCloseDialog && window.close();
-    }, 2000);
   });
 
   let showHighlights = false;
   $('#highlightCandidatesThisTabButton').click((event) => {
+    debug && getBackgroundPage().dumpTabStatus();
+
     getBackgroundPage().highlighterEnabled = true;
     $('#highlightingMasterSwitch').prop('checked', true);
 
@@ -127,13 +133,21 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function updateButtonState () {
-  const {chrome: {extension: {getBackgroundPage}}} = window;
   const { chrome: { tabs: { query } } } = window;
+  debug && getBackgroundPage().dumpTabStatus();
+
   query({active: true, currentWindow: true}, function (tabs) {
-    const status = getBackgroundPage().getStatusForActiveTab((tabs && tabs[0]) ? tabs[0].id : '');
+    const url = tabs && tabs[0] ? tabs[0].url : '';
+    const tabId = tabs && tabs[0] ? tabs[0].id : -1;
+    const status = getBackgroundPage().getStatusForActiveTab(tabId, url);
+    const logLine = '>>>>>>>> updateButtonState called for tab: ' + tabId + ', url:' + url;
+    console.log(logLine);
+    debug && getBackgroundPage().popupLogger(logLine);
     const { showHighlights: highlighterEnabledThisTab, showEditor: highlighterEditorEnabled, orgName, weVoteId: organizationWeVoteId,
       twitterHandle: organizationTwitterHandle, encodedHref} = status;
-    const isPDF = encodedHref.toLowerCase().endsWith('.pdf');
+    debug && getBackgroundPage().popupLogger('>>>>>>>> updateButtonState getStatusForActiveTab: ' + tabId + ', highlighterEnabledThisTab:' + highlighterEnabledThisTab +
+      ', highlighterEditorEnabled:' + highlighterEditorEnabled + ', orgName:' + orgName + ', organizationTwitterHandle:' + organizationTwitterHandle);
+    const isPDF = encodedHref && encodedHref.toLowerCase().endsWith('.pdf');
     if (isPDF) {
       pdfURL = encodedHref;
     }
@@ -156,7 +170,7 @@ function updateButtonState () {
     if (organizationWeVoteId || organizationTwitterHandle) {
       const url = organizationTwitterHandle ? 'https://wevote.us/' + organizationTwitterHandle : 'https://wevote.us/voterguide/' + organizationWeVoteId;
       $('#allEndorsementsButton').
-        text('ENDORSEMENTS: ' + orgName.toUpperCase()).
+        text(orgName && orgName.length ? 'ENDORSEMENTS: ' + orgName.toUpperCase() : 'ENDORSEMENTS').
         prop('disabled', false).
         removeClass('weButtonDisable').
         click(() => window.open(url, '_blank'));
@@ -170,26 +184,6 @@ function updateButtonState () {
   });
 }
 
-function dumpTabStatus () {
-  const {chrome: {tabs: {getAllInWindow, sendMessage, lastError}}} = window;
-  getAllInWindow(null, function (tabs) {
-    for (let i = 0; i < tabs.length; i++) {
-      const { id: tabId, url } = tabs[i];
-      sendMessage(tabId, {command: 'getTabStatusValues'}, function (result){
-        if (lastError) {
-          console.warn(' chrome.runtime.sendMessage("getTabStatusValues")', lastError.message);
-        }
-
-        if (result) {
-          const {highlighterEnabledThisTab, highlighterEditorEnabled} = result;
-          debug && console.log('dumpTabStatus tabId: ' + tabId + ', highlight: ' + highlighterEnabledThisTab  + ', editor: ' + highlighterEditorEnabled + ', url: ' + url);
-        } else {
-          debug && console.log('dumpTabStatus NO RESULT tabId: ' + tabId + ', url: ' + url);
-        }
-      });
-    }
-  });
-}
 
 // function clearHighlightsFromTab () {
 //   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
