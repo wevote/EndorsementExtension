@@ -66,6 +66,21 @@ May 2020: The boiler plate needed for the "new chrome store website", you will h
 And at the very bottom of the page, press the `Publish changes` button.  And press `Ok` on the confirm dialog.  The you
 will see a dialog that says something like "Your item is in the process of being published and may take up to 60 minutes to appear in the Chrome Web Store." -- Then you are done.
 
+### Note May 2020
+
+**Do not release a new version from the new console, it makes a compeletely new chrome store entry with a new id, 
+which will not match **
+            if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
+                sender.id === 'lfifjogjdncflocpmhfhhlflgndgkjdo' ||
+                sender.id === 'eofojjpbgfdogalmibgljcgdipkhoclc' ||
+                sender.id === 'highlightthis@deboel.eu') {
+
+**And therefore will not work (the chrome store auto-releases new versions) also since it has a new ID, the installed base
+will not receive the updates automatically.
+
+On the [Chrome Store Dev Console](https://chrome.google.com/u/2/webstore/devconsole/a50353be-1bec-4452-b8e4-c5fd9f2f6336/eofojjpbgfdogalmibgljcgdipkhoclc/edit/package?hl=en)
+go to the **Package** tab on the left side menu, to replace the current release.
+
 
 ## Testing: Deleting an possibility that was made from the left pane
 Voter Guide endorsements can be in the "Possibilities" state (Recommended by a voter or a WeVote power volunteer), or "Stored"

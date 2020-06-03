@@ -101,6 +101,8 @@ $(() => {
         debug && console.log('onMessage.addListener() in tabWordHighlighter got a message: ' + request.command);
 
         if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
+            sender.id === 'lfifjogjdncflocpmhfhhlflgndgkjdo' ||
+            sender.id === 'eofojjpbgfdogalmibgljcgdipkhoclc' ||
             sender.id === 'highlightthis@deboel.eu') {
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
