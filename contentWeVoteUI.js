@@ -9,7 +9,7 @@ let weContentState = {
   highlighterEditorEnabled: false,
   highlighterEnabled: false,
   highlighterEnabledThisTab: false,
-  priorHighligherEnabledThisTab: false,
+  priorHighlighterEnabledThisTab: false,
   isFromPDF:  false,
   neverHighlightOn: {},
   orgName: '',
@@ -27,14 +27,15 @@ let weContentState = {
 
 
 /**
- * Display (or remove) the highlighting on the endorsement page, and optionaly the editor
+ * Display (or remove) the highlighting on the endorsement page, and optionally the editor
  * @param {boolean} highlighterEnabledThisTab - true to display the highlighting, false to remove it and the editor
  * @param {boolean} highlighterEditorEnabled - true to display the editor
  * @param {number} tabId - chromes tab number for currently displayed tab
  * @returns {boolean} - return true to indicate that we want to call the response function asynchronously
  */
 function displayHighlightingAndPossiblyEditor (highlighterEnabledThisTab, highlighterEditorEnabled, tabId) {  // eslint-disable-line no-unused-vars
-  // console.log('displayHighlightingAndPossiblyEditor highlighterEnabledThisTab: ', highlighterEnabledThisTab, ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', tabId: ', tabId);
+  const displayHighlightingAndPossiblyEditorDebug = true;
+  displayHighlightingAndPossiblyEditorDebug && console.log('ENTERING contentWeVoteUI > displayHighlightingAndPossiblyEditor highlighterEnabledThisTab: ', highlighterEnabledThisTab, ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', tabId: ', tabId);
   if (tabId && tabId.length > 0) {
     weContentState.tabId = tabId;
   }
@@ -339,31 +340,34 @@ function topMenu () {
 
 // Get the href into the extension
 function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tabId) {
+  const timingLogDebug = false;
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   const t0 = performance.now();
-  console.log('getHighlights() called ========================== highlighterEnabledThisTab, ', highlighterEnabledThisTab,
-    ', highlighterEditorEnabled ', highlighterEditorEnabled, ', tabId', tabId);
+  console.log('ENTERING contentWeVoteUI > getHighlights() called ========================== highlighterEnabledThisTab: ', highlighterEnabledThisTab,
+    ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', tabId: ', tabId);
   let urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML
   if (!urlToQuery || urlToQuery.length < 1) {
     urlToQuery = window.location.href;
   }
   // TODO: We need to send both urls, html and pdf to the server
 
+  // Start by just retrieving the endorsements already captured
   sendMessage({ command: 'getHighlights', url: urlToQuery, doReHighlight: false },
     function (response) {
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getHighlights")', lastError.message);
       }
+      console.log('RESPONSE in contentWeVoteUI > getHighlights() ========================== response: ', response);
       debugLog('getHighlights() response', response);
 
       if (response) {
         const t1 = performance.now();
-        timingLog(t0, t1, 'getHighlights took', 8.0);
+        timingLogDebug && timingLog(t0, t1, 'getHighlights took', 8.0);
         debugLog('SUCCESS: getHighlights received a response: ', response, '  highlighterEditorEnabled:', highlighterEditorEnabled, ', tabId: ', tabId);
         namesToIds = response.nameToIdMap;  // This one only works if NOT in an iFrame
         if (highlighterEditorEnabled) {
           displayEditPanes();
-          timingLog(t1, performance.now(), 'displayEditPanes took', 5.0);
+          timingLogDebug && timingLog(t1, performance.now(), 'displayEditPanes took', 5.0);
         } else {
           // 2/23/20 6pm  This was what finally got highlighting and/or editor woking on command
           // The same endorsement page, when opened in an iframe will immediately reload and must call sendGetStatus from that DOM, at that moment.
@@ -371,6 +375,45 @@ function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tab
           updateTopMenu(false);  // Get the voterGuidePossiblityId without attempting to update the non-existent top menu
         }
         sendGetStatus();
+
+        // By now, the endorsements already captured should be displayed,
+        // so we can move on to also showing recognized candidate names
+        const t3 = performance.now();
+        console.log('sendMESSAGE contentWeVoteUI > getCombinedHighlights command ========================== ');
+        const timeoutDuration = 7000;  // 7 seconds so the voterGuidePossibilityHighlightsRetrieve can finish
+        console.log('STARTING === 7 Second Delay === contentWeVoteUI > getHighlights > getCombinedHighlights');
+        setTimeout(() => {
+          // We added a 7 second delay to let the page finish updating from the getHighlights command
+          const justSetUpPanels = false;
+          // if (isInOurIFrame()) { // if in an iframe
+          if (justSetUpPanels) {
+            // NOTE FROM DALE: 2020-06-08 This is an attempt to make this work when we are in the Edit panels
+            // Does not currently work
+            console.log('JUST_SET_UP_PANELS: ');
+            retryLoadPositionPanel();
+          } else {
+            // NOTE FROM DALE: 2020-06-08 This works when we haven't put the organization voter guide in a panel
+            sendMessage({command: 'getCombinedHighlights', url: urlToQuery, doReHighlight: true},
+              function (response) {
+                if (lastError) {
+                  console.warn('ERROR: chrome.runtime.sendMessage("getCombinedHighlights")', lastError.message);
+                }
+                console.log('AFTER === 7 Second Delay ===');
+                console.log('RESPONSE in contentWeVoteUI > getCombinedHighlights() ========================== response: ', response);
+                debugLog('getCombinedHighlights() response', response);
+
+                if (response) {
+                  const t4 = performance.now();
+                  timingLogDebug && timingLog(t3, t4, 'getCombinedHighlights took', 8.0);
+                  debugLog('SUCCESS: getCombinedHighlights received a response: ', response, '  highlighterEditorEnabled:', highlighterEditorEnabled, ', tabId: ', tabId);
+                  namesToIds = response.nameToIdMap;  // This one only works if NOT in an iFrame
+                } else {
+                  console.log('ERROR: getCombinedHighlights received empty response');
+                }
+              }
+            );
+          }
+        }, timeoutDuration)
       } else {
         console.log('ERROR: getHighlights received empty response');
       }
@@ -445,22 +488,22 @@ function updateTopMenu (update) {
 
 /* eslint-disable no-unused-vars */
 function updateHighlightsIfNeeded (dialogClosed) {
-  console.log('updateHighlightsIfNeeded ==========================');
+  console.log('ENTERING contentWeVoteUI > updateHighlightsIfNeeded ==========================');
   handleUpdatedOrNewPositions(false, false, false, dialogClosed);
 }
 
 function updatePositionPanelUnconditionally () {
-  console.log('updatePositionPanelUnconditionally ==========================');
+  console.log('ENTERING contentWeVoteUI > updatePositionPanelUnconditionally ==========================');
   handleUpdatedOrNewPositions(true, false, false, false);
 }
 
 function updatePositionPanelConditionally (update) {
-  console.log('updatePositionPanelConditionally ========================== update: ', update);
+  console.log('ENTERING contentWeVoteUI > updatePositionPanelConditionally ========================== update: ', update);
   handleUpdatedOrNewPositions(update, false, false, false);
 }
 
 function preloadPositionsForAnotherVM () {
-  console.log('preloadPositionsForAnotherVM ==========================');
+  console.log('ENTERING contentWeVoteUI > preloadPositionsForAnotherVM ==========================');
   const {location: {ancestorOrigins, origin}} = window;
   if ((ancestorOrigins.length === 0) ||       // Ok to proceed if we have no ancestor origins
       (origin === ancestorOrigins[0])) {      // or if the ancestor origin matches the current origin
@@ -471,25 +514,26 @@ function preloadPositionsForAnotherVM () {
 }
 
 function updatePositionPanelFromTheIFrame (dialogClosed) {
-  console.log('updateHighlightsIfNeeded ==========================');
+  console.log('ENTERING contentWeVoteUI > updatePositionPanelFromTheIFrame ==========================');
   handleUpdatedOrNewPositions(true, true, false, dialogClosed);
 }
 
 function retryLoadPositionPanel () {
-  console.log('retryLoadPositionPanel ==========================');
+  console.log('ENTERING contentWeVoteUI > retryLoadPositionPanel ==========================');
   handleUpdatedOrNewPositions(true, false, true, false);
 }
 /* eslint-enable no-unused-vars */
 
 function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogClosed) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
-  // console.log('/////////////////////// handleUpdatedOrNewPositions() getPositions, weContentState.voterGuidePossibilityId: ' + weContentState.voterGuidePossibilityId);
+  console.log('ENTERING contentWeVoteUI > handleUpdatedOrNewPositions() getPositions, weContentState.voterGuidePossibilityId: ' + weContentState.voterGuidePossibilityId);
 
   sendMessage({ command: 'getPositions', hrefURL: window.location.href, isIFrame: isInOurIFrame(), voterGuidePossibilityId: weContentState.voterGuidePossibilityId },
     function (response) {
       if (lastError) {
         console.warn(' chrome.runtime.sendMessage("getPositions")', lastError.message);
       }
+      console.log('RESPONSE in contentWeVoteUI > handleUpdatedOrNewPositions() getPositions, response:', response);
       debugLog('handleUpdatedOrNewPositions() response', response);
       if ((response && Object.entries(response).length > 0) && (response.data !== undefined) && (response.data.length > 0)) {
         let {data} = response;
@@ -510,7 +554,7 @@ function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogClosed)
         }
       } else {
         // This is not necessarily an error, it could be a brand new voter guide possibility with no position possibilities yet.
-        console.log('Note: handleUpdatedOrNewPositions() getPositions returned an empty response or no data element.');
+        console.log('EXITING contentWeVoteUI > handleUpdatedOrNewPositions(), NOTE: getPositions returned an empty response or no data element.');
       }
     }
   );
@@ -555,7 +599,7 @@ function coreUpdatePositions (data, update) {
       } = data[i];
 
       if (!name) {
-        // Note October 2019: This is a lttle risky, since it assumes the first one is the best one
+        // Note October 2019: This is a little risky, since it assumes the first one is the best one
         console.log('Skipping right position panel blank name: ', data[i]);
         // eslint-disable-next-line no-continue
         continue;
@@ -914,7 +958,7 @@ function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDi
     }
     // Here we are still in the response from 'savePosition'.  After a successful save on the right side (voterGuidePossibilityPositionSave in backgroundWeVoteAPICalls)
     // return here (the left side) and after advancing the open pane (above), call getRefreshedHighlights() (below) to send a 'getHighlights' message to the right side
-    // (extWordHighlighter) with a doReHighlight: true.  This will invoke getHighlightsListFromApiServer this will make an API call
+    // (extWordHighlighter) with a doReHighlight: true.  This will invoke getHighlightsListsFromApiServer this will make an API call
     // to /voterGuidePossibilityHighlightsRetrieve?, upon return from the API call, it will call initializeHighlightsData() (in backgroundWeVoteApiCalls)
     // to sort and process the raw highlights data, and then with doReHighlight true, will call requestReHighlight() which will then
     // send a message back to here (contentWeVoteU which is on the left side) with the processed data to do the re-highlighting.
@@ -1193,7 +1237,7 @@ function attachClickHandlers () {
 
 function orgChoiceDialog (orgList) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
-  // console.log('building orgChoiceDialog');
+  console.log('ENTERING building orgChoiceDialog');
   const sortedList = sortURLs(orgList);
   let markup =
     '<div id="orgChoiceDialog" class="removeContentStyles" style="background-color: rgb(255, 255, 255)">' +
@@ -1223,7 +1267,7 @@ function orgChoiceDialog (orgList) {
       const {href} = window.location;
       let organizationWeVoteId = id.substring(id.indexOf('-') + 1);
 
-      // console.log('orgChoiceDialog  button onclick:  ' + event.currentTarget.id);
+      console.log('orgChoiceDialog voterGuidePossibilitySave, orgChoiceButton button onclick:  ' + event.currentTarget.id);
       sendMessage({
         command: 'voterGuidePossibilitySave',
         organizationWeVoteId: organizationWeVoteId,
@@ -1249,7 +1293,7 @@ function orgChoiceDialog (orgList) {
 
 function sendTopComment () {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
-  // console.log('orgChoiceDialog  button onclick:  ' + event.currentTarget.id);
+  console.log('ENTERING sendTopComment voterGuidePossibilitySave, orgChoiceDialog button onclick:  ' + event.currentTarget.id);
   sendMessage({
     command: 'voterGuidePossibilitySave',
     organizationWeVoteId: weContentState.organizationWeVoteId,

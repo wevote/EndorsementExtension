@@ -75,46 +75,55 @@ function getWordsInGroup (groupName, highlightsList) {
   return wordList;
 }
 
-// Unfortunately aliases all are sent by the server as DEFAULTS, fix the data here
-function promoteAliasesThatArriveAsDefault (highlightsList) {
+function combineHighlightsLists (ballotItemHighlights, voterGuideHighlights) {
+  const overlayOrganizationPositionsDebug = false;
+  console.log('ENTERING extWordHighlighter > combineHighlightsLists');
   aliasNames = [];
   nameToIdMap = {};
-  for (let i = 0; i < highlightsList.length; i++) {
-    let highlight = highlightsList[i];
-    const {display, we_vote_id: weVoteId, name} = highlight;
+  for (let i = 0; i < ballotItemHighlights.length; i++) {
+    let highlight = ballotItemHighlights[i];
+    const {we_vote_id: weVoteId, name} = highlight;
     if (name && name.length > 2) {
       nameToIdMap[name.toLowerCase()] = weVoteId;
-      if (display === 'DEFAULT') {
-        let match = highlightsList.find(function (possibleAlias) {
-          return possibleAlias.we_vote_id === weVoteId;
-        });
-
+      highlight.display = "DEFAULT";
+      highlight.stance = "";
+      // Find first highlight dicts in the voterGuideHighlights that shares the same candidate we vote id
+      let match = voterGuideHighlights.find(function (possibleAlias) {
+        return possibleAlias.we_vote_id === weVoteId;
+      });
+      if (match && match.display) {
+        // If there is a match in voterGuideHighlights, overwrite the default with the org specific highlight
         const {display: displayMatch, stance: stanceMatch} = match;
-        if (displayMatch !== 'DEFAULT') {
-          console.log('For ' + name + ' overwriting to ' + displayMatch + ', ' + stanceMatch + ', from ', match);
-          highlight.display = displayMatch;
-          highlight.stance = stanceMatch;
-        }
-      }
-      let match = aliasNames.find((alias) => alias.candidateWeVoteId === weVoteId);
-      if (match === undefined) {
-        aliasNames.push({
-          candidateWeVoteId: weVoteId,
-          names: [name],
-        });
-      } else {
-        match.names.push(name);
-        debugE && console.log('ALIAS FOUND <<<<<<<<<<<< ' + name + ', ', match);
+        overlayOrganizationPositionsDebug && console.log('For ' + name + ' overwriting to ' + displayMatch + ', ' + stanceMatch + ', from ', match);
+        highlight.display = displayMatch;
+        highlight.stance = stanceMatch;
       }
     } else {
-      console.log('Bad hightlight received in promoteAliases ', highlight);
+      console.log('Bad highlight received in promoteAliases ', highlight);
     }
   }
 }
 
-function initializeHighlightsData (highlightsList, neverHighLightOnLocal) {
-  console.log('START START START initializeHighlightsData');
-  promoteAliasesThatArriveAsDefault(highlightsList);
+function overlayOrganizationPositions (voterGuideHighlights) {
+  const overlayOrganizationPositionsDebug = true;
+  overlayOrganizationPositionsDebug && console.log('ENTERING extWordHighlighter > overlayOrganizationPositions');
+  aliasNames = [];
+  nameToIdMap = {};
+  for (let i = 0; i < voterGuideHighlights.length; i++) {
+    let highlight = voterGuideHighlights[i];
+    const {we_vote_id: weVoteId, name} = highlight;
+    if (name && name.length > 2) {
+      nameToIdMap[name.toLowerCase()] = weVoteId;
+    } else {
+      console.log('Bad highlight received in promoteAliases ', highlight);
+    }
+  }
+}
+
+function initializeHighlightsData (ballotItemHighlights, voterGuideHighlights, neverHighLightOnLocal) {
+  const initializeHighlightsDataDebug = true;
+  initializeHighlightsDataDebug && console.log('ENTERING extWord > initializeHighlightsData, ballotItemHighlights.length:', ballotItemHighlights.length);
+  combineHighlightsLists(ballotItemHighlights, voterGuideHighlights);
 
   HighlightsData.Version = '12';
   HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOnLocal);
@@ -136,7 +145,44 @@ function initializeHighlightsData (highlightsList, neverHighLightOnLocal) {
       'FindWords': true,
       'ShowOn': [],
       'DontShowOn': [],
-      'Words': getWordsInGroup(groupName, highlightsList),
+      'Words': getWordsInGroup(groupName, ballotItemHighlights),
+      'Type': 'local',
+      'Modified': Date.now()
+    };
+    debugE && console.log('groupName: ' + groupName + ', group: ' + group);
+    HighlightsData.Groups.push(groupName, group);
+  }
+
+  printHighlights = HighlightsData.PrintHighlights;
+  // console.log("END END END initializeHighlightsData");
+}
+
+function initializeVoterGuideHighlightsData (voterGuideHighlights, neverHighLightOnLocal) {
+  const initializeVoterGuideHighlightsDataDebug = true;
+  initializeVoterGuideHighlightsDataDebug && console.log('ENTERING extWordHighlighter > initializeVoterGuideHighlightsData');
+  overlayOrganizationPositions(voterGuideHighlights);
+
+  HighlightsData.Version = '12';
+  HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOnLocal);
+  let neverHighlightOn = HighlightsData.neverHighlightOn;
+  // console.log('neverHighLightOn:', HighlightsData.neverHighLightOn);
+  // HighlightsData.ShowFoundWords = true;
+  HighlightsData.PrintHighlights = true;
+  let today = new Date();
+  HighlightsData.Donate = today.setDate(today.getDate() + 20);
+  HighlightsData.Groups = [];
+  for (let groupName in groupNames) {
+    let group = {
+      'groupName': groupName,
+      'Fcolor': getColor(groupName, true),
+      'Color': getColor(groupName, false),
+      'Icon': getIcon(groupName),
+      'ShowInEditableFields': false,
+      'Enabled': true,
+      'FindWords': true,
+      'ShowOn': [],
+      'DontShowOn': [],
+      'Words': getWordsInGroup(groupName, voterGuideHighlights),
       'Type': 'local',
       'Modified': Date.now()
     };
@@ -206,8 +252,7 @@ function getIcon (typeStance) {
 }
 
 function createSearchMenu () {
-  /* debugE&& */
-  console.log('createSearchMenu has been called');
+  debugE && console.log('createSearchMenu has been called');
   getPlatformInfo(
     function () {
       create({
@@ -325,10 +370,11 @@ function processUniqueNames (uniqueNamesFromPage) {
 }
 
 // Called by the "highlight this tab" button on the popup
-// This receives the tab not the tabid!
+// This receives the tab not the tabId!
 function setEnableForActiveTab (showHighlights, showEditor, tab) {
+  const setEnableForActiveTabDebug = true;
   const { chrome: { tabs: { getAllInWindow, sendMessage, lastError } } } = window;
-  debugE && console.log('enabling highlights on active tab ', tab, ', showEditor: ', showEditor, ', showHighlights:', showHighlights);
+  (debugE || setEnableForActiveTabDebug) && console.log('enabling highlights on active tab ', tab, ', showEditor: ', showEditor, ', showHighlights:', showHighlights);
 
   let tabID = tab ? tab.id : activeTabIdGlobal;
   if (!tabID) {
@@ -346,8 +392,8 @@ function setEnableForActiveTab (showHighlights, showEditor, tab) {
   }
   let neverHighlightOn = HighlightsData.neverHighlightOn;
 
-  for (let neverShowOn in HighlightsData.neverHighlightOn) {
-    if (tentativeURL.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
+  for (let neverShowOn in neverHighlightOn) {
+    if (tentativeURL.match(globStringToRegex(neverHighlightOn[neverShowOn]))) {
       showHighlightsCount('x', 'red', tabID);
       setTimeout(function () {
         showHighlightsCount('', 'white', tabID);
@@ -507,9 +553,9 @@ function removeHighlightsForAllTabs () {
 }
 
 
-chrome.tabs.onActivated.addListener(function (tabid){
+chrome.tabs.onActivated.addListener(function (tabId){
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    debugE && console.log('XXXXXX set GLOBALS in tabs onactivated', tabid, tabs);
+    debugE && console.log('XXXXXX set GLOBALS in tabs onactivated', tabId, tabs);
     // Sept 25, 2019: Todo this assumes that the first tab, when you turn it on, is the one that gets the menu!
     if (tabs.length) {
       const { 0 : { id, url, windowId } } = tabs;
@@ -520,14 +566,14 @@ chrome.tabs.onActivated.addListener(function (tabid){
       debugE && console.log('XXXXXX chrome.tabs.onActivated.addListener', tabs[0]);
       updateContextMenu(tabs[0].url);
     } else {
-      console.warn('chrome.tabs.onActivated.addListener found no currentWindow for tabid: ' + tabid);
+      console.warn('chrome.tabs.onActivated.addListener found no currentWindow for tabId: ' + tabId);
     }
   });
 });
 
 chrome.tabs.onUpdated.addListener(
-  function (tabid, tab){
-    debugE && console.log('in tabs onupdated', tabid, tab);
+  function (tabId, tab){
+    debugE && console.log('in tabs onupdated', tabId, tab);
 
     if(tab.url !== undefined){
       updateContextMenu(tab.url);
@@ -631,10 +677,20 @@ chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {    // eslint-disable-line complexity
     debugE && console.log('XXXXXX message received -- ' + request.command + ': ', request, sender, sender.tab.id);
     //request=JSON.parse(evt.data);
+    let showVoterGuideHighlights;
+    let showCandidateOptionsHighlights;
     if (request.command === 'getTopMenuData') {
       getOrganizationFound(request.url, sendResponse);
     } else if (request.command === 'getHighlights') {
-      getHighlightsListFromApiServer(request.url, request.doReHighlight, sendResponse, '6000');
+      // Highlight the captured positions
+      showVoterGuideHighlights = true;
+      showCandidateOptionsHighlights = false;
+      getHighlightsListsFromApiServer(request.url, request.doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights);
+    } else if (request.command === 'getCombinedHighlights') {
+      // Highlight the captured positions AND the recognized candidate names
+      showVoterGuideHighlights = true;
+      showCandidateOptionsHighlights = true;
+      getHighlightsListsFromApiServer(request.url, request.doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights);
     } else if (request.command === 'getPositions') {
       getPossiblePositions(request.voterGuidePossibilityId, request.hrefURL, request.isIFrame, sendResponse);
     } else if (request.command === 'savePosition') {
@@ -791,21 +847,27 @@ function getThisTabsStatus (tabURL, sendResponse) {
 }
 
 function requestReHighlight (){
+  const requestReHighlightDebug = false;
+  console.log('ENTERING extWordHighlighter > requestReHighlight');
   const {chrome: {tabs: {sendMessage, query}}} = window;
   // console.log('requestReHighlight() called');
   query({active: true, currentWindow: true}, function (tabs) {
-    let id = '';
+    let tabId = 0;
     let url = '';
     if (tabs.length) {
-      id = tabs[0].id;    // eslint-disable-line prefer-destructuring
+      tabId = tabs[0].id;    // eslint-disable-line prefer-destructuring
       url = tabs[0].url;  // eslint-disable-line prefer-destructuring
-      console.log('requestReHighlight() called for tab id (1): '+id);
+      requestReHighlightDebug && console.log('requestReHighlight() called for tabId (1): '+tabId);
     } else {
-      id = activeTabIdGlobal;
+      tabId = activeTabIdGlobal;
       url = activeUrlGlobal;
-      console.log('requestReHighlight() called for tab id (2): '+id);
+      requestReHighlightDebug && console.log('requestReHighlight() called for tabId (2): '+tabId);
     }
-    sendMessage(id, {command: 'ReHighlight', words: getWordsBackground(url)});
+    if (tabId && tabId > 0) {
+      sendMessage(tabId, {command: 'ReHighlight', words: getWordsBackground(url)});
+    } else {
+      console.log('In requestReHighlight, ReHighlight could not be sent -- missing tabId:', tabId);
+    }
   });
 }
 

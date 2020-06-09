@@ -151,7 +151,7 @@ function Hilitor (id, tag) {
   // recursively apply word highlighting
   // eslint-disable-next-line complexity
   this.hiliteWords = function (node, printHighlights, inContentEditable) {
-
+    const hiliteWordsDebug = false;
     if (node == undefined || !node) {return;}
     if (!matchRegex) {return;}
 
@@ -196,7 +196,7 @@ function Hilitor (id, tag) {
       } else {
         regs = matchRegex.exec(nv);
         if (regs) {
-          debugH && console.log('regs response', regs);
+          (debugH || hiliteWordsDebug) && console.log('regs response', regs);
         }
       }
       if (regs) {
