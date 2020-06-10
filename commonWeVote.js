@@ -40,6 +40,8 @@ const extensionWarmUpPage = `${webAppRoot}/extension.html`;
 const extensionSignInPage = `${webAppRoot}/more/extensionsignin`;
 const apiRoot = useProductionAPIs ? 'https://api.wevoteusa.org' : 'http://localhost:8000';
 const rootApiURL = `${apiRoot}/apis/v1`;
+const cdnRoot = useProductionAPIs ? 'https://cdn.wevoteusa.org' : 'http://localhost:8000';
+const rootCdnURL = `${cdnRoot}/apis/v1`;
 const defaultNeverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org', 'localhost', 'platform.twitter.com', '*.addthis.com', 'localhost'];
 
 
