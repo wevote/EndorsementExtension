@@ -746,7 +746,7 @@ chrome.runtime.onMessage.addListener(
     } else if(request.command === 'removeWord') {
       sendResponse({success:removeWord(request.word)});
     } else if(request.command === 'beep') {
-      document.body.innerHTML += '<audio src="beep.wav" autoplay="autoplay"/>';
+      document.body.innerHTML += '<audio src="../../beep.wav" autoplay="autoplay"/>';
     } else if(request.command === 'getStatus') {
       // console.log('if(request.command === \'getStatus\') highlighterEnabled: ', highlighterEnabled);
       getThisTabsStatus(request.tabURL, sendResponse);
