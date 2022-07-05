@@ -1,6 +1,11 @@
 /* global $ */
 /* eslint-disable no-unused-vars */
 
+const debugServiceWorker = true;
+const debugTimingServiceWorker = true;
+const debugTimingForegroundContent = true;
+const debugHilitorEnabled = true;
+
 const groupNames = {
   POSSIBILITY_SUPPORT: 'POSSIBILITY_SUPPORT',
   POSSIBILITY_OPPOSE: 'POSSIBILITY_OPPOSE',
@@ -31,7 +36,7 @@ const colors = {
 
 
 const useProductionAPIs = true;
-const useProductionWebApp = true;
+const useProductionWebApp = false;    // TODO: Undo 12/8/20
 const webAppRoot = useProductionWebApp ? 'https://quality.wevote.us' : 'https://localhost:3000';
 const candidateExtensionWebAppURL = `${webAppRoot}/candidate-for-extension`;
 const addCandidateExtensionWebAppURL = `${webAppRoot}/add-candidate-for-extension`;
@@ -45,18 +50,13 @@ const rootCdnURL = `${cdnRoot}/apis/v1`;
 const defaultNeverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org', 'localhost', 'platform.twitter.com', '*.addthis.com', 'localhost'];
 
 
-function isInOurDialogIFrame () {
-  return $('.weVoteEndorsementFrame').length > 0;   // this is true if in our dialog's iframe containing the WebApp at wevote.us
-}
+// function isInOurDialogIFrame () {
+//   return $('.weVoteEndorsementFrame').length > 0;   // this is true if in our dialog's iframe containing the WebApp at wevote.us
+// }
 
-function isInOurIFrame () {
-  return $('div#wedivheader').length > 0;   // this is true if in our highlighted "Endorsement Page" that is framed by the "Open Edit Panel" button action}
-}
-
-function isInANonWeVoteIFrame () {
-  return (window.self !== window.top  && $('.weVoteEndorsementFrame').length === 0) || window.location.href === 'about:blank';
-}
-
+// function isInOurIFrame () {
+//   return $('div#wedivheader').length > 0;   // this is true if in our highlighted "Endorsement Page" that is framed by the "Open Edit Panel" button action}
+// }
 
 // SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
 function markupForThumbSvg (classString, type, fillColor) {
@@ -78,20 +78,81 @@ function markupForThumbSvg (classString, type, fillColor) {
   return '';
 }
 
-function timingLog (time0, time1, text, warnAt) {
+function timingFgLog (time0, time1, text, warnAt) {
+  if (debugTimingForegroundContent) {
+    timingInnerLog (time0, time1, text, warnAt);
+  }
+}
+
+function timingSwLog (time0, time1, text, warnAt) {
+  if (debugTimingServiceWorker) {
+    timingInnerLog (time0, time1, text, warnAt);
+  }
+}
+
+function timingInnerLog (time0, time1, text, warnAt) {
   const duration = time1 - time0;
 
   if (duration < 1000) {
     const niceDuration = Number.parseFloat(duration).toPrecision(4);
-    console.log('ttttt TIMING: time to ' + text + ' ' + niceDuration + ' milliseconds.');
+    stampedLog('ttttt TIMING: time to ' + text + ' ' + niceDuration + ' milliseconds.');
   } else {
     const niceDuration = Number.parseFloat(duration/1000).toPrecision(4);
     const msg = 'ttttt TIMING: time to ' + text + '  ' + niceDuration + ' SECONDS.';
     if ((duration)/1000 > warnAt) {
       // console.warn(msg);  // too heavy handed for the extension log file
-      console.log('WARNING ' + msg);
+      stampedLog('WARNING ' + msg);
     } else {
-      console.log(msg);
+      stampedLog(msg);
     }
   }
+}
+
+function debugSwLog (...args) {
+  if (debugServiceWorker) {
+    stampedLog(...args);
+  }
+}
+
+function debugHilitor (...args) {
+  if (debugHilitorEnabled) {
+    stampedLog(...args);
+  }
+}
+
+function debugFgLog (...args) {
+  if (debugTimingForegroundContent) {
+    stampedLog(...args);
+  }
+}
+
+constructionT0 = performance.now();
+
+function stampedLog (...args) {
+  const t1 = performance.now();
+  // if (!window.constructionT0) window.constructionT0 = t1;  // REMEMBER: that the dom in the extension is not the same as the dom in the foreground web page!  And there is no DOM in a service worker!
+  const timeStr = Number.parseFloat((t1 - constructionT0)/1000).toFixed(3);
+  args.unshift(':');
+  args.unshift(timeStr);
+  console.log(...args);
+}
+
+function inArray (elem, array) {
+  if (array.indexOf) {
+    return array.indexOf(elem);
+  }
+
+  for (var i = 0, {length} = array; i < length; i++) {
+    if (array[i] === elem) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+function getCookie (name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
 }
