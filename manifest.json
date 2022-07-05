@@ -1,42 +1,14 @@
 {
-   "name": "WeVote Endorsement Chrome Extension",
-   "description": "Highlights existing, and new opportunities, for endorsements on voter guide pages.",
-   "version": "0.0.0.20",
-   "manifest_version": 3,
-   "icons": {
-      "16": "./images/icon16.png",
-      "48": "./images/icon48.png",
-      "96": "./images/icon96.png",
-      "128": "./images/icon128.png"
-   },
    "background": {
-      "service_worker": "./js/serviceWorker/serviceWorker.js",
-      "css": [
-         "libs/jquery-ui-modified/jquery-ui.theme-1.12.1-we-vote.css"
-      ]
+      "css": [ "libs/jquery-ui-modified/jquery-ui.theme-1.12.1-we-vote.css" ],
+      "scripts": [ "libs/jquery/jquery-3.4.0.min.js", "libs/jquery-ui-modified/jquery-ui-1.12.1.min-we-vote.js",
+         "libs/sanitize-html/sanitize-html.js", "backgroundWeVoteAPICalls.js", "extWordHighlighter.js", "commonWeVote.js",
+         "libs/string-similarity/compare-strings.js" ]
    },
-   "action": {
-      "default_popup": "popup.html",
-      "default_icons": {
-         "16": "./images/icon16.png",
-         "32": "./images/icon32.png",
-         "48": "./images/icon48.png",
-         "128": "./images/icon128.png"
-      }
+   "browser_action": {
+      "default_icon": "icon16.png",
+      "default_popup": "popup.html"
    },
-   "permissions": [
-      "scripting",
-      "storage",
-      "contextMenus",
-      "notifications",
-      "tabs"
-   ],
-   "host_permissions": [
-      "https://www.google.com/*"
-   ],
-   "optional_host_permissions": [
-      "*://*/*"
-   ],
    "commands": {
       "ScrollHighlight": {
          "description": "ScrollHighlight",
@@ -46,45 +18,27 @@
          }
       }
    },
-   "web_accessible_resources": [
-      {
-         "resources": [
-            "libs/jquery/jquery-3.6.0.min.js"
-         ],
-         "matches": [
-            "*://*/*"
-         ]
-      }
-   ],
-   "content_scripts": [
-      {
-         "all_frames": true,
-         "css": [
-            "css/highlightThis.css",
-            "css/weVote.css",
-            "css/weVoteGrid.css",
-            "js/contentForeground/dragElement.js",
-            "libs/jquery-ui-modified/jquery-ui.theme-1.12.1-we-vote.css"
-         ],
-         "js": [
-            "js/contentForeground/hilitor.js",
-            "js/contentForeground/tabWordHighlighter.js",
-            "js/contentForeground/contentWeVoteUI.js",
-            "js/contentForeground/dragElement.js",
-            "js/commonWeVote.js",
-            "libs/jquery/jquery-3.6.0.min.js",
-            "libs/jquery-ui-modified/jquery-ui-1.12.1.min-we-vote.js",
-            "libs/string-similarity/compare-strings.js"
-         ],
-         "match_about_blank": true,
-         "matches": [
-            "http://*/*",
-            "https://*/*"
-         ],
-         "run_at": "document_start"
-      }
-   ],
+   "content_scripts": [ {
+      "all_frames": true,
+      "css": [ "libs/jquery-ui-modified/jquery-ui.theme-1.12.1-we-vote.css", "highlightThis.css", "weVote.css", "weVoteGrid.css" ],
+      "js": [ "libs/jquery/jquery-3.4.0.min.js", "libs/jquery-ui-modified/jquery-ui-1.12.1.min-we-vote.js", "libs/string-similarity/compare-strings.js",
+         "hilitor.js", "tabWordHighlighter.js", "contentWeVoteUI.js", "commonWeVote.js" ],
+      "match_about_blank": true,
+      "matches": [ "http://*/*", "https://*/*" ],
+      "run_at": "document_start"
+   } ],
+   "default_locale": "en",
+   "description": "Highlights existing, and new opportunites, for endorsements on voter guide pages.",
+   "icons": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "96": "icon96.png",
+      "128": "icon128.png"
+   },
+   "manifest_version": 2,
+   "name": "We Vote Endorsement Tool",
+   "permissions": [ "tabs", "contextMenus", "activeTab" ],
+   "short_name": "We Vote Chrome Extension",
    "update_url": "https://clients2.google.com/service/update2/crx",
-   "default_locale": "en"
+   "version": "0.0.0.19"
 }
-
