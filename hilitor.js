@@ -12,18 +12,19 @@
 /* global $ */
 
 function Hilitor (id, tag) {
-  // var colorIdx = 0;
-  // var colors = ['#ff6', '#a0ffff', '#9f9', '#f99', '#f6f'];
+
+  let debugH = false;
+  var colorIdx = 0;
+  var colors = ['#ff6', '#a0ffff', '#9f9', '#f99', '#f6f'];
   var highlightMarkers = {};
   var highlights = {}; //added
   var hiliteClassname = 'Highlight';
   var hiliteTag = tag || 'EM';
   var matchRegex = '';
   var matchRegexEditable = '';
-  let names = [];
   var numberOfHighlights = 0; //added
-  // var openLeft = false;
-  // var openRight = false;
+  var openLeft = false;
+  var openRight = false;
   var skipClasses = new RegExp('(ui-datepicker)','gi');
   var skipTags = new RegExp('^(?:SCRIPT|HEAD|NOSCRIPT|STYLE|TEXTAREA)$');
   var targetNode = document.body;
@@ -41,21 +42,21 @@ function Hilitor (id, tag) {
         this.openLeft = true;
         this.openRight = false;
         break;
-      // case 'open':
-      //   this.openLeft = this.openRight = true;
-      //   break;
-      // default:
-      //   this.openLeft = this.openRight = false;
+      case 'open':
+        this.openLeft = this.openRight = true;
+        break;
+      default:
+        this.openLeft = this.openRight = false;
     }
   };
 
   this.setRegex = function (input) {
     var words = '';
-    // var wordparts = '';
+    var wordparts = '';
     var wordsEditable = '';
     var wordpartsEditable = '';
-    // var wordsList = [];
-    // var wordpartsList = [];
+    var wordsList = [];
+    var wordpartsList = [];
 
 
     //reverse sort the keys based on length
@@ -64,45 +65,29 @@ function Hilitor (id, tag) {
     });
 
     // --------------------------
-    // debugHilitor('duped sortedKeys.length ' + sortedKeys.length);
+    // console.log('duped sortedKeys.length ' + sortedKeys.length);
 
-    debugHilitor('duped sortedKeys.length ' + sortedKeys.length);
+    debugH && console.log('duped sortedKeys.length ' + sortedKeys.length);
 
+    let names = [];
     for (let i = 0; i < sortedKeys.length; i++) {
       const name = sortedKeys[i].word;
       if (name === 'tamara sawyer' || name === 'tami sawyer') {
-        debugHilitor('hilitor  ' + i + ': ' + sortedKeys[i].word);
+        debugH && console.log('hilitor  ' + i + ': ' + sortedKeys[i].word);
       }
       if (names.includes(name)) {
-        debugHilitor('Skipping duplicate hilitor name ' + name + ', insert = ' + i);
+        debugH && console.log('Skipping duplicate hilitor name ' + name + ', insert = ' + i);
       } else {
         names.push(name);
       }
     }
-    debugHilitor('deduped name list size ' + names.length);
+    debugH && console.log('deduped name list size ' + names.length);
 
-    // //regex for all words
-    // var re = '';
-    // if (words.length > 1) {
-    //   words = words.substring(0, words.length - 1);
-    //   re += '(' + words + ')';
-    //   if (!this.openLeft && !this.openRight) {
-    //     re = '\\b' + re + '\\b' + '|\\s' + re + '\\s';
-    //   }
-    // }
-    // if (wordparts.length > 1 && words.length > 1) {
-    //   re += '|';
-    // }
-    // if (wordparts.length > 1) {
-    //   wordparts = wordparts.substring(0, wordparts.length - 1);
-    //   re += '(' + wordparts + ')';
-    // }
-    // matchRegex = new RegExp(re, 'i');
 
-    // debugHilitor('matchRegex: ' + matchRegex);
 
-    //ContentEditable regex
-    input.map(function (x){return x.word;});
+    // --------------------------
+
+    input.map(function (x){return x.word});
 
     for (let word in sortedKeys) {
       if (sortedKeys[word].FindWords) {
@@ -117,13 +102,36 @@ function Hilitor (id, tag) {
           wordpartsEditable += sortedKeys[word].regex + '|';
         }
       }
+
     }
+    //regex for all words
+    var re = '';
+    if (words.length > 1) {
+      words = words.substring(0, words.length - 1);
+      re += '(' + words + ')';
+      if (!this.openLeft && !this.openRight) {
+        re = '\\b' + re + '\\b' + '|\\s' + re + '\\s';
+      }
+
+    }
+    if (wordparts.length > 1 && words.length > 1) {
+      re += '|';
+    }
+    if (wordparts.length > 1) {
+      wordparts = wordparts.substring(0, wordparts.length - 1);
+      re += '(' + wordparts + ')';
+    }
+    matchRegex = new RegExp(re, 'i');
+
+    debugH && console.log(matchRegex);
+
+    //ContentEditable regex
     re = '';
     if (wordsEditable.length > 1) {
       wordsEditable = wordsEditable.substring(0, wordsEditable.length - 1);
       re += '(' + wordsEditable + ')';
       if (!this.openLeft && !this.openRight) {
-        re = '\\b' + re + '\\b|\\s' + re + '\\s';
+        re = '\\b' + re + '\\b' + '|\\s' + re + '\\s';
       }
     }
 
@@ -136,17 +144,16 @@ function Hilitor (id, tag) {
       re += '(' + wordpartsEditable + ')';
     }
     matchRegexEditable = new RegExp(re, 'i');
-    debugHilitor('matchRegexEditable', matchRegexEditable);
+    debugH && console.log('matchRegexEditable', matchRegexEditable);
   };
 
 
   // recursively apply word highlighting
   // eslint-disable-next-line complexity
   this.hiliteWords = function (node, printHighlights, inContentEditable) {
-    debugHilitor('entry to hiliteWords');
     const hiliteWordsDebug = false;
     if (node == undefined || !node) {return;}
-    // if (!matchRegex) {return;}
+    if (!matchRegex) {return;}
 
     // Begin modification for WeVote
     // Before change this was...  if (skipTags.test(node.nodeName)||skipClasses.test(node.className)) {return;}
@@ -157,51 +164,41 @@ function Hilitor (id, tag) {
       node.id === 'sideArea' ||
       node.id === 'wediv' ||
       node.id === 'topMenu') {
-      debugHilitor('<><><><><>hiliteWords early recursive STOP return node.id: ' + node.id);
+      debugH && console.log('<><><><><>hiliteWords early recursive STOP return node.id: ' + node.id);
       return;
     }
+    // if (node.id === 'frame') {
+    //   console.log('node.id === frame, src: ', node.src);
+    // }
+    // if (node.id === '' && node.tagName !== 'BODY') {
+    //   console.log('node.id === "", tag:', node.tagName, ', textContent: ', node.textContent);
+    // }
+    // if (node.tagName === 'BODY') {
+    //   console.log('node.id === "", tag: "BODY" 2');
+    // }
 
-    debugHilitor('hiliteWords early recursive CONTINUE node.id: ' + node.id);
-    // debugHilitor('before iterating Through every child node using highlight words cnt: ' + (node.hasChildNodes() ? node.childNodes.length : 0));
+    debugH && console.log('hiliteWords early recursive CONTINUE node.id: ' + node.id);
+    // console.log('before iterating Through every child node using highlight words cnt: ' + (node.hasChildNodes() ? node.childNodes.length : 0));
     // End of modification for WeVote
 
     if (node.hasChildNodes()) {
       for (var i = 0; i < node.childNodes.length; i++) {
-        this.hiliteWords(node.childNodes[i], printHighlights, inContentEditable || node.isContentEditable);
+        this.hiliteWords(node.childNodes[i], printHighlights, inContentEditable || node.isContentEditable)
       }
     }
 
     if (node.nodeType == 3) { // NODE_TEXT
-      let regs = undefined;
-      let nv = this.cleanName(node.nodeValue);
-      debugHilitor('cleanName(node.nodeValue) >' + nv +'<');
 
-      const t1 = performance.now();
-      if (nv.length > 3) {
-        if(inContentEditable) {
-          debugHilitor('matchRegexEditable.exec(nv) 1');
-          regs = matchRegexEditable.exec(nv);
-        } else {
-          // build a mini-regex as a first step toward eliminating gigantic regexes
-          let namesString = '';
-          const nvLower = nv.toLowerCase();
-          for (let i = 0; i < names.length; i++) {
-            if (nvLower.includes(names[i].toLowerCase())) {
-              namesString += names[i] + '|';
-            }
-          }
-          namesString = namesString.slice(0, -1);  // remove trailing |
-          const miniRe = '(\\b' + namesString + '\\b|\\s' + namesString + '\\s)';
-          debugHilitor('miniRe: ', miniRe);
-          matchRegex = new RegExp(miniRe, 'i');
-          regs = matchRegex.exec(nv);
-          if (regs) {
-            hiliteWordsDebug && debugHilitor('regs response', regs);
-          }
+      let nv = this.cleanName(node.nodeValue);
+      debugH && console.log('cleanName(node.nodeValue) >' + nv +'<');
+      if(inContentEditable) {
+        regs = matchRegexEditable.exec(nv);
+      } else {
+        regs = matchRegex.exec(nv);
+        if (regs) {
+          (debugH || hiliteWordsDebug) && console.log('regs response', regs);
         }
       }
-      const t2 = performance.now();
-      timingFgLog(t1, t2, 'in hilitor.js, exec`ing the regex took', 8.0);
       if (regs) {
         var wordfound = '';
 
@@ -210,7 +207,7 @@ function Hilitor (id, tag) {
           var pattern = new RegExp(wordColor[word].regex, 'i');
           if (pattern.test(regs[0]) && word.length > wordfound.length) {
             wordfound = word;
-            debugHilitor('hilitor word found: ' + word);
+            debugH && console.log('hilitor word found: ' + word)
             break;
           }
         }
@@ -257,7 +254,7 @@ function Hilitor (id, tag) {
             'isInHidden': false
           });
 
-          debugHilitor('WORD FOUND IN DOM: ', wordColor[wordfound].word);
+          debugH && console.log('WORD FOUND IN DOM: ', wordColor[wordfound].word);
           highlightMarkers[numberOfHighlights] = {
             'word': wordColor[wordfound].word,
             'offset': nodeAttributes.offset,
@@ -282,7 +279,7 @@ function Hilitor (id, tag) {
     // If the name is in a link tag, disable it by changing the "A" to a "SPAN"
     if (possibleA.localName === 'a') {   // Only swap it one time, ie. don't swap it if it has the class "once was an A tag"
       $(possibleA).replaceWith(function () {
-        return '<span class="once was an A tag" title="' + urlHref + '">' + $(possibleA).text() + '</span>';
+        return '<span class="once was an A tag" title="' + urlHref + '">' + $(possibleA).text() + '</span>'
       });
     }
     const emNode = node.nextElementSibling;
@@ -296,7 +293,7 @@ function Hilitor (id, tag) {
       let id = '';
 
       if (!cleanedName) {
-        console.log('Bad cleaned name error');
+        console.warn('Bad cleaned name error');
       }
       for (let i = 0; i < cleanedName.length; i++) {
         let char1 = cleanedName.charAt(i);
@@ -310,7 +307,7 @@ function Hilitor (id, tag) {
         '&endorsement_page_url=' + encodeURIComponent(location.href) +
         '&candidate_specific_endorsement_url=' + candidateHomePage +
         '&voter_guide_possibility_id=' + weContentState.voterGuidePossibilityId;
-      // debugHilitor('frameUrl ==================== ' + frameUrl);
+      // console.log('frameUrl ==================== ' + frameUrl);
       const clickIFrame = 'setModal(true, \'' + frameUrl + '\', \'' + id + '\', event)';
 
       $(emNode).wrap('<button type="button" id="' + id + '" class="endorsementHighlights" onclick="' + clickIFrame + '"></button>');
@@ -378,4 +375,5 @@ function Hilitor (id, tag) {
     this.hiliteWords(targetNode, printHighlights, false);
     return {numberOfHighlights: numberOfHighlights, details: highlights, markers: highlightMarkers};
   };
+
 }

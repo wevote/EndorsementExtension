@@ -16,7 +16,7 @@ debug your "Content Script" (Content scripts are the only component of an extens
 
 
 Files:
-![ScreenShot](docs/images/fileArchitectureDrawing.png)
+![ScreenShot](docs/images/fileArchitectureDrawing.pngfileArchitectureDrawing.pngfileArchitectureDrawing.png)
 
 Notes: 
 That "Errors" button on the [chrome://extensions/](chrome://extensions/) shows some code validation errors, and some
@@ -33,10 +33,7 @@ latest version of the extension code.
 ![ScreenShot](docs/images/Refresh Extension.png)
 * Then you will need to update the tab where you are debugging the extension, the Hard Reload might be all you
 need with 'Shift+Option+R', but it always does the job with the "Empty Cache and Hard Reload"
-(which will only be present if you are using the debugger on that tab.)
-* If you are working on the popup.js, all you need to do is refresh the entension on the chrome://extension page to get
-* your changes into the browser, but if you are working on the forground page, you need to refresh it with
-  'Shift+Option+R' to get your changes into the page dom.
+(which will only be present if you are using the debugger on that tab.) 
 ![ScreenShot](docs/images/HardReload.png)
 
 Resources leak:
@@ -85,7 +82,7 @@ On the [Chrome Store Dev Console](https://chrome.google.com/u/2/webstore/devcons
 go to the **Package** tab on the left side menu, to replace the current release.
 
 
-## Testing: Deleting a possibility that was made from the left pane
+## Testing: Deleting an possibility that was made from the left pane
 Voter Guide endorsements can be in the "Possibilities" state (Recommended by a voter or a WeVote power volunteer), or "Stored"
 one we are more sure about.  This chrome extension displays both kinds as highlights on the original page (in the left pane), 
 and as a list in the right pane. "Possibilities" will have less data, and will not have WeVi=oteCandidateIds, so the link to

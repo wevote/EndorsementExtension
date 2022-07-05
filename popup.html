@@ -1,10 +1,10 @@
 <html>
     <head>
-        <script type="module" src="popup.js"></script>
-        <script src="js/commonWeVote.js"></script>
-        <script src="libs/jquery/jquery-3.6.0.min.js"></script>
-        <link rel="stylesheet" href="css/onOffSwitch.css" type="text/css">
-        <link rel="stylesheet" href="css/application.css" type="text/css">
+        <script src="popup.js"></script>
+        <script src="commonWeVote.js"></script>
+        <script src="libs/jquery/jquery-3.4.0.min.js"></script>
+        <link rel="stylesheet" href="onOffSwitch.css" type="text/css">
+        <link rel="stylesheet" href="application.css" type="text/css">
     </head>
     <body style="padding-bottom: 15px;">
 
@@ -28,20 +28,25 @@
                 </div>
             </div>
 
+
+<!--            <div id="viewCandidates" class="switchRow">-->
+<!--                <div class="switchTextLabel" >Highlight Candidates on All Tabs</div>-->
+<!--                <div class="onoffswitch">-->
+<!--                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="highlightCandidatesOnAllTabsSwitch">-->
+<!--                    <label class="onoffswitch-label" for="highlightCandidatesOnAllTabsSwitch"></label>-->
+<!--                </div>-->
+<!--            </div>-->
+
             <hr>
 
             <div class="buttonDiv">
                 <button type='button' id='highlightCandidatesThisTabButton' class='weButton'>Highlight Candidates on This Tab</button>
             </div>
 
+
+
             <div class="buttonDiv">
                 <button type='button' id='openEditPanelButton' class='weButton'>Open Edit Panel for this Tab</button>
-            </div>
-
-            <div class="tabReportDiv">
-                Tab:
-                <span id="tabNumber" style="margin-right: 10px">-</span>
-                <span id="hostName">.</span>
             </div>
         </div>
     </body>

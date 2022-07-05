@@ -55,7 +55,7 @@
     if (_typeof(global.console) !== "object") {
       // Console-polyfill. MIT license.
       // https://github.com/paulmillr/console-polyfill
-      // Make it safe to do debugLog() always.
+      // Make it safe to do console.log() always.
       global.console = {};
       var con = global.console;
       var prop, method;
@@ -874,7 +874,7 @@
        *
        * @name setDisplayMode
        * @memberOf jsPDF
-       * @function
+       * @function 
        * @instance
        * @param {integer|String} zoom   You can pass an integer or percentage as
        * a string. 2 will scale the document up 2x, '200%' will scale up by the
@@ -2141,8 +2141,8 @@
       /**
        * @name insertPage
        * @memberOf jsPDF
-       *
-       * @function
+       * 
+       * @function 
        * @instance
        * @param {Object} beforePage
        * @returns {jsPDF}
@@ -2393,7 +2393,7 @@
 
         if (textIsOfTypeString === false) {
           throw new Error('Type of text must be string or Array. "' + text + '" is not recognized.');
-        } //Escaping
+        } //Escaping 
 
 
         var activeFontEncoding = fonts[activeFontKey].encoding;
@@ -2542,7 +2542,7 @@
             break;
         }
 
-        var usedRenderingMode = typeof pageContext.usedRenderingMode !== 'undefined' ? pageContext.usedRenderingMode : -1; //if the coder wrote it explicitly to use a specific
+        var usedRenderingMode = typeof pageContext.usedRenderingMode !== 'undefined' ? pageContext.usedRenderingMode : -1; //if the coder wrote it explicitly to use a specific 
         //renderingMode, then use it
 
         if (tmpRenderingMode !== -1) {
@@ -2757,11 +2757,11 @@
         });
       };
       /**
-       *
+       * 
        * @name clip
        * @function
        * @instance
-       * @param {string} rule
+       * @param {string} rule 
        * @returns {jsPDF}
        * @memberOf jsPDF
        * @description All .clip() after calling drawing ops with a style argument of null.
@@ -2791,7 +2791,7 @@
 
 
       var clip_fixed = API.__private__.clip_fixed = API.clip_fixed = function (rule) {
-        debugLog("clip_fixed is deprecated");
+        console.log("clip_fixed is deprecated");
         API.clip(rule);
       };
 
@@ -2831,7 +2831,7 @@
        * Draw a line on the current page.
        *
        * @name line
-       * @function
+       * @function 
        * @instance
        * @param {number} x1
        * @param {number} y1
@@ -3197,9 +3197,9 @@
       };
       /**
        * Sets the dash pattern for upcoming lines.
-       *
+       * 
        * To reset the settings simply call the method without any parameters.
-       * @param {array} dashArray The pattern of the line, expects numbers.
+       * @param {array} dashArray The pattern of the line, expects numbers. 
        * @param {number} dashPhase The phase at which the dash pattern starts.
        * @function
        * @instance
@@ -3861,11 +3861,11 @@
    * @license
    * Copyright (c) 2016 Alexander Weidt,
    * https://github.com/BiggA94
-   *
+   * 
    * Licensed under the MIT License. http://opensource.org/licenses/mit-license
    */
 
-  /**
+  /** 
   * jsPDF AcroForm Plugin
   * @module AcroForm
   */
@@ -4027,7 +4027,7 @@
       stream.push('1 0 0 1 0 0 Tm'); // Transformation Matrix
 
       stream.push(calcRes.text);
-      stream.push('ET'); // End Text
+      stream.push('ET'); // End Text    
 
       stream.push('Q');
       stream.push('EMC');
@@ -4181,7 +4181,7 @@
     };
     /**
     * Small workaround for calculating the TextMetric approximately.
-    *
+    * 
     * @param text
     * @param fontsize
     * @returns {TextMetrics} (Has Height and Width)
@@ -4304,7 +4304,7 @@
     };
     /**
     * Creates the single Fields and writes them into the Document
-    *
+    * 
     * If fieldArray is set, use the fields that are inside it instead of the
     * fields from the AcroRoot (for the FormXObjects...)
     */
@@ -4579,7 +4579,7 @@
     };
     /**
     * Returns an key-value-List of all non-configurable Variables from the Object
-    *
+    * 
     * @name getKeyValueListForStream
     * @returns {string}
     */
@@ -4723,7 +4723,7 @@
     inherit(AcroFormDictionary, AcroFormPDFObject);
     /**
     * The Field Object contains the Variables, that every Field needs
-    *
+    * 
     * @class AcroFormField
     * @classdesc An AcroForm FieldObject
     */
@@ -4747,7 +4747,7 @@
         }
       });
       /**
-      * (PDF 1.2) If set, print the annotation when the page is printed. If clear, never print the annotation, regardless of wether is is displayed on the screen.
+      * (PDF 1.2) If set, print the annotation when the page is printed. If clear, never print the annotation, regardless of wether is is displayed on the screen. 
       * NOTE 2 This can be useful for annotations representing interactive pushbuttons, which would serve no meaningful purpose on the printed page.
       *
       * @name AcroFormField#showWhenPrinted
@@ -5092,7 +5092,7 @@
         }
       });
       /**
-      * (Optional; inheritable) The default value to which the field reverts when a reset-form action is executed (see 12.7.5.3, “Reset-Form Action”). The format of this value is the same as that of value.
+      * (Optional; inheritable) The default value to which the field reverts when a reset-form action is executed (see 12.7.5.3, “Reset-Form Action”). The format of this value is the same as that of value. 
       *
       * @name AcroFormField#defaultValue
       * @default null
@@ -5149,7 +5149,7 @@
         }
       });
       /**
-      * (Optional; inheritable) The field’s value, whose format varies depending on the field type. See the descriptions of individual field types for further information.
+      * (Optional; inheritable) The field’s value, whose format varies depending on the field type. See the descriptions of individual field types for further information. 
       *
       * @name AcroFormField#value
       * @default null
@@ -5251,7 +5251,7 @@
         }
       });
       /**
-      * If set, the user may not change the value of the field. Any associated widget annotations will not interact with the user; that is, they will not respond to mouse clicks or change their appearance in response to mouse motions. This flag is useful for fields whose values are computed or imported from a database.
+      * If set, the user may not change the value of the field. Any associated widget annotations will not interact with the user; that is, they will not respond to mouse clicks or change their appearance in response to mouse motions. This flag is useful for fields whose values are computed or imported from a database. 
       *
       * @name AcroFormField#readOnly
       * @default false
@@ -5273,7 +5273,7 @@
         }
       });
       /**
-      * If set, the field shall have a value at the time it is exported by a submitform action (see 12.7.5.2, “Submit-Form Action”).
+      * If set, the field shall have a value at the time it is exported by a submitform action (see 12.7.5.2, “Submit-Form Action”). 
       *
       * @name AcroFormField#required
       * @default false
@@ -5415,7 +5415,7 @@
       });
       /**
       * (Optional) For scrollable list boxes, the top index (the index in the Opt array of the first option visible in the list). Default value: 0.
-      *
+      * 
       * @name AcroFormChoiceField#topIndex
       * @default 0
       * @type {number}
@@ -5512,7 +5512,7 @@
         }
       };
       /**
-      * If set, the field is a combo box; if clear, the field is a list box.
+      * If set, the field is a combo box; if clear, the field is a list box. 
       *
       * @name AcroFormChoiceField#combo
       * @default false
@@ -5535,7 +5535,7 @@
         }
       });
       /**
-      * If set, the combo box shall include an editable text box as well as a drop-down list; if clear, it shall include only a drop-down list. This flag shall be used only if the Combo flag is set.
+      * If set, the combo box shall include an editable text box as well as a drop-down list; if clear, it shall include only a drop-down list. This flag shall be used only if the Combo flag is set. 
       *
       * @name AcroFormChoiceField#edit
       * @default false
@@ -5560,7 +5560,7 @@
         }
       });
       /**
-      * If set, the field’s option items shall be sorted alphabetically. This flag is intended for use by writers, not by readers. Conforming readers shall display the options in the order in which they occur in the Opt array (see Table 231).
+      * If set, the field’s option items shall be sorted alphabetically. This flag is intended for use by writers, not by readers. Conforming readers shall display the options in the order in which they occur in the Opt array (see Table 231). 
       *
       * @name AcroFormChoiceField#sort
       * @default false
@@ -5584,7 +5584,7 @@
         }
       });
       /**
-      * (PDF 1.4) If set, more than one of the field’s option items may be selected simultaneously; if clear, at most one item shall be selected
+      * (PDF 1.4) If set, more than one of the field’s option items may be selected simultaneously; if clear, at most one item shall be selected 
       *
       * @name AcroFormChoiceField#multiSelect
       * @default false
@@ -5606,7 +5606,7 @@
         }
       });
       /**
-      * (PDF 1.4) If set, text entered in the field shall not be spellchecked. This flag shall not be used unless the Combo and Edit flags are both set.
+      * (PDF 1.4) If set, text entered in the field shall not be spellchecked. This flag shall not be used unless the Combo and Edit flags are both set. 
       *
       * @name AcroFormChoiceField#doNotSpellCheck
       * @default false
@@ -5669,7 +5669,7 @@
 
     inherit(AcroFormListBox, AcroFormChoiceField);
     /**
-    * @class AcroFormComboBox
+    * @class AcroFormComboBox 
     * @extends AcroFormListBox
     * @extends AcroFormChoiceField
     * @extends AcroFormField
@@ -5682,7 +5682,7 @@
 
     inherit(AcroFormComboBox, AcroFormListBox);
     /**
-    * @class AcroFormEditBox
+    * @class AcroFormEditBox 
     * @extends AcroFormComboBox
     * @extends AcroFormListBox
     * @extends AcroFormChoiceField
@@ -5705,7 +5705,7 @@
       this.FT = "/Btn";
       /**
       * (Radio buttons only) If set, exactly one radio button shall be selected at all times; selecting the currently selected button has no effect. If clear, clicking the selected button deselects it, leaving no button selected.
-      *
+      * 
       * @name AcroFormButton#noToggleToOff
       * @type {boolean}
       */
@@ -5725,8 +5725,8 @@
         }
       });
       /**
-      * If set, the field is a set of radio buttons; if clear, the field is a checkbox. This flag may be set only if the Pushbutton flag is clear.
-      *
+      * If set, the field is a set of radio buttons; if clear, the field is a checkbox. This flag may be set only if the Pushbutton flag is clear. 
+      * 
       * @name AcroFormButton#radio
       * @type {boolean}
       */
@@ -5746,7 +5746,7 @@
         }
       });
       /**
-      * If set, the field is a pushbutton that does not retain a permanent value.
+      * If set, the field is a pushbutton that does not retain a permanent value. 
       *
       * @name AcroFormButton#pushButton
       * @type {boolean}
@@ -5815,10 +5815,10 @@
       });
       /**
       * From the PDF reference:
-      * (Optional, button fields only) The widget annotation's normal caption which shall be displayed when it is not interacting with the user.
+      * (Optional, button fields only) The widget annotation's normal caption which shall be displayed when it is not interacting with the user. 
       * Unlike the remaining entries listed in this Table which apply only to widget annotations associated with pushbutton fields (see Pushbuttons in 12.7.4.2, "Button Fields"), the CA entry may be used with any type of button field, including check boxes (see Check Boxes in 12.7.4.2, "Button Fields") and radio buttons (Radio Buttons in 12.7.4.2, "Button Fields").
       *
-      * - '8' = Cross,
+      * - '8' = Cross, 
       * - 'l' =  Circle,
       * - '' = nothing
       * @name AcroFormButton#caption
@@ -5912,7 +5912,7 @@
     inherit(AcroFormRadioButton, AcroFormButton);
     /**
     * The Child class of a RadioButton (the radioGroup) -> The single Buttons
-    *
+    * 
     * @class AcroFormChildClass
     * @extends AcroFormField
     * @ignore
@@ -5970,10 +5970,10 @@
       });
       /**
       * From the PDF reference:
-      * (Optional, button fields only) The widget annotation's normal caption which shall be displayed when it is not interacting with the user.
+      * (Optional, button fields only) The widget annotation's normal caption which shall be displayed when it is not interacting with the user. 
       * Unlike the remaining entries listed in this Table which apply only to widget annotations associated with pushbutton fields (see Pushbuttons in 12.7.4.2, "Button Fields"), the CA entry may be used with any type of button field, including check boxes (see Check Boxes in 12.7.4.2, "Button Fields") and radio buttons (Radio Buttons in 12.7.4.2, "Button Fields").
       *
-      * - '8' = Cross,
+      * - '8' = Cross, 
       * - 'l' =  Circle,
       * - '' = nothing
       * @name AcroFormButton#caption
@@ -6087,7 +6087,7 @@
       AcroFormField.call(this);
       this.FT = '/Tx';
       /**
-      * If set, the field may contain multiple lines of text; if clear, the field’s text shall be restricted to a single line.
+      * If set, the field may contain multiple lines of text; if clear, the field’s text shall be restricted to a single line. 
       *
       * @name AcroFormTextField#multiline
       * @type {boolean}
@@ -6108,8 +6108,8 @@
         }
       });
       /**
-      * (PDF 1.4) If set, the text entered in the field represents the pathname of a file whose contents shall be submitted as the value of the field.
-      *
+      * (PDF 1.4) If set, the text entered in the field represents the pathname of a file whose contents shall be submitted as the value of the field. 
+      * 
       * @name AcroFormTextField#fileSelect
       * @type {boolean}
       */
@@ -6129,7 +6129,7 @@
         }
       });
       /**
-      * (PDF 1.4) If set, text entered in the field shall not be spell-checked.
+      * (PDF 1.4) If set, text entered in the field shall not be spell-checked. 
       *
       * @name AcroFormTextField#doNotSpellCheck
       * @type {boolean}
@@ -6150,8 +6150,8 @@
         }
       });
       /**
-      * (PDF 1.4) If set, the field shall not scroll (horizontally for single-line fields, vertically for multiple-line fields) to accommodate more text than fits within its annotation rectangle. Once the field is full, no further text shall be accepted for interactive form filling; for noninteractive form filling, the filler should take care not to add more character than will visibly fit in the defined area.
-      *
+      * (PDF 1.4) If set, the field shall not scroll (horizontally for single-line fields, vertically for multiple-line fields) to accommodate more text than fits within its annotation rectangle. Once the field is full, no further text shall be accepted for interactive form filling; for noninteractive form filling, the filler should take care not to add more character than will visibly fit in the defined area. 
+      * 
       * @name AcroFormTextField#doNotScroll
       * @type {boolean}
       */
@@ -6172,7 +6172,7 @@
       });
       /**
       * (PDF 1.5) May be set only if the MaxLen entry is present in the text field dictionary (see Table 229) and if the Multiline, Password, and FileSelect flags are clear. If set, the field shall be automatically divided into as many equally spaced positions, or combs, as the value of MaxLen, and the text is laid out into those combs.
-      *
+      * 
       * @name AcroFormTextField#comb
       * @type {boolean}
       */
@@ -6193,7 +6193,7 @@
       });
       /**
       * (PDF 1.5) If set, the value of this field shall be a rich text string (see 12.7.3.4, “Rich Text Strings”). If the field has a value, the RV entry of the field dictionary (Table 222) shall specify the rich text string.
-      *
+      * 
       * @name AcroFormTextField#richText
       * @type {boolean}
       */
@@ -6224,7 +6224,7 @@
         }
       });
       /**
-      * (Optional; inheritable) The maximum length of the field’s text, in characters.
+      * (Optional; inheritable) The maximum length of the field’s text, in characters. 
       *
       * @name AcroFormTextField#maxLength
       * @type {number}
@@ -6262,7 +6262,7 @@
       AcroFormTextField.call(this);
       /**
       * If set, the field is intended for entering a secure password that should not be echoed visibly to the screen. Characters typed from the keyboard shall instead be echoed in some unreadable form, such as asterisks or bullet characters.
-      * NOTE To protect password confidentiality, readers should never store the value of the text field in the PDF file if this flag is set.
+      * NOTE To protect password confidentiality, readers should never store the value of the text field in the PDF file if this flag is set. 
       *
       * @name AcroFormTextField#password
       * @type {boolean}
@@ -6304,7 +6304,7 @@
 
         /**
           * Returns the standard On Appearance for a CheckBox
-          *
+          * 
           * @returns {AcroFormXObject}
           */
         YesPushDown: function YesPushDown(formObject) {
@@ -6360,7 +6360,7 @@
 
         /**
           * Returns the standard Off Appearance for a CheckBox
-          *
+          * 
           * @returns {AcroFormXObject}
           */
         OffPushDown: function OffPushDown(formObject) {
@@ -6475,7 +6475,7 @@
         Cross: {
           /**
             * Creates the Actual AppearanceDictionary-References
-            *
+            * 
             * @param {string} name
             * @returns {Object}
             * @ignore
@@ -6545,7 +6545,7 @@
 
       /**
         * Returns the standard Appearance
-        *
+        * 
         * @returns {AcroFormXObject}
         */
       createDefaultAppearanceStream: function createDefaultAppearanceStream(formObject) {
@@ -6621,7 +6621,7 @@
     * Add an AcroForm-Field to the jsPDF-instance
     *
     * @name addField
-    * @function
+    * @function 
     * @instance
     * @param {Object} fieldObject
     * @returns {jsPDF}
@@ -6678,7 +6678,7 @@
     * @name addChoiceField
     * @function
     * @instance
-    * @param {AcroFormChoiceField}
+    * @param {AcroFormChoiceField} 
     * @returns {jsPDF}
     * @deprecated
     */
@@ -6747,7 +6747,7 @@
    *               2014 Diego Casorran, https://github.com/diegocr
    *               2014 James Robb, https://github.com/jamesbrobb
    *
-   *
+   * 
    */
 
   /**
@@ -6778,7 +6778,7 @@
     };
     /**
     * Recognize filetype of Image by magic-bytes
-    *
+    * 
     * https://en.wikipedia.org/wiki/List_of_file_signatures
     *
     * @name getImageFileTypeByImageData
@@ -6786,7 +6786,7 @@
     * @function
     * @param {string|arraybuffer} imageData imageData as binary String or arraybuffer
     * @param {string} format format of file if filetype-recognition fails, e.g. 'JPEG'
-    *
+    * 
     * @returns {string} filetype of Image
     */
 
@@ -7179,9 +7179,9 @@
     };
     /**
     * @name sHashCode
-    * @function
+    * @function 
     * @param {string} str
-    * @returns {string}
+    * @returns {string} 
     */
 
     jsPDFAPI.sHashCode = function (str) {
@@ -7203,7 +7203,7 @@
     * @name isString
     * @function
     * @param {any} object
-    * @returns {boolean}
+    * @returns {boolean} 
     */
 
 
@@ -7217,7 +7217,7 @@
     * @public
     * @function
     * @param {String} possible Base64-String
-    *
+    * 
     * @returns {boolean}
     */
 
@@ -7249,7 +7249,7 @@
      * Strips out and returns info from a valid base64 data URI
      *
      * @name extractInfoFromBase64DataURI
-     * @function
+     * @function 
      * @param {string} dataUrl a valid data URI of format 'data:[<MIME-type>][;base64],<data>'
      * @returns {Array}an Array containing the following
      * [0] the complete data URI
@@ -7266,7 +7266,7 @@
      * Strips out and returns info from a valid base64 data URI
      *
      * @name extractImageFromDataUrl
-     * @function
+     * @function 
      * @param {string} dataUrl a valid data URI of format 'data:[<MIME-type>][;base64],<data>'
      * @returns {Array}an Array containing the following
      * [0] the complete data URI
@@ -7297,7 +7297,7 @@
     };
     /**
      * Check to see if ArrayBuffer is supported
-     *
+     * 
      * @name supportsArrayBuffer
      * @function
      * @returns {boolean}
@@ -7311,9 +7311,9 @@
      * Tests supplied object to determine if ArrayBuffer
      *
      * @name isArrayBuffer
-     * @function
+     * @function 
      * @param {Object} object an Object
-     *
+     * 
      * @returns {boolean}
      */
 
@@ -7326,7 +7326,7 @@
      * Tests supplied object to determine if it implements the ArrayBufferView (TypedArray) interface
      *
      * @name isArrayBufferView
-     * @function
+     * @function 
      * @param {Object} object an Object
      * @returns {boolean}
      */
@@ -7344,7 +7344,7 @@
     * @public
     * @function
     * @param {ArrayBuffer} BinaryString with ImageData
-    *
+    * 
     * @returns {Uint8Array}
     */
 
@@ -7369,7 +7369,7 @@
     * @public
     * @function
     * @param {ArrayBuffer} ArrayBuffer with ImageData
-    *
+    * 
     * @returns {String}
     */
 
@@ -7395,7 +7395,7 @@
     * @param {arraybuffer} arrayBuffer
     * @public
     * @function
-    *
+    * 
     * @returns {string}
     */
 
@@ -7450,14 +7450,14 @@
       return base64;
     };
     /**
-    *
+    * 
     * @name createImageInfo
-    * @param {Object} data
+    * @param {Object} data 
     * @param {number} wd width
     * @param {number} ht height
     * @param {Object} cs colorSpace
     * @param {number} bpc bits per channel
-    * @param {any} f
+    * @param {any} f 
     * @param {number} imageIndex
     * @param {string} alias
     * @param {any} dp
@@ -7467,7 +7467,7 @@
     * @param {any} p
     * @public
     * @function
-    *
+    * 
     * @returns {Object}
     */
 
@@ -7507,7 +7507,7 @@
     * @param {string} alias alias of the image (if used multiple times)
     * @param {string} compression compression of the generated JPEG, can have the values 'NONE', 'FAST', 'MEDIUM' and 'SLOW'
     * @param {number} rotation rotation of the image in degrees (0-359)
-    *
+    * 
     * @returns jsPDF
     */
 
@@ -8047,7 +8047,7 @@
     /**
     * @name createAnnotation
     * @function
-    * @param {Object} options
+    * @param {Object} options 
     */
 
     jsPDFAPI.createAnnotation = function (options) {
@@ -8135,7 +8135,7 @@
 
   /**
    * @license
-   * Copyright (c) 2017 Aras Abbasi
+   * Copyright (c) 2017 Aras Abbasi 
    *
    * Licensed under the MIT License.
    * http://opensource.org/licenses/mit-license
@@ -8155,7 +8155,7 @@
 
     var arabicSubstitionA = {
       0x0621: [0xFE80],
-      // ARABIC LETTER HAMZA
+      // ARABIC LETTER HAMZA 
       0x0622: [0xFE81, 0xFE82],
       // ARABIC LETTER ALEF WITH MADDA ABOVE
       0x0623: [0xFE83, 0xFE84],
@@ -8165,13 +8165,13 @@
       0x0625: [0xFE87, 0xFE88],
       // ARABIC LETTER ALEF WITH HAMZA BELOW
       0x0626: [0xFE89, 0xFE8A, 0xFE8B, 0xFE8C],
-      // ARABIC LETTER YEH WITH HAMZA ABOVE
+      // ARABIC LETTER YEH WITH HAMZA ABOVE 
       0x0627: [0xFE8D, 0xFE8E],
       // ARABIC LETTER ALEF
       0x0628: [0xFE8F, 0xFE90, 0xFE91, 0xFE92],
       // ARABIC LETTER BEH
       0x0629: [0xFE93, 0xFE94],
-      // ARABIC LETTER TEH MARBUTA
+      // ARABIC LETTER TEH MARBUTA 
       0x062A: [0xFE95, 0xFE96, 0xFE97, 0xFE98],
       // ARABIC LETTER TEH
       0x062B: [0xFE99, 0xFE9A, 0xFE9B, 0xFE9C],
@@ -8193,7 +8193,7 @@
       0x0633: [0xFEB1, 0xFEB2, 0xFEB3, 0xFEB4],
       // ARABIC LETTER SEEN
       0x0634: [0xFEB5, 0xFEB6, 0xFEB7, 0xFEB8],
-      // ARABIC LETTER SHEEN
+      // ARABIC LETTER SHEEN 
       0x0635: [0xFEB9, 0xFEBA, 0xFEBB, 0xFEBC],
       // ARABIC LETTER SAD
       0x0636: [0xFEBD, 0xFEBE, 0xFEBF, 0xFEC0],
@@ -8205,7 +8205,7 @@
       0x0639: [0xFEC9, 0xFECA, 0xFECB, 0xFECC],
       // ARABIC LETTER AIN
       0x063A: [0xFECD, 0xFECE, 0xFECF, 0xFED0],
-      // ARABIC LETTER GHAIN
+      // ARABIC LETTER GHAIN 
       0x0641: [0xFED1, 0xFED2, 0xFED3, 0xFED4],
       // ARABIC LETTER FEH
       0x0642: [0xFED5, 0xFED6, 0xFED7, 0xFED8],
@@ -8217,13 +8217,13 @@
       0x0645: [0xFEE1, 0xFEE2, 0xFEE3, 0xFEE4],
       // ARABIC LETTER MEEM
       0x0646: [0xFEE5, 0xFEE6, 0xFEE7, 0xFEE8],
-      // ARABIC LETTER NOON
+      // ARABIC LETTER NOON 
       0x0647: [0xFEE9, 0xFEEA, 0xFEEB, 0xFEEC],
       // ARABIC LETTER HEH
       0x0648: [0xFEED, 0xFEEE],
       // ARABIC LETTER WAW
       0x0649: [0xFEEF, 0xFEF0, 64488, 64489],
-      // ARABIC LETTER ALEF MAKSURA
+      // ARABIC LETTER ALEF MAKSURA 
       0x064A: [0xFEF1, 0xFEF2, 0xFEF3, 0xFEF4],
       // ARABIC LETTER YEH
       0x0671: [0xFB50, 0xFB51],
@@ -8237,7 +8237,7 @@
       0x067B: [0xFB52, 0xFB53, 0xFB54, 0xFB55],
       // ARABIC LETTER BEEH
       0x067E: [0xFB56, 0xFB57, 0xFB58, 0xFB59],
-      // ARABIC LETTER PEH
+      // ARABIC LETTER PEH 
       0x067F: [0xFB62, 0xFB63, 0xFB64, 0xFB65],
       // ARABIC LETTER TEHEH
       0x0680: [0xFB5A, 0xFB5B, 0xFB5C, 0xFB5D],
@@ -8257,7 +8257,7 @@
       0x068D: [0xFB82, 0xFB83],
       // ARABIC LETTER DDAHAL
       0x068E: [0xFB86, 0xFB87],
-      // ARABIC LETTER DUL
+      // ARABIC LETTER DUL 
       0x0691: [0xFB8C, 0xFB8D],
       // ARABIC LETTER RREH
       0x0698: [0xFB8A, 0xFB8B],
@@ -8616,7 +8616,7 @@
   /**
    * jsPDF Canvas PlugIn
    * This plugin mimics the HTML5 Canvas
-   *
+   * 
    * The goal is to provide a way for current canvas users to print directly to a PDF.
    * @name canvas
    * @module
@@ -8711,7 +8711,7 @@
     };
     /**
     * The getContext() method returns a drawing context on the canvas, or null if the context identifier is not supported.
-    *
+    * 
     * @name getContext
     * @function
     * @param {string} contextType Is a String containing the context identifier defining the drawing context associated to the canvas. Possible value is "2d", leading to the creation of a Context2D object representing a two-dimensional rendering context.
@@ -8738,7 +8738,7 @@
     };
     /**
     * The toDataURL() method is just a stub to throw an error if accidently called.
-    *
+    * 
     * @name toDataURL
     * @function
     */
@@ -8755,7 +8755,7 @@
     return this;
   })(jsPDF.API);
 
-  /**
+  /** 
    * @license
    * ====================================================================
    * Copyright (c) 2013 Youssef Beddad, youssef.beddad@gmail.com
@@ -8765,7 +8765,7 @@
    *               2014 James Hall, james@parall.ax
    *               2014 Diego Casorran, https://github.com/diegocr
    *
-   *
+   * 
    * ====================================================================
    */
 
@@ -8961,9 +8961,9 @@
     };
     /**
      * Return the maximum value from an array
-     *
+     * 
      * @name arrayMax
-     * @function
+     * @function 
      * @param {Array} array
      * @param comparisonFn
      * @returns {number}
@@ -9195,11 +9195,11 @@
     };
     /**
      * Output the store header row
-     *
+     * 
      * @name printHeaderRow
      * @function
      * @param {number} lineNumber The line number to output the header at
-     * @param {boolean} new_page
+     * @param {boolean} new_page 
      */
 
 
@@ -9757,10 +9757,10 @@
       pathPreProcess.call(this, 'stroke', false);
     };
     /**
-    * Begins a path, or resets the current
+    * Begins a path, or resets the current 
     *
     * @name beginPath
-    * @function
+    * @function 
     * @description The beginPath() method begins a path, or resets the current path.
     */
 
@@ -9772,7 +9772,7 @@
     };
     /**
     * Moves the path to the specified point in the canvas, without creating a line
-    *
+    * 
     * @name moveTo
     * @function
     * @param x {Number} The x-coordinate of where to move the path to
@@ -9796,7 +9796,7 @@
     };
     /**
     * Creates a path from the current point back to the starting point
-    *
+    * 
     * @name closePath
     * @function
     * @description The closePath() method creates a path from the current point back to the starting point.
@@ -9832,7 +9832,7 @@
     };
     /**
     * Adds a new point and creates a line to that point from the last specified point in the canvas
-    *
+    * 
     * @name lineTo
     * @function
     * @param x The x-coordinate of where to create the line to
@@ -9857,7 +9857,7 @@
     };
     /**
     * Clips a region of any shape and size from the original canvas
-    *
+    * 
     * @name clip
     * @function
     * @description The clip() method clips a region of any shape and size from the original canvas.
@@ -9982,7 +9982,7 @@
     };
     /**
     * Creates an arc/curve between two tangents
-    *
+    * 
     * @name arcTo
     * @function
     * @param x1 {Number} The x-coordinate of the first tangent
@@ -10130,7 +10130,7 @@
     };
     /**
     * Saves the state of the current context
-    *
+    * 
     * @name save
     * @function
     */
@@ -10156,7 +10156,7 @@
     };
     /**
     * Returns previously saved path state and attributes
-    *
+    * 
     * @name restore
     * @function
     */
@@ -10183,7 +10183,7 @@
         this.lineJoin = this.ctx.lineJoin;
       }
     };
-    /**
+    /** 
     * @name toDataURL
     * @function
     */
@@ -10287,7 +10287,7 @@
     };
     /**
     * @name isFillTransparent
-    * @function
+    * @function 
     * @private
     * @ignore
     * @returns {Boolean}
@@ -10299,7 +10299,7 @@
     };
     /**
     * @name isStrokeTransparent
-    * @function
+    * @function 
     * @private
     * @ignore
     * @returns {Boolean}
@@ -10311,7 +10311,7 @@
     };
     /**
     * Draws "filled" text on the canvas
-    *
+    * 
     * @name fillText
     * @function
     * @param text {String} Specifies the text that will be written on the canvas
@@ -10335,7 +10335,7 @@
       }
 
       y = getBaseline.call(this, y);
-      var degs = rad2deg(this.ctx.transform.rotation); // We only use X axis as scale hint
+      var degs = rad2deg(this.ctx.transform.rotation); // We only use X axis as scale hint 
 
       var scale = this.ctx.transform.scaleX;
       putText.call(this, {
@@ -10350,7 +10350,7 @@
     };
     /**
     * Draws text on the canvas (no fill)
-    *
+    * 
     * @name strokeText
     * @function
     * @param text {String} Specifies the text that will be written on the canvas
@@ -10390,7 +10390,7 @@
     * Returns an object that contains the width of the specified text
     *
     * @name measureText
-    * @function
+    * @function 
     * @param text {String} The text to be measured
     * @description The measureText() method returns an object that contains the width of the specified text, in pixels.
     * @returns {Number}
@@ -10429,8 +10429,8 @@
 
     /**
     * Scales the current drawing bigger or smaller
-    *
-    * @name scale
+    * 
+    * @name scale 
     * @function
     * @param scalewidth {Number} Scales the width of the current drawing (1=100%, 0.5=50%, 2=200%, etc.)
     * @param scaleheight {Number} Scales the height of the current drawing (1=100%, 0.5=50%, 2=200%, etc.)
@@ -10449,7 +10449,7 @@
     };
     /**
     * Rotates the current drawing
-    *
+    * 
     * @name rotate
     * @function
     * @param angle {Number} The rotation angle, in radians.
@@ -10469,7 +10469,7 @@
     };
     /**
     * Remaps the (0,0) position on the canvas
-    *
+    * 
     * @name translate
     * @function
     * @param x {Number} The value to add to horizontal (x) coordinates
@@ -10489,7 +10489,7 @@
     };
     /**
     * Replaces the current transformation matrix for the drawing
-    *
+    * 
     * @name transform
     * @function
     * @param a {Number} Horizontal scaling
@@ -10513,7 +10513,7 @@
     };
     /**
     * Resets the current transform to the identity matrix. Then runs transform()
-    *
+    * 
     * @name setTransform
     * @function
     * @param a {Number} Horizontal scaling
@@ -10537,8 +10537,8 @@
     };
     /**
     * Draws an image, canvas, or video onto the canvas
-    *
-    * @function
+    * 
+    * @function 
     * @param img {} Specifies the image, canvas, or video element to use
     * @param sx {Number} Optional. The x coordinate where to start clipping
     * @param sy {Number} Optional. The y coordinate where to start clipping
@@ -10781,7 +10781,7 @@
     /**
     * Processes the paths
     *
-    * @function
+    * @function 
     * @param rule {String}
     * @param isClip {Boolean}
     * @private
@@ -11471,7 +11471,7 @@
     };
     /**
     * Multiply the matrix with given Matrix
-    *
+    * 
     * @function multiply
     * @param matrix
     * @returns {Matrix}
@@ -11572,7 +11572,7 @@
 
   /**
    * jsPDF filters PlugIn
-   * Copyright (c) 2014 Aras Abbasi
+   * Copyright (c) 2014 Aras Abbasi 
    *
    * Licensed under the MIT License.
    * http://opensource.org/licenses/mit-license
@@ -11924,7 +11924,7 @@
   (function (jsPDFAPI, global) {
     /**
     * Determine the type of a variable/object.
-    *
+    * 
     * @private
     * @ignore
     */
@@ -11936,7 +11936,7 @@
     };
     /**
     * Create an HTML element with optional className, innerHTML, and style.
-    *
+    * 
     * @private
     * @ignore
     */
@@ -11963,7 +11963,7 @@
     };
     /**
     * Deep-clone a node and preserve contents/properties.
-    *
+    * 
     * @private
     * @ignore
     */
@@ -12750,10 +12750,10 @@
 
   /**
    * @license
-   * ====================================================================
+   * ==================================================================== 
    * Copyright (c) 2013 Youssef Beddad, youssef.beddad@gmail.com
-   *
-   *
+   * 
+   * 
    * ====================================================================
    */
 
@@ -12824,7 +12824,7 @@
       // pdf.internal.write("(page_" + (i + 1) + ")" + dests[i] + " 0
       // R");
       // }
-      //
+      //				
 
       if (this.outline.root.children.length > 0) {
         var lines = pdf.outline.render().split(/\r\n/);
@@ -13038,10 +13038,10 @@
 
   /**
    * @license
-   *
+   * 
    * Copyright (c) 2014 James Robb, https://github.com/jamesbrobb
    *
-   *
+   * 
    * ====================================================================
    */
 
@@ -13509,7 +13509,7 @@
 
   /**
    * @license
-   * Copyright (c) 2017 Aras Abbasi
+   * Copyright (c) 2017 Aras Abbasi 
    *
    * Licensed under the MIT License.
    * http://opensource.org/licenses/mit-license
@@ -13544,7 +13544,7 @@
   })(jsPDF.API);
 
   /**
-   * Copyright (c) 2018 Aras Abbasi
+   * Copyright (c) 2018 Aras Abbasi 
    *
    * Licensed under the MIT License.
    * http://opensource.org/licenses/mit-license
@@ -13591,8 +13591,8 @@
     * Add Language Tag to the generated PDF
     *
     * @name setLanguage
-    * @function
-    * @param {string} langCode The Language code as ISO-639-1 (e.g. 'en') or as country language code (e.g. 'en-GB').
+    * @function 
+    * @param {string} langCode The Language code as ISO-639-1 (e.g. 'en') or as country language code (e.g. 'en-GB'). 
     * @returns {jsPDF}
     * @example
     * var doc = new jsPDF()
@@ -13827,13 +13827,13 @@
    * Copyright (c) 2012 Willow Systems Corporation, willow-systems.com
    *               2014 Diego Casorran, https://github.com/diegocr
    *
-   *
+   * 
    * ====================================================================
    */
 
   /**
-  * jsPDF split_text_to_size plugin
-  *
+  * jsPDF split_text_to_size plugin 
+  * 
   * @name split_text_to_size
   * @module
   */
@@ -13841,7 +13841,7 @@
     /**
      * Returns an array of length matching length of the 'word' string, with each
      * cell occupied by the width of the char in that position.
-     *
+     * 
      * @name getCharWidthsArray
      * @function
      * @param {string} text
@@ -13882,7 +13882,7 @@
     };
     /**
      * Calculate the sum of a number-array
-     *
+     * 
      * @name getArraySum
      * @public
      * @function
@@ -13907,10 +13907,10 @@
     *
     * In other words, this is "proportional" value. For 1 unit of font size, the length
     * of the string will be that much.
-    *
+    * 
     * Multiply by font size to get actual width in *points*
     * Then divide by 72 to get inches or divide by (72/25.6) to get 'mm' etc.
-    *
+    * 
     * @name getStringUnitWidth
     * @public
     * @function
@@ -14084,10 +14084,10 @@
     * (in measurement units declared as default for the jsPDF instance)
     * and the font's "widths" and "Kerning" tables, where available, to
     * determine display length of a given string for a given font.
-    *
+    * 
     * We use character's 100% of unit size (height) as width when Width
     * table or other default width is not available.
-    *
+    * 
     * @name splitTextToSize
     * @public
     * @function
@@ -14179,7 +14179,7 @@
    jsPDF standard_fonts_metrics plugin
    * Copyright (c) 2012 Willow Systems Corporation, willow-systems.com
    * MIT license.
-   *
+   * 
    * ====================================================================
    */
 
@@ -14189,9 +14189,9 @@
     # only 'uncompress' function is featured lower as JavaScript
     # if you want to unit test "roundtrip", just transcribe the reference
     # 'compress' function from Python into JavaScript
-
+    
     def compress(data):
-
+    
     	keys =   '0123456789abcdef'
     	values = 'klmnopqrstuvwxyz'
     	mapping = dict(zip(keys, values))
@@ -14204,7 +14204,7 @@
     		except:
     			keystring = key.join(["'","'"])
     			#print('Keystring is %s' % keystring)
-
+    
     		try:
     			if value < 0:
     				valuestring = hex(value)[3:]
@@ -14218,41 +14218,41 @@
     				valuestring = compress(value)
     			else:
     				raise Exception("Don't know what to do with value type %s" % type(value))
-
+    
     		vals.append(keystring+valuestring)
-
+    	
     	return '{' + ''.join(vals) + '}'
-
+    
     def uncompress(data):
-
+    
     	decoded = '0123456789abcdef'
     	encoded = 'klmnopqrstuvwxyz'
     	mapping = dict(zip(encoded, decoded))
-
+    
     	sign = +1
     	stringmode = False
     	stringparts = []
-
+    
     	output = {}
-
+    
     	activeobject = output
     	parentchain = []
-
+    
     	keyparts = ''
     	valueparts = ''
-
+    
     	key = None
-
+    
     	ending = set(encoded)
-
+    
     	i = 1
     	l = len(data) - 1 # stripping starting, ending {}
     	while i != l: # stripping {}
     		# -, {, }, ' are special.
-
+    
     		ch = data[i]
     		i += 1
-
+    
     		if ch == "'":
     			if stringmode:
     				# end of string mode
@@ -14265,7 +14265,7 @@
     		elif stringmode == True:
     			#print("Adding %s to stringpart" % ch)
     			stringparts.append(ch)
-
+    
     		elif ch == '{':
     			# start of object
     			parentchain.append( [activeobject, key] )
@@ -14279,7 +14279,7 @@
     			key = None
     			activeobject = parent
     			#DEBUG = False
-
+    
     		elif ch == '-':
     			sign = -1
     		else:
@@ -14305,15 +14305,15 @@
     					valueparts = ''
     				else:
     					valueparts += ch
-
+    
     			#debug(activeobject)
-
+    
     	return output
-
+    
     */
 
     /**
-    Uncompresses data compressed into custom, base16-like format.
+    Uncompresses data compressed into custom, base16-like format. 
     @public
     @function
     @param
@@ -14402,7 +14402,7 @@
 
 
       return output;
-    }; // encoding = 'Unicode'
+    }; // encoding = 'Unicode' 
     // NOT UTF8, NOT UTF16BE/LE, NOT UCS2BE/LE. NO clever BOM behavior
     // Actual 16bit char codes used.
     // no multi-byte logic here
@@ -14410,8 +14410,8 @@
     // {402: 131, 8211: 150, 8212: 151, 8216: 145, 8217: 146, 8218: 130, 8220: 147, 8221: 148, 8222: 132, 8224: 134, 8225: 135, 8226: 149, 8230: 133, 8364: 128, 8240:137, 8249: 139, 8250: 155, 710: 136, 8482: 153, 338: 140, 339: 156, 732: 152, 352: 138, 353: 154, 376: 159, 381: 142, 382: 158}
     // as you can see, all Unicode chars are outside of 0-255 range. No char code conflicts.
     // this means that you can give Win cp1252 encoded strings to jsPDF for rendering directly
-    // as well as give strings with some (supported by these fonts) Unicode characters and
-    // these will be mapped to win cp1252
+    // as well as give strings with some (supported by these fonts) Unicode characters and 
+    // these will be mapped to win cp1252 
     // for example, you can send char code (cp1252) 0x80 or (unicode) 0x20AC, getting "Euro" glyph displayed in both cases.
 
 
@@ -14548,8 +14548,8 @@
 
   /** @license
    * Copyright (c) 2012 Willow Systems Corporation, willow-systems.com
-   *
-   *
+   * 
+   * 
    * ====================================================================
    */
 
@@ -14560,10 +14560,10 @@
     *
     * Supports:
     * paths
-    *
+    * 
     * @name addSvg
     * @public
-    * @function
+    * @function 
     * @param {string} SVG-Data as Text
     * @param {number} x Coordinate (in units declared at inception of PDF document) against left edge of the page
     * @param {number} y Coordinate (in units declared at inception of PDF document) against upper edge of the page
@@ -14713,7 +14713,7 @@
     * @param {string} alias of SVG-Image (if used multiple times)
     * @param {string} compression of the generated JPEG, can have the values 'NONE', 'FAST', 'MEDIUM' and 'SLOW'
     * @param {number} rotation of the image in degrees (0-359)
-    *
+    * 
     * @returns jsPDF jsPDF-instance
     */
 
@@ -14747,12 +14747,12 @@
     };
   })(jsPDF.API);
 
-  /**
+  /** 
    * @license
-   * ====================================================================
+   * ==================================================================== 
    * Copyright (c) 2013 Eduardo Menezes de Morais, eduardo.morais@usp.br
-   *
-   *
+   * 
+   * 
    * ====================================================================
    */
 
@@ -15145,11 +15145,11 @@
     };
   })(jsPDF.API);
 
-  /** ====================================================================
+  /** ==================================================================== 
    * jsPDF XMP metadata plugin
    * Copyright (c) 2016 Jussi Utunen, u-jussi@suomi24.fi
-   *
-   *
+   * 
+   * 
    * ====================================================================
    */
 
@@ -15474,10 +15474,10 @@
                 if (Object.prototype.toString.call(text[s]) === '[object Array]') {
                     cmapConfirm = fonts[key].metadata.cmap.unicode.codeMap[strText[s][0].charCodeAt(0)]; //Make sure the cmap has the corresponding glyph id
                 } else {
-
+                    
                 }
             //}
-
+            
           } else {
             cmapConfirm = fonts[key].metadata.cmap.unicode.codeMap[strText[s].charCodeAt(0)]; //Make sure the cmap has the corresponding glyph id
           }*/
@@ -15570,7 +15570,7 @@
 
   /**
   * Use the vFS to handle files
-  *
+  * 
   * @name vFS
   * @module
   */
@@ -15587,11 +15587,11 @@
 
       return true;
     };
-    /**
+    /** 
     * Check if the file exists in the vFS
-    *
+    * 
     * @name existsFileInVFS
-    * @function
+    * @function 
     * @param {string} Possible filename in the vFS.
     * @returns {boolean}
     * @example
@@ -15610,7 +15610,7 @@
     * Add a file to the vFS
     *
     * @name addFileToVFS
-    * @function
+    * @function 
     * @param {string} filename The name of the file which should be added.
     * @param {string} filecontent The content of the file.
     * @returns {jsPDF}
@@ -15625,13 +15625,13 @@
       this.internal.vFS[filename] = filecontent;
       return this;
     };
-    /**
+    /** 
     * Get the file from the vFS
-    *
+    * 
     * @name getFileFromVFS
-    * @function
+    * @function 
     * @param {string} The name of the file which gets requested.
-    * @returns {string}
+    * @returns {string} 
     * @example
     * doc.getFileFromVFS("someFile.txt");
     */
@@ -15850,7 +15850,7 @@
    *               2014 Steven Spungin, https://github.com/flamenco
    *
    * @license
-   *
+   * 
    * ====================================================================
    */
   (function (jsPDFAPI) {
@@ -17464,7 +17464,7 @@
     }
 
     function fixFileAndXHR() {
-      var isIE = !!global.ActiveXObject || '-ms-scroll-limit' in document.documentElement.style && '-ms-ime-align' in document.documentElement.style; // Monkey patched
+      var isIE = !!global.ActiveXObject || '-ms-scroll-limit' in document.documentElement.style && '-ms-ime-align' in document.documentElement.style; // Monkey patched 
       // IE don't set Content-Type header on XHR whose body is a typed Blob
       // https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/6047383
 
@@ -17709,7 +17709,7 @@
   //
   // https://github.com/deanm/omggif
   //
-  //
+  // 
   //
   // omggif is a JavaScript implementation of a GIF 89a encoder and decoder,
   // including animation and compression.  It does not rely on any specific
@@ -18161,7 +18161,7 @@
               while (true) {
                 // Seek through subblocks.
                 var block_size = buf[p++];
-                if (block_size === 0) break; // debugLog(buf.slice(p, p+block_size).toString('ascii'));
+                if (block_size === 0) break; // console.log(buf.slice(p, p+block_size).toString('ascii'));
 
                 p += block_size;
               }
@@ -18469,7 +18469,7 @@
       var op_end = op + chase_length + (chase_code !== code ? 1 : 0);
 
       if (op_end > output_length) {
-        debugLog("Warning, gif stream longer than expected.");
+        console.log("Warning, gif stream longer than expected.");
         return;
       } // Already have the first byte from the chase, might as well write it fast.
 
@@ -18506,7 +18506,7 @@
     }
 
     if (op !== output_length) {
-      debugLog("Warning, gif stream shorter than expected.");
+      console.log("Warning, gif stream shorter than expected.");
     }
 
     return output;
@@ -19241,7 +19241,7 @@
       };
       /**
       * @name setOptions( options )
-      * @function
+      * @function 
       * Sets options for Bidi conversion
       * @param {Object}:
       * - isInputVisual {boolean} (defaults to false): allowed values: true(Visual mode), false(Logical mode)
@@ -19306,25 +19306,25 @@
     Copyright (c) 2008, Adobe Systems Incorporated
     All rights reserved.
 
-    Redistribution and use in source and binary forms, with or without
+    Redistribution and use in source and binary forms, with or without 
     modification, are permitted provided that the following conditions are
     met:
 
-    * Redistributions of source code must retain the above copyright notice,
+    * Redistributions of source code must retain the above copyright notice, 
       this list of conditions and the following disclaimer.
-
+    
     * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
+      notice, this list of conditions and the following disclaimer in the 
       documentation and/or other materials provided with the distribution.
-
-    * Neither the name of Adobe Systems Incorporated nor the names of its
-      contributors may be used to endorse or promote products derived from
+    
+    * Neither the name of Adobe Systems Incorporated nor the names of its 
+      contributors may be used to endorse or promote products derived from 
       this software without specific prior written permission.
 
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
     IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
     THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR 
     CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
     EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
     PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
@@ -19964,7 +19964,7 @@
             }
 
             if (x + col >= quadWidth) {
-              // padding right
+              // padding right	
               p -= x + col - quadWidth + 4;
             }
 
@@ -20026,7 +20026,7 @@
       }
 
       initQuantTables(sf);
-      currentQuality = quality; //debugLog('Quality set to: '+quality +'%');
+      currentQuality = quality; //console.log('Quality set to: '+quality +'%');
     }
 
     function init() {
@@ -20354,8 +20354,8 @@
    1. Redistributions of source code must retain the above copyright notice,
    this list of conditions and the following disclaimer.
 
-   2. Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in
+   2. Redistributions in binary form must reproduce the above copyright 
+   notice, this list of conditions and the following disclaimer in 
    the documentation and/or other materials provided with the distribution.
 
    3. The names of the authors may not be used to endorse or promote products
@@ -24688,8 +24688,8 @@
   # PNG.js
   # Copyright (c) 2011 Devon Govett
   # MIT LICENSE
-  #
-  #
+  # 
+  # 
   */
   (function (global) {
     var PNG;
@@ -25290,7 +25290,7 @@
    *               Justin D'Arcangelo <justindarc@gmail.com>
    *               Yury Delendik
    *
-   *
+   * 
    */
   var DecodeStream = function () {
     function constructor() {
