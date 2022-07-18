@@ -1,7 +1,5 @@
 /* global $, ballotWebAppURL */
 // var onPageShown = false;
-var debug = false;
-const {chrome: {extension: { getBackgroundPage } } } = window;
 let timeoutToCloseDialog = true;
 const removeEditText = 'Remove Edit Panel From This Tab';
 const openEditText = 'Open Edit Panel for this Tab';
@@ -10,252 +8,195 @@ const highlightThisText = 'Highlight Candidates on This Tab';
 const highlightThisPDF = 'Highlight Candidates found on this PDF';
 const removeHighlightThisText = 'Remove Highlights From This Tab';
 let pdfURL = null;
+let showEditor = false;
+let showHighlights = false;
 
+/*
+July 2022:  Manifest V3 (API V3)
+Do not use chrome.runtime.getBackgroundPage() or chrome.runtime.sendMessage() from the pop up anymore, will silently crash it
+*/
 
-// When popup.html is loaded by clicking on the W icon as specified in th manifest.json
+// When popup.html is loaded by clicking on the W icon as specified in the manifest.json
 document.addEventListener('DOMContentLoaded', function () {
+  console.log('hello from popup');
   const t0 = performance.now();
   let highlightingEnabled = false;
-  let highlightCandidatesOnAllTabs = localStorage['highlightCandidatesOnAllTabs'] === 'true';
-  if (highlightCandidatesOnAllTabs) getBackgroundPage().highlighterEnabled = true;
+  // The DOM is loaded, now get the active tab number
+  chrome.tabs.query({
+    active: true,
+    currentWindow: true
+  }, function (tabs) {
+    const tab = tabs[0];
+    const tabId = tab.id;
+    console.log('hello from after tabs query tabId', tabId, tab);
+    chrome.tabs.sendMessage(tabId, {
+      command: 'logFromPopup',
+      payload: 'Initial message after getting tab id'
+    }, function (response) {
+      console.log('logFromPopup: ', response);
+    });
+    console.log('after first log response', tabId);
+    addButtonListeners(tabId, tab.url);
+    console.log('after addButtonListeners', tabId);
 
-  console.log('chrome.extension.getBackgroundPage().highlighterEnabled: ' + getBackgroundPage().highlighterEnabled);
-  getBackgroundPage().popupLogger('>>>>>>>> chrome.extension.getBackgroundPage().highlighterEnabled: ' + getBackgroundPage().highlighterEnabled);
-  // console.log('localStorage[\'highlightCandidatesOnThisTab\']', localStorage['highlightCandidatesOnThisTab']);
-  console.log('localStorage[\'highlightCandidatesOnAllTabs\']', localStorage['highlightCandidatesOnAllTabs']);
-  if (getBackgroundPage().highlighterEnabled === undefined) {
-    getBackgroundPage().highlighterEnabled = false;
-    localStorage['highlightCandidatesOnAllTabs'] = 'false';
-  } else {
-    highlightingEnabled = getBackgroundPage().highlighterEnabled;
-    highlightCandidatesOnAllTabs = localStorage['highlightCandidatesOnAllTabs'] === 'true';
-  }
+    chrome.tabs.query({currentWindow: true}, (tabs) => {
+      const tabsList = document.createElement('ul');
 
-  updateButtonState();
-
-  // Master switch "Enable Highlighting"
-  $('#highlightingMasterSwitch').prop('checked', highlightingEnabled).click(() => {
-    // We are turning off or turning on we want to reset the two bottom buttons
-    $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').text(highlightThisText);
-    $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
-
-    // If after the click the switch is now checked (flipped to right)...
-    if ($('#highlightingMasterSwitch').is(':checked')) {
-      getBackgroundPage().highlighterEnabled = true;
-    } else {
-      getBackgroundPage().highlighterEnabled = false;
-
-      localStorage['highlightCandidatesOnAllTabs'] = 'false';
-      $('#highlightCandidatesOnAllTabsSwitch').prop('checked', false);
-    }
-    event.timer = setTimeout(() => {
-      timeoutToCloseDialog && window.close();
-      if (!getBackgroundPage().highlighterEnabled) {
-        getBackgroundPage().removeHighlightsForAllTabs();
+      for (let tab of tabs) {
+        console.log('Tab ID: ', tab.id, ' title: ', tab.title);
+        const listItem = document.createElement('li');
+        listItem.innerText = tab.id + ' - ' + tab.title;
+        tabsList.append(listItem);
       }
-    }, 2000);
+
+      document.body.append(tabsList);
+    });
+
+    chrome.storage.sync.get().then((all) => {
+      for (const [key, val] of Object.entries(all)) {
+        console.log(':::::::::: popup.js storage.sync dump', key, val);
+      }
+    });
+
+    // chrome.storage.sync.get().then((all) => {
+    //   let domain = '';
+    //   for (const [key, val] of Object.entries(all)) {
+    //     console.log(':::::::::: 22 storage.sync ', key, val);
+    //     if (key === 'domaintest') {
+    //       console.log(':::::::::: 3 storage.sync ', val);
+    //       domain = val;
+    //     }
+    //   }
+    //
+    //   console.log('domaintest on entry is ', domain);
+    //   let newDomain = domain ? domain + '|' +  tab.url : tab.url;
+    //   console.log('domaintest on entry++ is ', newDomain);
+    //   chrome.storage.sync.set({'domaintest': newDomain});
+    //   chrome.storage.sync.get().then((all) => {
+    //     let domain = '';
+    //     for (const [key, val] of Object.entries(all)) {
+    //       console.log(':::::::::: 4 storage.sync ', key, val);
+    //       if (key === 'domaintest') {
+    //         console.log(':::::::::: 5 storage.sync ', val);
+    //         domain = val;
+    //       }
+    //     }
+    //   });
+    // });
   });
 
-  $('#highlightCandidatesOnAllTabsSwitch').prop('checked', highlightCandidatesOnAllTabs).click(() => {
-    event.timer = setTimeout(() => {
-      timeoutToCloseDialog && window.close();
-    }, 2000);
-    window.close();
-    if ($('#highlightCandidatesOnAllTabsSwitch').is(':checked')) {
-      $('#highlightingMasterSwitch').prop('checked', true);
-      localStorage['highlightCandidatesOnAllTabs'] = 'true';
-      getBackgroundPage().highlighterEnabled = true;
-      getBackgroundPage().enableHighlightsForAllTabs(true);
-    } else {
-      localStorage['highlightCandidatesOnAllTabs'] = 'false';
-      getBackgroundPage().highlighterEnabled = false;
-      getBackgroundPage().enableHighlightsForAllTabs(false);
-    }
-  });
+  function updateButtonState (tabId) {
+    chrome.tabs.sendMessage(tabId, {
+      command: 'getStatusForActiveTab',
+    }, (status) => {
+      if (chrome.runtime.lastError) {
+        console.log(' chrome.tabs.sendMessage(getStatusForActiveTab)', chrome.runtime.lastError.message);
+      }
+      const { showHighlights: highlighterEnabledThisTab, showEditor: highlighterEditorEnabled, orgName, weVoteId: organizationWeVoteId,
+        twitterHandle: organizationTwitterHandle, encodedHref} = status;
+      console.log('status mmmmmmmmmmmmm ', status);
 
-  let showHighlights = false;
-  $('#highlightCandidatesThisTabButton').click((event) => {
-    debug && getBackgroundPage().dumpTabStatus();
-
-    getBackgroundPage().highlighterEnabled = true;
-    $('#highlightingMasterSwitch').prop('checked', true);
-
-    if ($('#highlightCandidatesThisTabButton').hasClass('weButtonRemove')) {  // if pressing the button would do a remove...
-      showHighlights = false;
-      if (pdfURL) {
-        $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').text(highlightThisText);
-      } else {
+      const isPDF = encodedHref && encodedHref.toLowerCase().endsWith('.pdf');
+      if (isPDF) {
+        pdfURL = encodedHref;
+      }
+      if (highlighterEnabledThisTab) {
+        $('#highlightCandidatesThisTabButton').addClass('weButtonRemove').removeClass('wePDF').text(removeHighlightThisText);
+      } else if(isPDF) {
         $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').addClass('wePDF').text(highlightThisPDF);
+      } else {
+        $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').text(highlightThisText);
       }
-    } else {                                                                  // If pressing the button would add the highlights
-      showHighlights = true;
-      $('#highlightCandidatesThisTabButton').addClass('weButtonRemove').removeClass('wePDF').text(removeHighlightThisText);
-    }
 
-    event.timer = setTimeout(() => {
-      timeoutToCloseDialog && window.close();
-      getBackgroundPage().handleButtonStateChange (showHighlights, showEditor, pdfURL);
-    }, 1000);
-  });
-
-  let showEditor = false;
-  $('#openEditPanelButton').click((event) => {
-    getBackgroundPage().highlighterEnabled = true;
-    console.log('openEditPanelButton button onClick -- popup.js');
-    $('#highlightingMasterSwitch').prop('checked', true);
-
-    if ($('#openEditPanelButton').hasClass('weButtonRemove')) {  // if pressing the button would do a remove...
-      if (pdfURL) {
+      if (highlighterEditorEnabled) {
+        $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);
+      } else if(isPDF) {
         $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditTextConvertedPDF);
       } else {
         $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
       }
 
-      showEditor = false;
-    } else {
-      $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);
-      showEditor = true;
-      showHighlights = true;
-    }
-    event.timer = setTimeout(() => {
-      timeoutToCloseDialog && window.close();
-      getBackgroundPage().handleButtonStateChange (showHighlights, showEditor, pdfURL);
-    }, 1000);
-  });
+      if (organizationWeVoteId || organizationTwitterHandle) {
+        const url = organizationTwitterHandle ? 'https://wevote.us/' + organizationTwitterHandle : 'https://wevote.us/voterguide/' + organizationWeVoteId;
+        $('#allEndorsementsButton').
+          text(orgName && orgName.length ? 'ENDORSEMENTS: ' + orgName.toUpperCase() : 'ENDORSEMENTS').
+          prop('disabled', false).
+          removeClass('weButtonDisable').
+          click(() => window.open(url, '_blank'));
+      } else {
+        $('#allEndorsementsButton').
+          text('ENDORSEMENTS' + orgName.toUpperCase()).
+          prop('disabled', true).
+          addClass('weButtonDisable').
+          unbind();
+      }
+    });
+  }
 
-  $('#jumpToMyBallot').click(() => {
-    window.open(ballotWebAppURL, '_blank');
-  });
-  const t1 = performance.now();
-  timingLog(t0, t1, 'process popoup.html in popup.js took', 4.0);
-  updateButtonState();
-  getBackgroundPage().popupMenuTiming(t0, t1, 'process popoup.html in popup.js took', 4.0);
+  function addButtonListeners (tabId, tabUrl) {
+    // Highlight Candidates on This Tab
+    $('#highlightCandidatesThisTabButton').click(() => {
+      // chrome.tabs.query({active: true, currentWindow: true}, function (tabs){
+      console.log('addButtonListeners highlightCandidatesThisTabButton click tabId', tabId);
+
+      chrome.tabs.sendMessage(tabId, {
+        command: 'updateForegroundForButtonChange',
+        payload: {
+          highlightThisTab: true,
+          openEditPanel: false,
+          pdfURL: '',
+          tabId,
+          tabUrl
+        }
+      }, function (response) {
+        console.log('updateBackgroundForButtonChange: ', response);
+      });
+      updateButtonState (tabId);  // HACK TO TEST
+    });
+
+    // Open Edit Panel For This Tab
+    const openEditPanelButtonSelector = $('#openEditPanelButton');
+    openEditPanelButtonSelector.click((event) => {
+      // getBackgroundPage().highlighterEnabled = true;
+      console.log('openEditPanelButton button onClick -- popup.js');
+      $('#highlightingMasterSwitch').prop('checked', true);
+
+      if (openEditPanelButtonSelector.hasClass('weButtonRemove')) {  // if pressing the button would do a remove...
+        if (pdfURL) {
+          openEditPanelButtonSelector.removeClass('weButtonRemove').text(openEditTextConvertedPDF);
+        } else {
+          openEditPanelButtonSelector.removeClass('weButtonRemove').text(openEditText);
+        }
+
+        showEditor = false;
+      } else {
+        $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);
+        showEditor = true;
+        showHighlights = true;
+      }
+      chrome.tabs.sendMessage(tabId, {
+        command: 'updateForegroundForButtonChange',
+        payload: {
+          highlightThisTab: true,
+          openEditPanel: true,
+          pdfURL: '',
+          tabId,
+          tabUrl
+        }
+      }, function (response) {
+        console.log('updateBackgroundForButtonChange: ', response);
+      });
+
+      event.timer = setTimeout(() => {
+        timeoutToCloseDialog && window.close();
+        // getBackgroundPage().handleButtonStateChange (showHighlights, showEditor, pdfURL);
+      }, 1000);
+    });
+
+    $('#jumpToMyBallot').click(() => {
+      window.open(ballotWebAppURL, '_blank');
+    });
+
+  }
 });
 
-function updateButtonState () {
-  const { chrome: { tabs: { query } } } = window;
-  debug && getBackgroundPage().dumpTabStatus();
-
-  query({active: true, currentWindow: true}, function (tabs) {
-    const url = tabs && tabs[0] ? tabs[0].url : '';
-    const tabId = tabs && tabs[0] ? tabs[0].id : -1;
-    const status = getBackgroundPage().getStatusForActiveTab(tabId, url);
-    const logLine = '>>>>>>>> updateButtonState called for tab: ' + tabId + ', url:' + url;
-    console.log(logLine);
-    debug && getBackgroundPage().popupLogger(logLine);
-    const { showHighlights: highlighterEnabledThisTab, showEditor: highlighterEditorEnabled, orgName, weVoteId: organizationWeVoteId,
-      twitterHandle: organizationTwitterHandle, encodedHref} = status;
-    debug && getBackgroundPage().popupLogger('>>>>>>>> updateButtonState getStatusForActiveTab: ' + tabId + ', highlighterEnabledThisTab:' + highlighterEnabledThisTab +
-      ', highlighterEditorEnabled:' + highlighterEditorEnabled + ', orgName:' + orgName + ', organizationTwitterHandle:' + organizationTwitterHandle);
-    const isPDF = encodedHref && encodedHref.toLowerCase().endsWith('.pdf');
-    if (isPDF) {
-      pdfURL = encodedHref;
-    }
-    if (highlighterEnabledThisTab) {
-      $('#highlightCandidatesThisTabButton').addClass('weButtonRemove').removeClass('wePDF').text(removeHighlightThisText);
-    } else if(isPDF) {
-      $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').addClass('wePDF').text(highlightThisPDF);
-    } else {
-      $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').text(highlightThisText);
-    }
-
-    if (highlighterEditorEnabled) {
-      $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);
-    } else if(isPDF) {
-      $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditTextConvertedPDF);
-    } else {
-      $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
-    }
-
-    if (organizationWeVoteId || organizationTwitterHandle) {
-      const url = organizationTwitterHandle ? 'https://wevote.us/' + organizationTwitterHandle : 'https://wevote.us/voterguide/' + organizationWeVoteId;
-      $('#allEndorsementsButton').
-        text(orgName && orgName.length ? 'ENDORSEMENTS: ' + orgName.toUpperCase() : 'ENDORSEMENTS').
-        prop('disabled', false).
-        removeClass('weButtonDisable').
-        click(() => window.open(url, '_blank'));
-    } else {
-      $('#allEndorsementsButton').
-        text('ENDORSEMENTS' + orgName.toUpperCase()).
-        prop('disabled', true).
-        addClass('weButtonDisable').
-        unbind();
-    }
-  });
-}
-
-
-// function clearHighlightsFromTab () {
-//   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-//     debug&&('clearing highlights from tab');
-//     chrome.tabs.sendMessage(tabs[0].id, {command: 'ClearHighlights'});
-//   });
-// }
-//
-// function onOff () {
-//   if (chrome.extension.getBackgroundPage().highlighterEnabled) {
-//     chrome.extension.getBackgroundPage().highlighterEnabled = false;
-//   }
-//   else {
-//     chrome.extension.getBackgroundPage().highlighterEnabled = true;
-//   }
-//   renderOnOff();
-// }
-//
-// function renderOnOff () {
-//   document.getElementById('myonoffswitch').checked = chrome.extension.getBackgroundPage().highlighterEnabled;
-//   if (!chrome.extension.getBackgroundPage().highlighterEnabled) {
-//     document.getElementById('header').style.backgroundColor = 'grey';
-//   }
-//   else {
-//     document.getElementById('offDesc').innerHTML = '';
-//     document.getElementById('header').style.backgroundColor = '#0091EA';
-//   }
-// }
-
-// function hintNonUnicodeChar (value){
-//   if(value.match(/[^a-zA-Z0-9_\s]/)){
-//     document.getElementById('hintNonUnicode').style.display='block';
-//   }
-//   else{
-//     document.getElementById('hintNonUnicode').style.display='none';
-//   }
-// }
-
-// function onPage () {
-//   onPageShown = true;
-//   if (chrome.extension.getBackgroundPage().showFoundWords) {
-//     chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-//       debug && console.log("active tabs",tabs);
-//       chrome.tabs.sendMessage(tabs[0].id, {command: "getMarkers"}, function (result) {
-//         debug && console.log("got markers",result);
-//
-//         if (result == undefined) {
-//           //on a chrome page
-//           drawInterface();
-//         }
-//         else if (result[0] != undefined) {
-//           document.getElementById("menu").style.display = "none";
-//           document.getElementById("onPage").style.display = "block";
-//           chrome.runtime.getPlatformInfo(
-//             function (i) {
-//
-//               if (i.os == "mac") {
-//                 document.getElementById("OSKey").innerHTML = "Command";
-//               }
-//               else {
-//                 document.getElementById("OSKey").innerHTML = "Control";
-//               }
-//             });
-//           renderFoundWords(result);
-//         }
-//         else {
-//           drawInterface();
-//         }
-//       });
-//     });
-//   }
-//   else {
-//
-//   drawInterface();
-// }
