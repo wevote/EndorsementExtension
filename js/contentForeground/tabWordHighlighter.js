@@ -14,6 +14,7 @@
 /* eslint no-undef: 0 */
 /* eslint multiline-ternary: 0 */
 /* eslint no-ternary: 0 */
+// import jQuery from 'libs/jquery/jquery-3.6.0';
 
 var wordsArray = [];
 var namesToIds;
@@ -40,59 +41,131 @@ let uniqueNameMatches = [];
 let voterDeviceId = '';
 var debug = false;
 let urlsForHighlights = {};
-const timingLogDebug = false;
+
+// importScripts(
+//   'libs/jquery/jquery-3.6.0',
+// );
+// const jq = chrome.runtime.getURL('libs/jquery/jquery-3.6.0');
+// const script = document.createElement('img');
+// img.src = chrome.runtime.getURL('logo.png');
+// document.body.append(img);
+// const $ = jQuery;
+
+document.addEventListener('DOMContentLoaded', function () {
+  if (jQuery === undefined) {
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('./libs/jquery/jquery-3.6.0.min.js');
+    script.type = 'text/javascript';
+    document.body.append(script);
+  }
+  console.log(`jQuery ${$.fn.jquery} has been loaded successfully!`);
+  // use jQuery below
+  initializeTabWordHighlighter();
+  detectBodyBind();
+});
 
 
-$(() => {
-  // 5/11/20 This commented out code would be great, it would eliminate all the noise from iFrames on the endorsement page, but for some reason it breaks
-  // our highlighting when we purposefully put it into an iFrame for "Open Edit Pane for this Tab"
-  // if(isInANonWeVoteIFrame()) {
-  //   // If we are in an iFrame on the Endorsement Page eg. addthis.com, syndication.twitter.com, hotjars.com etc.
-  //   // Don't do any futher processing of this instance, that will not show up in the chrome.tabs.query requests
-  //   console.log('############ tabWordHighligher initial DID NOT PROCESS iframed url: ', window.location.href);
-  //   return;
-  // }
-  debug && console.log('############ tabWordHighligher initialzed with url: ', window.location.href);
 
-  if (window.location.href === 'about:blank') {
-    console.log('tabWordHighlighter not initializing for an "about:blank" page');
+// Immediately-invoked function expression
+// const { chrome: { runtime: { tabs } } } = window;  // NO NO NO NMOMN  OWEEEEEEEEEE !!!
+// tabs.query({
+//   active: true,
+//   currentWindow: true
+// }, (tabs) => {
+//   const tabId = tab[0].id;
+//   chrome.scripting.executeScript({
+//     target: {
+//       tabId: tabId,
+//       allFrames: true
+//     },
+//     files: ['./libs/jquery/jquery-3.6.0.min.js'],
+// () => {
+//     console.log(`jQuery ${$.fn.jquery} has been loaded successfully!`);
+//     // use jQuery below
+//     initializeTabWordHighlighter();
+//     detectBodyBind();
+//   });
+// });
+
+// chrome.scripting.executeScript('./libs/jquery/jquery-3.6.0.min.js');
+// const script = document.createElement('script');
+// script.src = chrome.runtime.getURL('./libs/jquery/jquery-3.6.0.min.js');
+// script.type = 'text/javascript';
+// script.addEventListener('load', () => {
+//     console.log(`jQuery ${$.fn.jquery} has been loaded successfully!`);
+//     // use jQuery below
+//     initializeTabWordHighlighter();
+//     detectBodyBind();
+//   // });
+//   // document.head.appendChild(script);
+// }, 500);
+// }());
+
+function isInANonWeVoteIFrame () {
+  return (window.self !== window.top  && $('.weVoteEndorsementFrame').length === 0) || window.location.href === 'about:blank';
+}
+
+// $(() => {
+function initializeTabWordHighlighter () {
+  if (window.location.href === 'about:blank' || window.location.href.includes('extension.html')) {
+    debugFgLog('############ tabWordHighligher NOT initializing for:', window.location.href);
     return;
+  } else {
+    debugFgLog('############ tabWordHighligher initialzed with url: ', window.location.href);
   }
 
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   weContentState.neverHighlightOn = defaultNeverHighlightOn;
+
+  const deb = $('div#wedivheader').length > 0;
+  const host = window.location.host;
 
   if (isInOurIFrame()) {
     sendMessage({
       command: 'myTabId',
     }, function (response) {
       if (lastError) {
-        console.warn(' chrome.runtime.sendMessage("myTabId")', lastError.message);
+        debugFgLog(' chrome.runtime.sendMessage("myTabId")', lastError.message);
       }
 
       const {tabId: tab} = response;
-      weContentState.tabId = tab;
-      // console.log('tabWordHighlighter this tab.id: ' + tabId);
+      $('#frame').attr('name', 'tabId=' + tabId);
+      weContentState.tabId = tab;  // TODO: 7/8/22  this looks wrong
+      debugFgLog('tabWordHighlighter this tab.id: ' + tabId);
     });
-
-    // console.log('Hack that sets debugLocal to true in place ------------------------------------');
-    // window.debugLocal = true;
+    debugFgLog('Hack that sets debugLocal to true in place ------------------------------------');
+    window.debugLocal = true;
   }
 
   // If not in our iFrame
   if (!isInOurIFrame() && !isInANonWeVoteIFrame()) {
     // Check to see if we are on the WebApp signin page, and capture the device id if signed in
     if (window.location.host.indexOf('wevote.us') > -1 || window.location.host.indexOf('localhost:3000') > -1) {
-      const voterDeviceId = getVoterDeviceIdFromWeVoteDomainPage();
-      if (voterDeviceId.length) {
-        sendMessage({
-          command: 'storeDeviceId',
-          voterDeviceId
-        }, function (response) {
-          if (lastError) {
-            console.warn('chrome.runtime.sendMessage("storeDeviceId")', lastError.message);
-          }
+      const voterDeviceIdFromPage = getVoterDeviceIdFromWeVoteDomainPage();
+      if (voterDeviceIdFromPage.length) {
+        getVoterDeviceId().then((voterDeviceId) => {
+          console.log('initializeTabWordHighlighter voterDeviceId Value was ', voterDeviceId);
+          const junk = voterDeviceId + 'x|x';
+          // TODO: wtf, chrome.storage.local.set({'voterDeviceId': junk});
+          // ((store) => {
+          //   if(chrome.runtime.lastError) {
+          //     console.error(
+          //       'Error setting voterDeviceId to ' + JSON.stringify(voterDeviceId) +
+          //       ': ' + chrome.runtime.lastError.message
+          //     );
+          //   }
+          console.log('initializeTabWordHighlighter voterDeviceId Value set to ', junk);
+          // });
         });
+
+        // sendMessage({
+        //   command: 'storeDeviceId',
+        //   voterDeviceId
+        // }, function (response) {
+        //   if (lastError) {
+        //     debugFgLog('chrome.runtime.sendMessage("storeDeviceId")', lastError.message);
+        //   }
+        // });
       }
     }
     //only listen for messages in the main page, not in iframes
@@ -100,7 +173,7 @@ $(() => {
       // eslint-disable-next-line complexity
       function (request, sender, sendResponse) {
         const tabWordHighlighterListenerDebug = true;
-        (debug || tabWordHighlighterListenerDebug) && console.log('onMessage.addListener() in tabWordHighlighter got a message: ' + request.command);
+        tabWordHighlighterListenerDebug && debugFgLog('onMessage.addListener() in tabWordHighlighter got a message: ', request, sender, sendResponse);
 
         if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
             sender.id === 'lfifjogjdncflocpmhfhhlflgndgkjdo' ||
@@ -110,7 +183,7 @@ $(() => {
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
             if (window.location.href.toLowerCase().endsWith('.pdf')) {
-              console.log('displayHighlightsForTabAndPossiblyEditPanes skipping PDF file');
+              debugFgLog('displayHighlightsForTabAndPossiblyEditPanes skipping PDF file');
               return false;
             }
             const t1 = performance.now();
@@ -121,10 +194,11 @@ $(() => {
             weContentState.highlighterEnabledThisTab = showHighlights;  // Will always be true if showEditor is true
             weContentState.highlighterEditorEnabled = showEditor;
             if (tabId > 0) weContentState.tabId = tabId;
-            console.log('ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes request.showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', weContentState.tabId, ', href: ', window.location.href);
+            debugFgLog('------------------------------- ENTERING tabWordHighlighter > displayHighlightsFo');
+            debugFgLog('ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes request.showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', weContentState.tabId, ', href: ', window.location.href);
             if (!showHighlights) {
               // if we were enabled (master switch), and now we are not, reload the page -- if this proves to be a problem, we could remove the highlighting in the DOM.
-              console.log('displayHighlightsForTabAndPossiblyEditPanes (before reload)');
+              debugFgLog('displayHighlightsForTabAndPossiblyEditPanes (before reload)');
               weContentState.priorData = [];
               weContentState.priorHighlighterEnabledThisTab = false;
               location.reload();
@@ -133,7 +207,7 @@ $(() => {
               displayHighlightingAndPossiblyEditor(weContentState.highlighterEnabledThisTab, weContentState.highlighterEditorEnabled, weContentState.tabId);
             }
             const t2 = performance.now();
-            timingLogDebug && timingLog(t1, t2, 'displayHighlightsForTabAndPossiblyEditPanes processing took', 8.0);
+            timingFgLog(t1, t2, 'displayHighlightsForTabAndPossiblyEditPanes processing took', 8.0);
             return false;
           } else if (request.command === 'ScrollHighlight') {
             jumpNext();
@@ -156,10 +230,10 @@ $(() => {
           } else if (request.command === 'revealRight') {
             revealRightAction(request.selection, request.pageURL, request.tabId);
             return false;
-          } else if (request.command === 'getTabStatusValues') {
+          } else if (request.command === 'getTabStatusValues' || request.command === 'getStatusForActiveTab') {
             const encodedHref = encodeURIComponent(location.href);
             const {orgName, organizationWeVoteId, organizationTwitterHandle, tabId, highlighterEnabledThisTab, highlighterEditorEnabled} = weContentState;
-            console.log('getTabStatusValues tabId: ', tabId, ', highlighterEnabledThisTab: ', highlighterEnabledThisTab, ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', href: ', window.location.href);
+            debugFgLog('getTabStatusValues tabId: ', tabId, ', highlighterEnabledThisTab: ', highlighterEnabledThisTab, ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', href: ', window.location.href);
             sendResponse({
               highlighterEnabledThisTab,
               highlighterEditorEnabled,
@@ -172,6 +246,30 @@ $(() => {
           } else if (request.command === 'disableExtension') {
             enableHighlightsForAllTabs(false);
             return false;
+          } else if (request.command === 'logFromPopup') {
+            console.log('popup: ' + request.payload);
+            sendResponse('hello from the tabWordHighlighter');
+            return true;
+          } else if (request.command === 'updateForegroundForButtonChange') {
+            debugSwLog('extWordHighlighter "updateForegroundForButtonChange" received from popup');
+            const { highlightThisTab, openEditPanel, pdfURL, tabId, tabUrl } = request.payload;
+            console.log('updateForegroundForButtonChange: ' + request.payload);
+
+            sendMessage({
+              command: 'updateBackgroundForButtonChange',
+              highlightThisTab,
+              openEditPanel,
+              pdfURL,
+              tabId,
+              tabUrl
+            }, function (response) {
+              if (lastError) {
+                debugFgLog('chrome.runtime.sendMessage("updateBackgroundForButtonChange")', lastError.message);
+              }
+            });
+
+
+            // handleButtonStateChange(highlightThisTab, openEditPanel, pdfURL);
           } else {
             console.error('tabWordHighlighter in chrome.runtime.onMessage.addListener received unknown command: ' + request.command);
             return false;
@@ -180,13 +278,13 @@ $(() => {
       }
     );
   } else {
-    debug && console.log('not in a unframed endorsement page: ', window.location);
+    debugFgLog('not in a unframed endorsement page: ', window.location);
   }
 
   if (window.location.href !== 'about:blank') {  // Avoid worthless queries
     sendGetStatus();  // Initial get statos
   }
-});
+}
 
 function jumpNext () {
   if (markerCurrentPosition === markerPositions.length - 1 || markerCurrentPosition > markerPositions.length - 1) {
@@ -198,7 +296,7 @@ function jumpNext () {
 }
 
 function showMarkers () {
-  debug && console.log('STEVE, background showMarkers');
+  debugFgLog('STEVE, background showMarkers');
   var element = document.getElementById('HighlightThisMarkers');
   if (element) {
     element.parentNode.removeChild(element);
@@ -225,12 +323,12 @@ function showMarkers () {
 }
 
 function reHighlight (words) {
-  const reHighlightDebug = false;
-  reHighlightDebug && console.log('ENTERING function reHighlight(words), words:', words);
+  const reHighlightDebug = true;
+  reHighlightDebug && debugFgLog('ENTERING function reHighlight(words), words:', words);
   for (let group in words) {
     if (words[group].Enabled) {
       for (word in words[group].Words) {
-        debug && console.log('reHighlight word = ' + word);
+        // reHighlightDebug && debugFgLog('reHighlight word = ' + word);
         if (words[group].Words[word]) {
           wordsArray.push({
             word: words[group].Words[word].toLowerCase(),
@@ -242,12 +340,12 @@ function reHighlight (words) {
             'ShowInEditableFields': words[group].ShowInEditableFields
           });
         } else {
-          console.warn('Null word in rehighlight');
+          reHighlightDebug && debugFgLog('Null word in rehighlight');
         }
       }
     }
   }
-  reHighlightDebug && console.log('reHighlight before findWords --------------------------- namesToIds: ', namesToIds, ', tabId: ', weContentState.tabId);
+  reHighlightDebug && debugFgLog('reHighlight before findWords --------------------------- namesToIds: ', namesToIds, ', tabId: ', weContentState.tabId);
 
   findWords();
 }
@@ -257,8 +355,28 @@ function getVoterDeviceIdFromWeVoteDomainPage () {
   const tag = 'voter_device_id';
   let b = document.cookie.match('(^|[^;]+)\\s*' + tag + '\\s*=\\s*([^;]+)');
   let id = b ? b.pop() : '';
-  debug && console.log('getVoterDeviceIdFromWeVoteDomainPage ------------TE--------------> ' + id);
-  return id;
+  if (id.length) {
+    debugFgLog('=======  voter_device_id captured from a wevote page, id: ' + id);
+  }
+
+  let voterDeviceId = '';
+  if (id && id.length > 5) {
+    chrome.storage.sync.get().then((all) => {
+      for (const [key, val] of Object.entries(all)) {
+        debugFgLog('======= voterDeviceId storage.sync ', key, val);
+        if (key === 'voterDeviceId') {
+          debugFgLog(`======= voterDeviceId storage.sync previous value of voterDeviceId: "${val}", new value: "${id}"`);
+          voterDeviceId = val;
+        }
+      }
+      chrome.storage.sync.set({'voterDeviceId': id}, () => {
+        if (chrome.runtime.lastError) {
+          console.error('chrome.storage.sync.set({\'voterDeviceId\': id}) returned error ', chrome.runtime.lastError.message);
+        }
+      });
+    });
+  }
+  return voterDeviceId;
 }
 
 // When a tab sends the getStatus message, it starts a whole sequence of events and other messages, that go to the API server
@@ -270,30 +388,37 @@ function sendGetStatus () {
   for (let i = 0; i < weContentState.neverHighlightOn.length; i++) {
     let reg = new RegExp(weContentState.neverHighlightOn[i].replace('*', '.*?'));
     if (window.location.hostname.match(reg)) {
-      debug && console.log('sendGetStatus found a neverHighlightOn match: ', window.location.hostname);
+      debugFgLog('sendGetStatus found a neverHighlightOn match: ', window.location.hostname);
       return;
     }
   }
 
   sendMessage({command: 'getStatus', tabURL: window.location.href}, function (response) {
-    console.log('chrome.runtime.sendMessage({command: \'getStatus\'}', document.URL);
+    debugFgLog('chrome.runtime.sendMessage({command: \'getStatus\'}', document.URL);
     if (lastError) {
-      console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
+      debugFgLog('chrome.runtime.sendMessage("getStatus")', lastError.message);
       return;
     }
-    const { highlighterEnabled, neverHighlightOn, showHighlights, showEditor, tabId, url } = response;
-    debug && console.log('response from getStatus', response);
+    debugFgLog('response from getStatus', response);
+    if (response) {
+      const { highlighterEnabled, neverHighlightOn, showHighlights, showEditor, tabId, url } = response;
 
-    // if (!existenceOfTab) {
-    //   console.log('"getStatus called for a url that is not a tabUrl, probably for an iframe within a tab: ', url);
-    //   return;
-    // }
+      // if (!existenceOfTab) {
+      //   debugFgLog('"getStatus called for a url that is not a tabUrl, probably for an iframe within a tab: ', url);
+      //   return;
+      // }
 
-    // bs detector, work around a likely chrome.tabs bug - May, 2020
-    if (url && !url.includes(window.location.host)) {
-      console.warn('sendMessage for getStatus aborted on page ', window.location.host, ' returned url: ', url, ', with probably wrong tab id: ', tabId);
-      return;
+      // bs detector, work around a likely chrome.tabs bug - May, 2020
+      if (url && !url.includes(window.location.host)) {
+        debugFgLog('sendMessage for getStatus aborted on page ', window.location.host, ' returned url: ', url, ', with probably wrong tab id: ', tabId);
+        return;
+      }
     }
+    highlighterEnabled = true;
+    showHighlights = true;
+    showEditor = false;
+    tabId=985;
+    neverHighlightOn=false;
 
     clearPriorDataOnModeChange(showHighlights, showEditor);
     weContentState.highlighterEnabled = highlighterEnabled;
@@ -304,7 +429,7 @@ function sendGetStatus () {
 
     // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary TODO: April 26, 2020, do we even need 'myTabId' msg chain?
     if (weContentState.highlighterEnabledThisTab) {
-      debug && console.log('about to get words', window.location);
+      debugFgLog('about to get words', window.location);
       getWordsThenStartHighlighting();
     }
   });
@@ -316,28 +441,28 @@ function refreshVoterGuidePanel () {  // Based on updatePositionPanelFromTheIFra
   for (let i = 0; i < weContentState.neverHighlightOn.length; i++) {
     let reg = new RegExp(weContentState.neverHighlightOn[i].replace('*', '.*?'));
     if (window.location.hostname.match(reg)) {
-      debug && console.log('refreshVoterGuidePanel found a neverHighlightOn match: ', window.location.hostname);
+      debugFgLog('refreshVoterGuidePanel found a neverHighlightOn match: ', window.location.hostname);
       return;
     }
   }
 
   // sendMessage({command: 'getStatus', tabURL: window.location.href}, function (response) {
-  //   console.log('chrome.runtime.sendMessage({command: \'getStatus\'}', document.URL);
+  //   debugFgLog('chrome.runtime.sendMessage({command: \'getStatus\'}', document.URL);
   //   if (lastError) {
-  //     console.warn('chrome.runtime.sendMessage("getStatus")', lastError.message);
+  //     debugFgLog('chrome.runtime.sendMessage("getStatus")', lastError.message);
   //     return;
   //   }
   //   const { highlighterEnabled, neverHighlightOn, showHighlights, showEditor, tabId, url } = response;
-  //   debug && console.log('response from getStatus', response);
+  //   debugFgLog('response from getStatus', response);
   //
   //   // if (!existenceOfTab) {
-  //   //   console.log('"getStatus called for a url that is not a tabUrl, probably for an iframe within a tab: ', url);
+  //   //   debugFgLog('"getStatus called for a url that is not a tabUrl, probably for an iframe within a tab: ', url);
   //   //   return;
   //   // }
   //
   //   // bs detector, work around a likely chrome.tabs bug - May, 2020
   //   if (url && !url.includes(window.location.host)) {
-  //     console.warn('sendMessage for getStatus aborted on page ', window.location.host, ' returned url: ', url, ', with probably wrong tab id: ', tabId);
+  //     debugFgLog('sendMessage for getStatus aborted on page ', window.location.host, ' returned url: ', url, ', with probably wrong tab id: ', tabId);
   //     return;
   //   }
   const showHighlights = true;
@@ -352,7 +477,7 @@ function refreshVoterGuidePanel () {  // Based on updatePositionPanelFromTheIFra
 
   // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary TODO: April 26, 2020, do we even need 'myTabId' msg chain?
   if (weContentState.highlighterEnabledThisTab) {
-    debug && console.log('about to get words', window.location);
+    debugFgLog('about to get words', window.location);
     getWordsThenStartHighlighting();
   }
   // });
@@ -366,25 +491,30 @@ function clearPriorDataOnModeChange (showHighlights, showEditor) {
 }
 
 function getWordsThenStartHighlighting () {
-  const getWordsThenStartHighlightingDebug = false;
-  const timingLogDebug = false;
+  const getWordsThenStartHighlightingDebug = true;
   const t1 = performance.now();
   const {chrome: {runtime: {sendMessage, lastError}}} = window;
-  getWordsThenStartHighlightingDebug && console.log('ENTERING tabWordHighlighter > getWordsThenStartHighlighting,  Called \'getWords\'');
+  getWordsThenStartHighlightingDebug && debugFgLog('ENTERING tabWordHighlighter > getWordsThenStartHighlighting,  Called \'getWords\'');
 
   sendMessage({
     command: 'getWords',
     url: location.href.replace(location.protocol + '//', ''),
-    id: getVoterDeviceIdFromWeVoteDomainPage()  // is this nonsense?
+    voterDeviceId: getVoterDeviceIdFromWeVoteDomainPage(),  // is this nonsense?
+    tabId: weContentState.tabId,
   }, function (response) {
-    const { url, storedDeviceId, words } = response;
-    getWordsThenStartHighlightingDebug && console.log('Received response getWordsThenStartHighlighting() URL: ', url);
-
-    if (lastError) {
-      console.warn('chrome runtime sendMessage("getWords")',lastError.message);
+    if (!response) {
+      debugFgLog('chrome runtime sendMessage("getWords") did not receive a response');
       return;
     }
-    getWordsThenStartHighlightingDebug && console.log('got words response: ', response);
+
+    const { url, storedDeviceId, words } = response;
+    getWordsThenStartHighlightingDebug && debugFgLog('Received response getWordsThenStartHighlighting() URL: ', url);
+
+    if (lastError) {
+      debugFgLog('chrome runtime sendMessage("getWords")',lastError.message);
+      return;
+    }
+    getWordsThenStartHighlightingDebug && debugFgLog('got words response: ', response);
     const id = storedDeviceId ? storedDeviceId : '';
     if (storedDeviceId && storedDeviceId.length > 0) {
       voterDeviceId = id;
@@ -393,7 +523,7 @@ function getWordsThenStartHighlighting () {
     for (let group in words) {
       if (words[group].Enabled) {
         for (word in words[group].Words) {
-          debug && console.log('getWords response, ' + word + ', group: ' + group + ', findWords: ' + words[group].FindWords + ' icon: ' + words[group].Icon);
+          debugFgLog('getWords response, ' + word + ', group: ' + group + ', findWords: ' + words[group].FindWords + ' icon: ' + words[group].Icon);
           let wordText = words[group].Words[word];
           if (wordText) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
             wordsArray.push({
@@ -410,20 +540,20 @@ function getWordsThenStartHighlighting () {
       }
     }
     const t2 = performance.now();
-    timingLogDebug && timingLog(t1, t2, 'in getWordsThenStartHighlighting, retrieving "getWords" highlighting rules took', 8.0);
+    timingFgLog(t1, t2, 'in getWordsThenStartHighlighting, retrieving "getWords" highlighting rules took', 8.0);
 
     if (words.nameToIdMap) {
       namesToIds = words.nameToIdMap;  // This is the one that delivers, when in an iFrame.  It probably is all we need if not in a frame.
     }
 
-    debug && console.log('processed words');
+    debugFgLog('processed words');
     wordsReceived = true;
 
     //start the highlight loop
     highlightLoop();
 
     if (!document.getElementById('wediv')) {
-      // console.log('inserting wediv for the dialog into the top of the body');
+      // debugFgLog('inserting wediv for the dialog into the top of the body');
       const head = document.head || document.getElementsByTagName('head')[0];
 
       const style = document.createElement('style');
@@ -433,11 +563,15 @@ function getWordsThenStartHighlighting () {
       const css = '#wediv{position:absolute;z-index:10000;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4);height:600px;}#wedivheader{cursor:move;z-index:10;background-color:#2e3c5d;color:#fff;height:30px}#weIFrame{width:450px;height:568px;border-width:0;border:none}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;float:right;margin-right:16px;background-color:#2e3c5d;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}.highlight{padding:1px;box-shadow:#e5e5e5 1px 1px;border-radius:3px;-webkit-print-color-adjust:exact;background-color:#ff6;color:#000;font-style:inherit}';
       style.appendChild(document.createTextNode(css));
 
-      const js = document.createElement('script');
-      // Note that the source code for this innerHTML is in popupIFrame.html, where it can be tested, then minified with https://javascript-minifier.com/
-      js.innerHTML ='function dragElement(e){let t=0,n=0,o=0,l=0;function d(e){(e=e||window.event).preventDefault(),o=e.clientX,l=e.clientY,document.onmouseup=s,document.onmousemove=f}function f(d){(d=d||window.event).preventDefault(),t=o-d.clientX,n=l-d.clientY,o=d.clientX,l=d.clientY,e.style.top=e.offsetTop-n+"px",e.style.left=e.offsetLeft-t+"px"}function s(){document.onmouseup=null,document.onmousemove=null}document.getElementById(e.id+"header")?document.getElementById(e.id+"header").onmousedown=d:e.onmousedown=d}function setModal(e,t,n){let o=document.getElementById(n);o||(o={offsetLeft:0,offsetTop:0});const l=document.getElementById("wediv"),d=document.getElementById("weIFrame"),f=window.pageYOffset||document.documentElement.scrollTop;l.hidden=!e,l.style.left=o.offsetLeft+300+"px",l.style.top=o.offsetTop+f+"px",t&&t.length&&(d.src=t),dragElement(l)}';
-      // js.onload = () => console.log('------------- js loaded');
-      head.appendChild(js);
+      const tabId = weContentState.tabId;
+
+
+      //  7/4/22:  Don't need to inject script, since we can just include it in manifest
+      // const js = document.createElement('script');
+      // // Note that the source code for this innerHTML is in popupIFrame.html, where it can be tested, then minified with https://javascript-minifier.com/
+      // js.innerHTML ='function dragElement(e){let t=0,n=0,o=0,l=0;function d(e){(e=e||window.event).preventDefault(),o=e.clientX,l=e.clientY,document.onmouseup=s,document.onmousemove=f}function f(d){(d=d||window.event).preventDefault(),t=o-d.clientX,n=l-d.clientY,o=d.clientX,l=d.clientY,e.style.top=e.offsetTop-n+"px",e.style.left=e.offsetLeft-t+"px"}function s(){document.onmouseup=null,document.onmousemove=null}document.getElementById(e.id+"header")?document.getElementById(e.id+"header").onmousedown=d:e.onmousedown=d}function setModal(e,t,n){let o=document.getElementById(n);o||(o={offsetLeft:0,offsetTop:0});const l=document.getElementById("wediv"),d=document.getElementById("weIFrame"),f=window.pageYOffset||document.documentElement.scrollTop;l.hidden=!e,l.style.left=o.offsetLeft+300+"px",l.style.top=o.offsetTop+f+"px",t&&t.length&&(d.src=t),dragElement(l)}';
+      // js.onload = () => debugFgLog('------------- js loaded');
+      // head.appendChild(js);
       const markup = document.createElement('div');
       markup.id = 'wediv';
       markup.hidden = true;
@@ -448,7 +582,7 @@ function getWordsThenStartHighlighting () {
         '    <button type="button" class="weclose" onclick="setModal(false,\'\' ,\'\')">X</button>\n' +
         '  </span>\n' +
         '</div>\n' +
-        '<iframe id="weIFrame" src="' + extensionWarmUpPage + '"></iframe>\n';
+        '<iframe id="weIFrame" src="' + extensionWarmUpPage + '" name="tabId="></iframe>\n';
       $('body').first().prepend(markup);
       if (isInOurIFrame()) {
         preloadPositionsForAnotherVM();  // preLoad positions for this VM, if it is a VM within an iFrame
@@ -456,10 +590,10 @@ function getWordsThenStartHighlighting () {
       $('.weclose').click(() => {
         const dialogClosed = true;
         if (isInOurIFrame()) { // if in an iframe
-          console.log('With editors displayed, and the endorsement page in an iFrame, the modal containing an iFrame to the webapp has closed.  Evaluating the need to update the PositionsPanel, weContentState ', weContentState);
+          debugFgLog('With editors displayed, and the endorsement page in an iFrame, the modal containing an iFrame to the webapp has closed.  Evaluating the need to update the PositionsPanel, weContentState ', weContentState);
           updatePositionPanelFromTheIFrame(dialogClosed);  // which calls getRefreshedHighlights() if the positions data has changed
         } else {
-          console.log('dialog containing iFrame has closed, either without the editor displayed, or for newly discovered positions, ie right click on highlighed position');
+          debugFgLog('dialog containing iFrame has closed, either without the editor displayed, or for newly discovered positions, ie right click on highlighed position');
           updateHighlightsIfNeeded(dialogClosed);
         }
       });
@@ -467,15 +601,17 @@ function getWordsThenStartHighlighting () {
   });
 }
 
-$(document).ready(function () {
-  Highlight=true;
+function detectBodyBind () {
+  $(document).ready(function () {
+    Highlight = true;
 
-  debug && console.log('setup binding of dom sub tree modification');
-  $('body').bind('DOMSubtreeModified', function () {
-    //debug && console.log("dom sub tree modified");
-    Highlight=true;
+    debugFgLog('setup binding of dom sub tree modification');
+    $('body').bind('DOMSubtreeModified', function () {
+      //debugFgLog("dom sub tree modified");
+      Highlight = true;
+    });
   });
-});
+}
 
 
 function highlightLoop (){
@@ -506,18 +642,18 @@ function getSearchParameter (n) {
 }
 
 /*function start() {
-    debug && console.log("in start");
+    debugFgLog("in start");
     if (wordsReceived == true) {
-        debug && console.log("in start - words received");
+        debugFgLog("in start - words received");
         Highlight=true
         $("body").bind("DOMSubtreeModified", function () {
-            debug && console.log("dom sub tree modified", readyToFindWords);
+            debugFgLog("dom sub tree modified", readyToFindWords);
             Highlight=true;
         });
     }
     else {
         setTimeout(function () {
-            debug && console.log('waiting for words');
+            debugFgLog('waiting for words');
             start();
         }, 250);
     }
@@ -546,11 +682,11 @@ function getSearchParameter (n) {
 //   let b4 = $('body em');
 //   let b5 = $('body em.Highlight');
 //   let buttons = $('body').find(':button');
-//   console.log($('#weContainer').html());
+//   debugFgLog($('#weContainer').html());
 //
 //   $('em.Highlight').each((em) => {
 //     let text = $(em).text();
-//     console.log('removeAll: ' + i + ', ' + text);
+//     debugFgLog('removeAll: ' + i + ', ' + text);
 //     $(em).replace(text);
 //   });
 //   // ems.replaceWith(ems.innerText);
@@ -558,14 +694,13 @@ function getSearchParameter (n) {
 
 
 function findWords () {
-  const findWordsDebug = false;
-  const timingLogDebug = false;
+  const findWordsDebug = true;
   const {chrome: {runtime: {sendMessage, lastError}}} = window;
   if (Object.keys(wordsArray).length > 0) {
     Highlight=false;
 
     setTimeout(function () {
-      (debug || findWordsDebug) && console.log('ENTERING findWords: ', window.location);
+      debugFgLog('ENTERING findWords: ', window.location);
 
       ReadyToFindWords=false;
 
@@ -575,9 +710,9 @@ function findWords () {
       var myHilitor = new Hilitor();
       var highlights = myHilitor.apply(wordsArray, printHighlights);
       const t2 = performance.now();
-      timingLogDebug && timingLog(t1, t2, 'in findWords, Hilitor (apply) took', 8.0);
+      timingFgLog(t1, t2, 'in findWords, Hilitor (apply) took', 8.0);
 
-      // console.log('after myHilitor.apply num highlights: ' + highlights.numberOfHighlights);
+      // debugFgLog('after myHilitor.apply num highlights: ' + highlights.numberOfHighlights);
       if (highlights.numberOfHighlights > 0) {
         highlightMarkers = highlights.markers;
         markerPositions = [];
@@ -597,6 +732,7 @@ function findWords () {
         }
 
         try {
+          debugFgLog('showHighlightsCount in tabWordHigligher');
           sendMessage({
             command: 'showHighlightsCount',
             label: uniqueNameMatches.length.toString(),
@@ -604,11 +740,11 @@ function findWords () {
             altColor: uniqueNameMatches.length ? '' : 'darkgreen',
           }, function (response) {
             if (lastError) {
-              console.warn('findWords() ... chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
+              debugFgLog('findWords() ... chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
             }
           });
         } catch (e) {
-          console.log('Caught showHighlightsCount > 0: ', e);
+          debugFgLog('Caught showHighlightsCount > 0: ', e);
         }
       } else {
         try {
@@ -619,11 +755,11 @@ function findWords () {
             altColor: 'darkgreen',
           }, function (response) {
             if (lastError) {
-              console.warn(' chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
+              debugFgLog(' chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
             }
           });
         } catch (e) {
-          console.log('Caught showHighlightsCount === 0 ', e);
+          debugFgLog('Caught showHighlightsCount === 0 ', e);
         }
 
       }
@@ -633,8 +769,8 @@ function findWords () {
     }, HighlightWarmup);
   }
 
-  // This following log line floods the log, and slow things down -- use sparingly while debugging
-  // debug && console.log('finished finding words');
+  // This following log line floods the log, and slows things down -- use sparingly while debugging
+  // debug && debugFgLog('finished finding words');
 }
 
 function revealRightAction (selection, pageURL, tabId) {
@@ -651,7 +787,7 @@ function revealRightAction (selection, pageURL, tabId) {
 // This allows the popup to find out if this tab is highlighted and/or editors are displayed
 function getDisplayedTabStatus (tabId) {
   const { highlighterEnabledThisTab, highlighterEditorEnabled} = weContentState;
-  debug && console.log('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', highlighterEditorEnabled: ' + highlighterEditorEnabled);
+  debugFgLog('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', highlighterEditorEnabled: ' + highlighterEditorEnabled);
   return {
     highlighterEnabledThisTab,
     editorEnabledThisTab,
