@@ -705,7 +705,7 @@ chrome.runtime.onMessage.addListener(
       showCandidateOptionsHighlights = true;
       getHighlightsListsFromApiServer(request.url, request.voterDeviceId, request.tabId, request.doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights);
     } else if (request.command === 'getPositions') {
-      console.log('getPositions receoved with request ', request)
+      console.log('getPositions received with request ', request);
       getPossiblePositions(request.voterGuidePossibilityId, request.hrefURL, request.voterDeviceId, request.isIFrame, sendResponse);
     } else if (request.command === 'savePosition') {
       debugSwLog('MESSAGING: voterGuidePossibilityPositionSave message received', request, request.removePosition, sender, sender.tab.id);

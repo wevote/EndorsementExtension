@@ -761,15 +761,15 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
     "    <input type='hidden' id='googleCivicElectionId-" + i + "' value='" + googleCivicElectionId + "'>" +
     "    <input type='hidden' id='allNames-" + i + "' value='" + allNames + "'>" +
     "    <input type='hidden' id='isStored-" + i + "' value='" + isStored + "'>" +
-    '  </div>' +
-    '  <div id= ' + furlNo + " class='furlable' " + (detachedDialog ? '' : 'hidden') + '>' +
+    "  </div>" +
+    "  <div id=" + furlNo + " class='furlable' " + (detachedDialog ? '' : 'hidden') + '>' +
     "    <div class='core-text aliases'>" + aliases + '</div>' +
     "    <span class='buttons'>" +
            supportButton(i, 'endorse', stance) +
            supportButton(i, 'oppose', stance) +
            supportButton(i, 'info', stance) +
     '    </span>' +
-    "    <textarea rows='6' class='statementText-" + i + " removeContentStyles' style='margin: 0; text-align: left;'/>" +
+    "    <textarea rows='6' class='statementText-" + i + " removeContentStyles' style='margin: 0; text-align: left;'></textarea>" +
     '    <br><span class="core-text" style="margin: 0; text-align: left;">If dedicated candidate page exists, enter URL here:</span>' +
     '    <input type="text" class="moreInfoURL-' + i + ' weInfoText removeContentStyles" style="margin: 0; text-align: left;" />' +
     "    <span class='buttons'>";

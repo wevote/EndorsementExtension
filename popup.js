@@ -39,49 +39,41 @@ document.addEventListener('DOMContentLoaded', function () {
     addButtonListeners(tabId, tab.url);
     console.log('after addButtonListeners', tabId);
 
-    chrome.tabs.query({currentWindow: true}, (tabs) => {
-      const tabsList = document.createElement('ul');
-
-      for (let tab of tabs) {
-        console.log('Tab ID: ', tab.id, ' title: ', tab.title);
-        const listItem = document.createElement('li');
-        listItem.innerText = tab.id + ' - ' + tab.title;
-        tabsList.append(listItem);
-      }
-
-      document.body.append(tabsList);
-    });
-
-    chrome.storage.sync.get().then((all) => {
-      for (const [key, val] of Object.entries(all)) {
-        console.log(':::::::::: popup.js storage.sync dump', key, val);
+    chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+      if (tabs.length) {
+        const { 0: { id, url, windowId } } = tabs;
+        $('#tabNumber').text(id.toString());
+        const bits = url.split('/');
+        let u = url;
+        if (bits.length > 4) {
+          u = bits[2] + ' /' + bits[3];
+        }
+        if (bits.length > 5) {
+          u += '/' + bits[4];
+        }
+        $('#windowNumber').text(windowId.toString());
+        $('#hostName').text(u);
       }
     });
 
-    // chrome.storage.sync.get().then((all) => {
-    //   let domain = '';
-    //   for (const [key, val] of Object.entries(all)) {
-    //     console.log(':::::::::: 22 storage.sync ', key, val);
-    //     if (key === 'domaintest') {
-    //       console.log(':::::::::: 3 storage.sync ', val);
-    //       domain = val;
-    //     }
+    // July 2022:  Debug code do not delete
+    // chrome.tabs.query({currentWindow: true}, (tabs) => {
+    //   const tabsList = document.createElement('ul');
+    //
+    //   for (let tab of tabs) {
+    //     console.log('Tab ID: ', tab.id, ' title: ', tab.title);
+    //     const listItem = document.createElement('li');
+    //     listItem.innerText = tab.id + ' - ' + tab.title;
+    //     tabsList.append(listItem);
     //   }
     //
-    //   console.log('domaintest on entry is ', domain);
-    //   let newDomain = domain ? domain + '|' +  tab.url : tab.url;
-    //   console.log('domaintest on entry++ is ', newDomain);
-    //   chrome.storage.sync.set({'domaintest': newDomain});
-    //   chrome.storage.sync.get().then((all) => {
-    //     let domain = '';
-    //     for (const [key, val] of Object.entries(all)) {
-    //       console.log(':::::::::: 4 storage.sync ', key, val);
-    //       if (key === 'domaintest') {
-    //         console.log(':::::::::: 5 storage.sync ', val);
-    //         domain = val;
-    //       }
-    //     }
-    //   });
+    //   document.body.append(tabsList);
+    // });
+    //
+    // chrome.storage.sync.get().then((all) => {
+    //   for (const [key, val] of Object.entries(all)) {
+    //     console.log(':::::::::: popup.js storage.sync dump', key, val);
+    //   }
     // });
   });
 
