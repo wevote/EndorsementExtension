@@ -406,6 +406,10 @@ function setEnableForActiveTab (showHighlights, showEditor, tabId, tabUrl) {
     highlighterEnabled = true;
   }
 
+  if (!showHighlights) {
+    clearHighlightsCount();
+  }
+
   if (!tabsHighlighted[tabId]) {
     createNewTabsHighlightedElement(tabId, tentativeURL);
   }
@@ -551,6 +555,16 @@ function removeHighlightsForAllTabs () {
   }
 }
 
+// July 22, 2022:  We want this, but it is frosting for now
+// chrome.tabs.onActiveChanged.addListener(function (tabId) {
+//   console.log('extWordHighlighter detected tab change, removing extensionState');
+//   chrome.storage.sync.remove('extensionState', () => {
+//     if (chrome.runtime.lastError) {
+//       console.error('chrome.storage.sync.remove(extensionState) failed with', chrome.runtime.lastError.message);
+//     }
+//     chrome.action.setBadgeText({ text: '' });
+//   });
+// });
 
 chrome.tabs.onActivated.addListener(function (tabId){
   // TODO: I don't think this can work!
@@ -585,7 +599,7 @@ chrome.tabs.onCreated.addListener(function (tab){if(tab.url !== undefined){updat
 
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
   const { tabs: { sendMessage, lastError, query } } = chrome;
-  debugSwLog('Steve chrome.contextMenus.onClicked: ' + info.selectionText);
+  debugSwLog('chrome.contextMenus.onClicked: ' + info.selectionText);
 
   if (info.menuItemId.indexOf('idContextMenuCreateNew') > -1) {
     sendMessage(tab.id, {
@@ -810,7 +824,7 @@ chrome.runtime.onMessage.addListener(
       debugSwLog('extWordHighlighter "updateBackgroundForButtonChange" received from popup');
 
 
-      handleButtonStateChange(request.highlightThisTab, request.openEditPanel, request.pdfURL, request.tabId, request.tabUrl);
+      handleButtonStateChange(request.showHighlights, request.openEditPanel, request.pdfURL, request.tabId, request.tabUrl);
     } else {
       console.error('extWordHighlighter received unknown command : ' + request.command);
     }
@@ -845,7 +859,7 @@ function getThisTabsStatus (tabURL, sendResponse) {
   chrome.tabs.query({}, function (tabs) {
     tab = {};
     for (let i = 0; i < tabs.length; i++) {
-      // debugSwLog('>>>>>>>>>>>>>>> "' + tabs[i].url )
+      debugSwLog('>>>>>>>>>>>>>>> "' + tabs[i].url );
       if (tabs[i].url === tabURL) {
         tab = tabs[i];
         break;
@@ -867,7 +881,7 @@ function getThisTabsStatus (tabURL, sendResponse) {
       status = tabsHighlighted[tabId];
     } else {
       status = createNewTabsHighlightedElement(-1, tabURL);
-      Object.assign(status, {url: tabURL});
+      status = {...status, url: tabURL, tabId: tabId};
       debugSwLog('extWordHighligher.getThisTabsStatus query returned no tabs, and DID NOT FIND AN EXISTING tabsHighlighted SO WE created a new tabInfoObj entry with a tabId of -1');
     }
 
@@ -975,6 +989,12 @@ function showHighlightsCount (label, altColor, tabId)
   chrome.action.setBadgeText({ text: label });
   let color = altColor.length === 0 ? 'limegreen' : altColor;
   chrome.action.setBadgeBackgroundColor ({'color': color}); //"#0091EA"});
+}
+
+// Clear badge
+function clearHighlightsCount () {
+  debugSwLog('ENTERING extWordHighligher.clearHighlightsCount');
+  chrome.action.setBadgeText({ text: '' });
 }
 
 // function getDataFromStorage(dataType) {
