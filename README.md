@@ -16,7 +16,7 @@ debug your "Content Script" (Content scripts are the only component of an extens
 
 
 Files:
-![ScreenShot](docs/images/fileArchitectureDrawing.pngfileArchitectureDrawing.pngfileArchitectureDrawing.png)
+![ScreenShot](docs/images/ArchitectureDrawing.png)
 
 Notes: 
 That "Errors" button on the [chrome://extensions/](chrome://extensions/) shows some code validation errors, and some

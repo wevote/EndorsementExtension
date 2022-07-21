@@ -3,7 +3,7 @@
 const debugServiceWorker = true;
 const debugTimingServiceWorker = true;
 const debugTimingForegroundContent = true;
-const debugHilitorEnabled = true;
+const debugHilitorEnabled = false;
 
 const groupNames = {
   POSSIBILITY_SUPPORT: 'POSSIBILITY_SUPPORT',

@@ -174,7 +174,7 @@ function debugWarn (...args) {
   in the past, you can get the most recent one form pgAdmin/voter_voterdevicelink and paste it into the value for
   voterDeviceId in the chrome-extension's DevTools Application tab.
  */
-// Called on click true, or topbar init false
+// Called on click true, or topbar init false, and also when the panels are created for a page
 function signIn (attemptLogin) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugFgLog('new signIn');
@@ -199,21 +199,37 @@ function signIn (attemptLogin) {
         email: voterEmail,
         isSignedIn
       };
-      // Unfortunately /avatar-generic.png can't be "served" from the extension, since file loading is relative to the endorsement page
+      // False in V3, could be simplified: (pre 2022 comment) Unfortunately /avatar-generic.png can't be "served" from the extension, since file loading is relative to the endorsement page
 
       if (voterInfo.success && voterInfo.isSignedIn) {
         setSignInOutMarkup (voterInfo);
-        // handleUpdatedOrNewPositions(true, false, false);
+
+        // everytime the dom changes, reset domHasChanged to true
+        let domHasChanged = true;
+        $('body').on('domChanged', function () {
+          domHasChanged = true;
+        });
+        // Sign in has been confined, the panels have been drawn, now it is time to do the highlighting (on a loading page) so
+        // we need to keep looping until the page has finished updating)
         const interval = setInterval(function (){
           try {
-            // debugFgLog('loop update position panel, interval ', interval);
-            updatePositionPanelConditionally(true);
+            if (!domHasChanged) {
+              debugFgLog('content, dom HAS NOT changed! ================');
+              $('body').off('domChanged');
+              clearInterval(interval);
+            } else {
+              debugFgLog('content, dom has changed! ================');
+              domHasChanged = false;  // won't loop again unless, the dom has changed in the next 5 seconds
+              // debugFgLog('loop update position panel, interval ', interval);
+              updatePositionPanelConditionally(true);
+            }
           } catch (e) {
             // exception for context invalidated, ie the page refreshed
             debugFgLog('MESSAGING: updatePositionPanelConditionally() loop update stopped on exception ', e, interval);
+            ('body').off('domChanged');
             clearInterval(interval);
           }
-        }, 10000);
+        }, 5000);
         return false;
       }
     }
@@ -761,8 +777,8 @@ function candidatePaneMarkup (candNo, furlNo, i, candidate, detachedDialog) {
     "    <input type='hidden' id='googleCivicElectionId-" + i + "' value='" + googleCivicElectionId + "'>" +
     "    <input type='hidden' id='allNames-" + i + "' value='" + allNames + "'>" +
     "    <input type='hidden' id='isStored-" + i + "' value='" + isStored + "'>" +
-    "  </div>" +
-    "  <div id=" + furlNo + " class='furlable' " + (detachedDialog ? '' : 'hidden') + '>' +
+    '  </div>' +
+    '  <div id=' + furlNo + " class='furlable' " + (detachedDialog ? '' : 'hidden') + '>' +
     "    <div class='core-text aliases'>" + aliases + '</div>' +
     "    <span class='buttons'>" +
            supportButton(i, 'endorse', stance) +

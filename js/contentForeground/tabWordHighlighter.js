@@ -252,12 +252,12 @@ function initializeTabWordHighlighter () {
             return true;
           } else if (request.command === 'updateForegroundForButtonChange') {
             debugSwLog('extWordHighlighter "updateForegroundForButtonChange" received from popup');
-            const { highlightThisTab, openEditPanel, pdfURL, tabId, tabUrl } = request.payload;
+            const { showHighlights, openEditPanel, pdfURL, tabId, tabUrl } = request.payload;
             console.log('updateForegroundForButtonChange: ' + request.payload);
 
             sendMessage({
               command: 'updateBackgroundForButtonChange',
-              highlightThisTab,
+              showHighlights,
               openEditPanel,
               pdfURL,
               tabId,
@@ -267,9 +267,6 @@ function initializeTabWordHighlighter () {
                 debugFgLog('chrome.runtime.sendMessage("updateBackgroundForButtonChange")', lastError.message);
               }
             });
-
-
-            // handleButtonStateChange(highlightThisTab, openEditPanel, pdfURL);
           } else {
             console.error('tabWordHighlighter in chrome.runtime.onMessage.addListener received unknown command: ' + request.command);
             return false;
@@ -400,25 +397,22 @@ function sendGetStatus () {
       return;
     }
     debugFgLog('response from getStatus', response);
-    if (response) {
-      const { highlighterEnabled, neverHighlightOn, showHighlights, showEditor, tabId, url } = response;
-
-      // if (!existenceOfTab) {
-      //   debugFgLog('"getStatus called for a url that is not a tabUrl, probably for an iframe within a tab: ', url);
-      //   return;
-      // }
-
-      // bs detector, work around a likely chrome.tabs bug - May, 2020
-      if (url && !url.includes(window.location.host)) {
-        debugFgLog('sendMessage for getStatus aborted on page ', window.location.host, ' returned url: ', url, ', with probably wrong tab id: ', tabId);
-        return;
-      }
+    if (!response) {
+      debugFgLog('ERROR: sendMessage for getStatus returned no status');
+      return;
     }
-    highlighterEnabled = true;
-    showHighlights = true;
-    showEditor = false;
-    tabId=985;
-    neverHighlightOn=false;
+    const { highlighterEnabled, neverHighlightOn, showHighlights, showEditor, tabId, url } = response;
+
+    // if (!existenceOfTab) {
+    //   debugFgLog('"getStatus called for a url that is not a tabUrl, probably for an iframe within a tab: ', url);
+    //   return;
+    // }
+
+    // bs detector, work around a likely chrome.tabs bug - May, 2020
+    if (url && !url.includes(window.location.host)) {
+      debugFgLog('sendMessage for getStatus aborted on page ', window.location.host, ' returned url: ', url, ', with probably wrong tab id: ', tabId);
+      return;
+    }
 
     clearPriorDataOnModeChange(showHighlights, showEditor);
     weContentState.highlighterEnabled = highlighterEnabled;
@@ -446,25 +440,6 @@ function refreshVoterGuidePanel () {  // Based on updatePositionPanelFromTheIFra
     }
   }
 
-  // sendMessage({command: 'getStatus', tabURL: window.location.href}, function (response) {
-  //   debugFgLog('chrome.runtime.sendMessage({command: \'getStatus\'}', document.URL);
-  //   if (lastError) {
-  //     debugFgLog('chrome.runtime.sendMessage("getStatus")', lastError.message);
-  //     return;
-  //   }
-  //   const { highlighterEnabled, neverHighlightOn, showHighlights, showEditor, tabId, url } = response;
-  //   debugFgLog('response from getStatus', response);
-  //
-  //   // if (!existenceOfTab) {
-  //   //   debugFgLog('"getStatus called for a url that is not a tabUrl, probably for an iframe within a tab: ', url);
-  //   //   return;
-  //   // }
-  //
-  //   // bs detector, work around a likely chrome.tabs bug - May, 2020
-  //   if (url && !url.includes(window.location.host)) {
-  //     debugFgLog('sendMessage for getStatus aborted on page ', window.location.host, ' returned url: ', url, ', with probably wrong tab id: ', tabId);
-  //     return;
-  //   }
   const showHighlights = true;
   const showEditor = true;
   clearPriorDataOnModeChange(showHighlights, showEditor);
@@ -732,7 +707,7 @@ function findWords () {
         }
 
         try {
-          debugFgLog('showHighlightsCount in tabWordHigligher');
+          debugFgLog('showHighlightsCount in tabWordHigligher, count = ' + uniqueNameMatches.length.toString());
           sendMessage({
             command: 'showHighlightsCount',
             label: uniqueNameMatches.length.toString(),
