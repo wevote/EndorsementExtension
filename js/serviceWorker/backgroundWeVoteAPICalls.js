@@ -158,13 +158,12 @@ function getOrganizationFound (locationHref, sendResponse) {
     const voterDeviceUrlVariable = voterDeviceId ? `voter_device_id=${voterDeviceId}&` : '';
     const apiURL = `${rootApiURL}/voterGuidePossibilityRetrieve/?${voterDeviceUrlVariable}url_to_scan=${hrefEncoded}`;
     debugSwLog('ENTERING backgroundWeVoteAPICalls > getOrganizationFound, voterGuidePossibilityRetrieve apiURL: ' + apiURL);
-    // TODO: 7/1 maybe not json?
     console.log('background apiURL', apiURL);
     fetch(apiURL).then((resp) => resp.json()).then((results) => {
       const t1 = performance.now();
       // This takes 4 to 8.5 seconds to execute
       timingSwLog(t0, t1, 'voterGuidePossibilityRetrieve took', 8.0);
-      getOrganizationFoundDebug && debugSwLog('voterGuidePossibilityRetrieve API results received');
+      getOrganizationFoundDebug && debugSwLog('voterGuidePossibilityRetrieve API results received', results);
       let {
         voter_guide_possibility_edit: voterGuidePossibilityEdit,
         possibilityUrl,
@@ -184,6 +183,12 @@ function getOrganizationFound (locationHref, sendResponse) {
 
         voterGuidePossibilityIdCache[locationHref] = voterGuidePossibilityId;
         debugSwLog('voter_guide_possibility_id:', voterGuidePossibilityId);
+
+        mergeStoredState({
+          'organizationName': orgName,
+          'organizationWeVoteId': weVoteId,
+          'organizationTwitterHandle': twitterHandle,
+        });
 
         for (let tabId in tabsHighlighted) {
           const {url} = tabsHighlighted[tabId];

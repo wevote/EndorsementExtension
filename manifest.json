@@ -16,7 +16,7 @@
       ]
    },
    "action": {
-      "default_popup": "popup.html",
+      "default_popup": "./js/popup/popup.html",
       "default_icons": {
          "16": "./images/icon16.png",
          "32": "./images/icon32.png",
@@ -49,7 +49,8 @@
    "web_accessible_resources": [
       {
          "resources": [
-            "libs/jquery/jquery-3.6.0.min.js"
+            "libs/jquery/jquery-3.6.0.min.js",
+            "./js/contentForeground/dragElement.js"
          ],
          "matches": [
             "*://*/*"

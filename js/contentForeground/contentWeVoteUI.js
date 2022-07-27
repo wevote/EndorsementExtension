@@ -1,5 +1,4 @@
-/* global $, markupForThumbSvg, extensionSignInPage, extensionSignInPage, addCandidateExtensionWebAppURL, colors,
-   isInOurIFrame */
+/* global $, markupForThumbSvg, extensionSignInPage, extensionSignInPage, addCandidateExtensionWebAppURL, colors */
 
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
 
@@ -26,7 +25,7 @@ let weContentState = {
 };
 
 function isInOurIFrame () {
-  const headerExists = $('div#wedivheader').length > 0;   // this is true if in our highlighted "Endorsement Page" that is framed by the "Open Edit Panel" button action}
+  // const headerExists = $('div#wedivheader').length > 0;   // this is true if in our highlighted "Endorsement Page" that is framed by the "Open Edit Panel" button action}
   const correctFrameExists = $('iframe.weVoteEndorsementFrame').length > 0;
   const { host } = window.location;
   const isAPotentialEndorsementPage = !(host.includes('localhost') || host.includes('wevote.us') || host.includes('about:blank'));
@@ -128,11 +127,12 @@ function displayEditPanes () {
   $(weFlexBox).append('<div id="frameDiv"><iframe id="frame" width="100%" name="tabId" ></iframe></div>');
   $(weFlexBox).append('<div id="sideArea"></div>');
   $('#frame').attr('src', hr).attr('class','weVoteEndorsementFrame');
+
+  // The worker thread IS NOT the same java script thread that the foreground
+  //  runs in, they run asynchronously, so be careful
+
   topMenu();
   updateTopMenu(true);
-  signIn(false);                       // Calls handleUpdatedOrNewPositions() to draw the initial position pane if the editor has been chosen on popup.js
-  initializeOrgChoiceList();           //  Does not display an org choice list, if not logged in, or have not chosen an org
-  greyAllPositionPanes(false);
 }
 
 // function updateIframeByNameWithTabId() {
@@ -278,9 +278,12 @@ function setSignInOutMarkup (voterInfo) {
       });
     });
   } else {
-    signInSelector.replaceWith(
-      '<button type="button" id="signIn" class="gridSignInTop bareSignIn weButton removeContentStyles">SIGN IN</button>'
-    );
+    const html = signInSelector[0].outerHTML;
+    if (html.includes('voterPhoto')) {
+      signInSelector.replaceWith(
+        '<button type="button" id="signIn" class="gridSignInTop signInV3 weButton removeContentStyles">SIGN IN</button>'
+      );
+    }
     signInSelector.click(() => {
       // We are currently signed out, so this click signs us in
       debugFgLog('Sign in pressed');
@@ -351,7 +354,7 @@ function topMenu () {
     '      <button type="button" id="sendTopComment" class="sendTopComment weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">Send</button>' +
     '    </span>' +
     '  </span>' +
-    '  <button type="button" id="signIn" class="gridSignInTop bareSignIn weButton removeContentStyles">SIGN IN</button>' +
+    '  <button type="button" id="signIn" class="gridSignInTop signInV3 weButton removeContentStyles">SIGN IN</button>' +
     '  <span id="loginPopUp"></span>' +
     '  <div id="dlgAnchor"></div>' +
   '</div>';
@@ -397,7 +400,7 @@ function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tab
             displayEditPanes();
             timingLogDebug && timingLog(t1, performance.now(), 'displayEditPanes took', 5.0);
           } else {
-            // 2/23/20 6pm  This was what finally got highlighting and/or editor woking on command
+            // 2/23/20 6pm  This was what finally got highlighting and/or editor working on command
             // The same endorsement page, when opened in an iframe will immediately reload and must call sendGetStatus from that DOM, at that moment.
             // See the call to sendGetStatus in the initialization code for tabWordHighlighter
             updateTopMenu(false);  // Get the voterGuidePossiblityId without attempting to update the non-existent top menu
@@ -510,6 +513,11 @@ function updateTopMenu (update) {
           });
           debugFgLog('updateTopMenu voterGuidePossibilityId: ' + weContentState.voterGuidePossibilityId);
         }
+
+        signIn(false);                       // Calls handleUpdatedOrNewPositions() to draw the initial position pane if the editor has been chosen on popup.js
+        initializeOrgChoiceList();           //  Does not display an org choice list, if not logged in, or have not chosen an org
+        greyAllPositionPanes(false);
+
         // debugFgLog('updateTopMenu updatePositionPanelConditionally update: ' + update);
         updatePositionPanelConditionally(update);
       } else {
@@ -920,7 +928,7 @@ function selectOneDeselectOthers (type, targetFurl) {
   });
 }
 
-// We are only updating possiblilities here, we are not changing the "stored" live presentation data
+// We are only updating possibilities here, we are not changing the "stored" live presentation data
 function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDialog) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   const targetCand = event.currentTarget.className; // div.candidateWe.candidateWe-4
