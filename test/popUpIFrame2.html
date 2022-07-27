@@ -1,0 +1,151 @@
+<!--This is a working model of the JavaScript that we will inject into the endorsement pages. -->
+<!--It is useful for testing changes and styling, but it is a copy of this code (formatted as a string) that is injected by TabWordHighlighter.-->
+<!--Use https://cssminifier.com/ for the <style> -->
+<!--https://javascript-minifier.com/-->
+<!DOCTYPE html>
+<html>
+<style>
+    #wediv {
+        position: absolute;
+        z-index: 10000;
+        background-color: black;
+        text-align: center;
+        border: 1px solid black;
+        box-shadow: 10px 10px 5px 0 rgba(0,0,0,0.4);
+        height: 600px;
+    }
+    #wedivheader {
+        cursor: move;
+        z-index: 10;
+        background-color: #2e3c5d;
+        color: #fff;
+        height:30px;
+    }
+    #weIFrame {
+        width:  450px;
+        height: 568px;
+        border-width: 0;
+        border: none;
+    }
+    #wetitle {
+        float: left;
+        margin-left: 8px;
+        margin-top: 2px;
+    }
+    .weclose {
+        height: 10px;
+        width: 10px;
+        float: right;
+        margin-right: 16px;
+        background-color: #2e3c5d;
+        color: white;
+        border: none;
+        font-weight: bolder;
+        font-stretch: extra-expanded;
+        font-size: 12pt;
+    }
+    .highlight {
+        padding: 1px;
+        box-shadow: rgb(229, 229, 229) 1px 1px;
+        border-radius: 3px;
+        -webkit-print-color-adjust: exact;
+        background-color: rgb(255, 255, 102);
+        color: rgb(0, 0, 0);
+        font-style: inherit;
+    }
+</style>
+<body>
+
+<button type='button'
+        id='weopen'
+        class='weopen highlight'
+        style=''
+        onclick="setModal(true, candidateExtensionWebAppURL + '?candidate_name=Dick%20Durban&candidate_we_vote_id=wv02cand58299&endorsement_page_url=https%3A%2F%2Fwww.sierraclub.org%2Fcalifornia%2F2020-endorsements&candidate_specific_endorsement_url=https%3A%2F%2Fwww.philting.com%2F', 'testy')"
+>
+    Open Modal
+</button>
+<div style='padding:500px'><div id='testy'>Some endorsement page</div></div>
+<div id='wediv' hidden>
+    <div id='wedivheader'>
+        <span id='wetitle'></span>
+        <span id='weclose'>
+            <button type='button' class='weclose' onclick="setModal(false,'', '')">X</button>
+        </span>
+    </div>
+    <iframe id='weIFrame' src='https://wevote.us/extension.html'></iframe>
+<!--    <iframe id='weIFrame' src='https://localhost:3000/endorsement.html'></iframe>-->
+</div>
+
+<script>
+  // const candidateExtensionWebA ppURL = 'https://quality.wevote.us/candidate-for-extension';  // March 18, 2020  This code is not on the live site yet
+  // const candidateExtensionWebAppURL = 'https://localhost:3000/candidate-for-extension';  // March 18, 2020  This code is not on the live site yet
+  // const candidateExtensionWebAppURL = 'https://wevote.us/candidate-for-extension';  // March 18, 2020  This code is not on the live site yet
+  // const candidateExtensionWebAppURL = 'https://wevote.us/add-candidate-for-extensionn';  // March 18, 2020  This code is not on the live site yet
+  const candidateExtensionWebAppURL = 'https://wevote.us//add-candidate-for-extension?candidate_name=Kristen%20McDonald[…]kristen-mcdonald-rivet%2F&candidate_specific_endorsement_url=](https://localhost:3000/add-candidate-for-extension?candidate_name=Kristen%20McDonald%20Rivet&candidate_we_vote_id=&endorsement_page_url=https%3A%2F%2Feverydistrict.us%2Fcandidates%2F2022-candidates%2Fkristen-mcdonald-rivet%2F&candidate_specific_endorsement_url=';  // March 18, 2020  This code is not on the live site yet
+  function dragElement(elmnt) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    if (document.getElementById(elmnt.id + 'header')) {
+      /* if present, the header is where you move the DIV from:*/
+      document.getElementById(elmnt.id + 'header').onmousedown = dragMouseDown;
+    } else {
+      /* otherwise, move the DIV from anywhere inside the DIV:*/
+      elmnt.onmousedown = dragMouseDown;
+    }
+
+    function dragMouseDown(e) {
+      e = e || window.event;
+      e.preventDefault();
+      // get the mouse cursor position at startup:
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      document.onmouseup = closeDragElement;
+      // call a function whenever the cursor moves:
+      document.onmousemove = elementDrag;
+    }
+
+    function elementDrag(e) {
+      e = e || window.event;
+      e.preventDefault();
+      // calculate the new cursor position:
+      pos1 = pos3 - e.clientX;
+      pos2 = pos4 - e.clientY;
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      // set the elements new position:
+      elmnt.style.top = (elmnt.offsetTop - pos2) + 'px';
+      elmnt.style.left = (elmnt.offsetLeft - pos1) + 'px';
+      // console.log('position of elmnt after drag: ', elmnt.style.top, elmnt.style.left);
+    }
+
+    function closeDragElement() {
+      /* stop moving when mouse button is released:*/
+      document.onmouseup = null;
+      document.onmousemove = null;
+    }
+  }
+
+  function setModal (state, iframeURL, element) {
+    console.log('-------------- popUpIFrame.html   (Think this is abandoned!)  -------------------', iframeURL)
+    let candidate = document.getElementById(element);
+    if (!candidate) {
+      candidate = {
+        offsetLeft: 0,
+        offsetTop: 0,
+      }
+    }
+    const wediv = document.getElementById('wediv');
+    const weIFrame = document.getElementById('weIFrame');
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    wediv.hidden = !state;
+    wediv.style.left = candidate.offsetLeft + 300 +'px';
+    wediv.style.top =  candidate.offsetTop + scrollTop + 'px';
+    //Make the DIV element dragable:
+    if (iframeURL && iframeURL.length) {
+      weIFrame.src = iframeURL;
+    }
+    dragElement(wediv);
+  }
+</script>
+
+</body>
+</html>

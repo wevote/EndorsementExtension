@@ -744,8 +744,59 @@ function findWords () {
     }, HighlightWarmup);
   }
 
+  convertV2onClickToV3();
+
   // This following log line floods the log, and slows things down -- use sparingly while debugging
   // debug && debugFgLog('finished finding words');
+}
+
+
+let convertedOnClicks = ['JoeShmoe'];
+function convertV2onClickToV3 () {
+  $('.endorsementHighlights').each(function () {
+    // <button type="button" id="JeanneCasteen" className="endorsementHighlights"
+    //         onClick="setModal(true,
+    //         'https://quality.wevote.us/candidate-for-extension?candidate_name=Jeanne%20Casteen&amp;candidate_we_vote_id=wvehcand2292126&amp;endorsement_page_url=https%3A%2F%2Feverydistrict.us%2Fcandidates%2F2022-candidates%2Fjeanne-casteen%2F&amp;candidate_specific_endorsement_url=&amp;voter_guide_possibility_id=6285', 'JeanneCasteen', event)">
+    // eslint-disable-next-line no-invalid-this
+    const el = $(this);
+    if (el.attr('onClick') !== undefined) {
+      let id = el.attr('id');
+      let onClickText = el.attr('onClick');
+      if (onClickText.length > 0) {
+        while(convertedOnClicks.includes(id)) {
+          id += 'x';
+          el.attr('id', id);
+        }
+        convertedOnClicks.push(id);
+        const url = onClickText.split('\'')[1];
+        el.removeAttr('onClick');  // Remove the V2 onClick
+        el.click(() => {
+          console.log('converted onClick for ' + id);
+          setModal(true, url, id);
+        });
+      }
+    }
+  });
+  $('.weclose').each(function () {
+    // <button type="button" className="weclose" onClick="setModal(false,'' ,'')">X</button>
+    // eslint-disable-next-line no-invalid-this
+    const el = $(this);
+    if (el.attr('onClick') !== undefined) {
+      let id = el.attr('id');
+      let onClickText = el.attr('onClick');
+      if (onClickText.length > 0) {
+        while(convertedOnClicks.includes(id)) {
+          id += 'x';
+        }
+        convertedOnClicks.push(id);
+        el.removeAttr('onClick');  // Remove the V2 onClick
+        el.click(() => {
+          console.log('converted onClick for (weclose) ' + id);
+          setModal(false, '', '');
+        });
+      }
+    }
+  });
 }
 
 function revealRightAction (selection, pageURL, tabId) {

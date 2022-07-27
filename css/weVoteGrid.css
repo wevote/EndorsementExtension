@@ -188,11 +188,16 @@
   font-weight: 600;
 }
 
-.bareSignIn {
+/*.bareSignIn {*/
+/*  color: rgb(6, 95, 212);*/
+/*  outline: none !important;*/
+/*  border: none !important;*/
+/*  box-shadow: none !important;*/
+/*  transform: translate(-20px, 10px);*/
+/*}*/
+
+.signInV3 {
   color: rgb(6, 95, 212);
-  outline: none !important;
-  border: none !important;
-  box-shadow: none !important;
   transform: translate(-20px, 10px);
 }
 

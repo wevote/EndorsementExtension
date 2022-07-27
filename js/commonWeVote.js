@@ -35,8 +35,8 @@ const colors = {
 
 
 const useProductionAPIs = true;
-const useProductionWebApp = false;    // TODO: Undo 12/8/20
-const webAppRoot = useProductionWebApp ? 'https://quality.wevote.us' : 'https://localhost:3000';
+const useProductionWebApp = true;
+const webAppRoot = useProductionWebApp ? 'https://wevote.us' : 'https://localhost:3000';
 const candidateExtensionWebAppURL = `${webAppRoot}/candidate-for-extension`;
 const addCandidateExtensionWebAppURL = `${webAppRoot}/add-candidate-for-extension`;
 const ballotWebAppURL = `${webAppRoot}/ballot`;
@@ -168,3 +168,34 @@ function getCookie (name) {
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
 }
+
+function getStoredState () {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get('extensionState', (resp) => {
+      if (chrome.runtime.error) {
+        return 'getStoredState error, ' + chrome.runtime.error;
+      }
+      let mostRecentState = {...resp.extensionState};
+      console.log('qqqqqqqqqqqqqqqqqqqqqqq read of extensionState', mostRecentState);
+      resolve(mostRecentState);
+    });
+  });
+}
+
+function setStoredState (extState) {
+  extState.lastStateChange = Date.now();
+  let mostRecentState = {...extState};
+  chrome.storage.sync.set({'extensionState': extState}, () => {
+    if (chrome.runtime.lastError) {
+      console.error('chrome.storage.sync.set({\'extensionState\': extState}) returned error ', chrome.runtime.lastError.message);
+    }
+  });
+}
+
+function mergeStoredState (dict) {
+  getStoredState().then((oldState) => {
+    const newState = {...oldState, ...dict};
+    setStoredState (newState);
+  });
+}
+

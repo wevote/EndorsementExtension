@@ -1,10 +1,10 @@
 <html>
     <head>
-        <script type="module" src="popup.js"></script>
-        <script src="js/commonWeVote.js"></script>
-        <script src="libs/jquery/jquery-3.6.0.min.js"></script>
-        <link rel="stylesheet" href="css/onOffSwitch.css" type="text/css">
-        <link rel="stylesheet" href="css/application.css" type="text/css">
+        <script type="module" src="../popup/popup.js"></script>
+        <script src="../commonWeVote.js"></script>
+        <script src="../../libs/jquery/jquery-3.6.0.min.js"></script>
+        <link rel="stylesheet" href="../../css/onOffSwitch.css" type="text/css">
+        <link rel="stylesheet" href="../../css/application.css" type="text/css">
     </head>
     <body style="padding-bottom: 15px;">
 
@@ -14,9 +14,9 @@
             <div class="buttonDiv">
                 <button type='button' id='jumpToMyBallot' class='weButton weButtonBlue'>JUMP TO MY BALLOT</button>
             </div>
-<!--            <div class="buttonDiv">-->
-<!--                <button type='button' id='allEndorsementsButton' class='weButton weButtonDisable'>ENDORSEMENTS</button>-->
-<!--            </div>-->
+            <div class="buttonDiv">
+                <button type='button' id='allEndorsementsButton' class='weButton weButtonDisable'>ENDORSEMENTS</button>
+            </div>
 
             <hr>
 
@@ -38,8 +38,12 @@
                 <button type='button' id='openEditPanelButton' class='weButton'>Open Edit Panel for this Tab</button>
             </div>
 
+            <div style="padding-top: 10px">
+                For best performance, open as few tabs as possible in this window.
+            </div>
+
             <div class="tabReportDiv">
-                <table style="margin-left: 30px; margin-top: 10px; opacity: .25;">
+                <table style="margin-left: 30px; margin-top: 10px; opacity: .25; font-size: 10px;">
                     <tr>
                         <td style="margin-right: 20px">Tab:</td>
                         <td style="padding-left: 10px"><span id="tabNumber">-</span></td>

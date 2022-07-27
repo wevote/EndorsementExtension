@@ -18,6 +18,9 @@ const initialExtensionState = {
   windowId: 0,
   url: '',
   lastStateChange: 0,
+  organizationName: '',
+  organizationWeVoteId: 0,
+  organizationTwitterHandle: '',
 };
 
 /*
@@ -34,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('hello from after tabs query tab tabId', tabId, tabs[0]);
     chrome.tabs.sendMessage(tabId, {
       command: 'logFromPopup',
-      payload: 'Initial message after getting tab tabId'
+      payload: 'Initial message after getting active tabId: ' + tabId,
     }, function (response) {
       console.log('logFromPopup: ', response);
     });
@@ -44,20 +47,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
     getStoredState().then((extState) => {
       console.log('extState =============', extState);
+      console.log('extState: ' + extState.tabId + ' ->' +  tabId + ' :: ' +
+            extState.windowId + ' ->' +  windowId + ' :: ' +
+            extState.url + ' ->' +  url);
       const lastDate = new Date(extState.lastStateChange);
       const lastPlus12 = lastDate.setHours(lastDate.getHours() + 12);
-      if ($.isEmptyObject(extState) ||
-          extState.tabId !== tabId ||
+      if ($.isEmptyObject(extState)) {
+        extState = {...initialExtensionState};  // to prevent exception on first load
+      }
+      if (extState.tabId !== tabId ||
           extState.windowId !== windowId ||
           extState.url !== url ||
           lastPlus12 < Date.now()
       ) {
+        console.log('RESETTING STORAGE DUE TO TAB CHANGE OR OUTDATED STORAGE');
+        console.log('extState: ' + extState.tabId + ' ->' +  tabId + ' :: ' +
+          extState.windowId + ' ->' +  windowId + ' :: ' +
+          extState.url + ' ->' +  url);
         extState = {...initialExtensionState};
         extState.lastStateChange = Date.now();
         extState.tabId = tabId;
         extState.windowId = windowId;
         extState.url = url;
         setStoredState(extState);
+        chrome.action.setBadgeText({ text: '' });
+      } else {
+        console.log('PRESERVING STORAGE ON POPUP OPEN');
       }
 
       updateButtonState();
@@ -97,21 +112,32 @@ document.addEventListener('DOMContentLoaded', function () {
       $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditText);
     }
 
-    //   if (organizationWeVoteId || organizationTwitterHandle) {
-    //     const urlWebApp = organizationTwitterHandle ? 'https://wevote.us/' + organizationTwitterHandle : 'https://wevote.us/voterguide/' + organizationWeVoteId;
-    //     $('#allEndorsementsButton').
-    //       text(orgName && orgName.length ? 'ENDORSEMENTS: ' + orgName.toUpperCase() : 'ENDORSEMENTS').
-    //       prop('disabled', false).
-    //       removeClass('weButtonDisable').
-    //       click(() => window.open(urlWebApp, '_blank'));
-    //   } else {
-    //     $('#allEndorsementsButton').
-    //       text('ENDORSEMENTS' + orgName.toUpperCase()).
-    //       prop('disabled', true).
-    //       addClass('weButtonDisable').
-    //       unbind();
-    //   }
-    // });
+    getStoredState().then((extState) => {
+      const {
+        organizationName,
+        organizationWeVoteId,
+        organizationTwitterHandle
+      } = extState;
+      if (organizationWeVoteId || organizationTwitterHandle) {
+        const urlWebApp = organizationTwitterHandle
+          ? 'https://wevote.us/' + organizationTwitterHandle
+          : 'https://wevote.us/voterguide/' + organizationWeVoteId;
+        $('#allEndorsementsButton').
+          text(organizationName && organizationName.length
+            ? 'ENDORSEMENTS: ' + organizationName.toUpperCase()
+            : 'ENDORSEMENTS').
+          prop('disabled', false).
+          removeClass('weButtonDisable').
+          click(() => window.open(urlWebApp, '_blank'));
+      } else {
+        const orgName = organizationName ? organizationName.toUpperCase() : '';
+        $('#allEndorsementsButton').
+          text('ENDORSEMENTS' + orgName).
+          prop('disabled', true).
+          addClass('weButtonDisable').
+          unbind();
+      }
+    });
   }
 
   function addButtonListeners (tabId, url) {
@@ -217,8 +243,8 @@ function setStoredState (extState) {
       console.error('chrome.storage.sync.set({\'extensionState\': extState}) returned error ', chrome.runtime.lastError.message);
     }
   });
-
 }
+
 // July 2022:  Debug code do not delete
 // chrome.tabs.query({currentWindow: true}, (tabs) => {
 //   const tabsList = document.createElement('ul');

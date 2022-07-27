@@ -683,7 +683,7 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
 //   console.log('storage >>>>>>>>>>>>>>>>>>>> ', storage);
 // });
 chrome.notifications.onButtonClicked.addListener((ob) => {
-  console.log('chrome.notifications.onButtonClicked.addListener >>>>>>>>>>>>>>>>>>>> ', ob);
+  console.log('chrome.notifications.onButtonClicked chrome.notifications.onButtonClicked.addListener >>>>>>>>>>>>>>>>>>>> ', ob);
 });
 
 
@@ -855,11 +855,11 @@ function getStatusForActiveTab (tabId, url) {
 function getThisTabsStatus (tabURL, sendResponse) {
   const {tabs: {sendMessage, query}} = chrome;
   debugSwLog('extWordHighligher.getThisTabsStatus () {() called for url', tabURL);
-  // TODO: I don't think this can work!
+  // 7/22/4:30pm, this does work
   chrome.tabs.query({}, function (tabs) {
     tab = {};
     for (let i = 0; i < tabs.length; i++) {
-      debugSwLog('>>>>>>>>>>>>>>> "' + tabs[i].url );
+      // debugSwLog('extWordHighlighter getThisTabsStatus >>>>>>>>>>>>>>> "' + tabs[i].url );
       if (tabs[i].url === tabURL) {
         tab = tabs[i];
         break;
