@@ -1,6 +1,9 @@
 /* global $, ballotWebAppURL */
-// var onPageShown = false;
-let timeoutToCloseDialog = true;
+
+// Debug settings
+const closeDialogAfterTimeout = false;
+const showTabAndWindowInPopup = true;
+// Other constants and variables
 const removeEditText = 'Remove Edit Panel From This Tab';
 const openEditText = 'Open Edit Panel for this Tab';
 const openEditTextConvertedPDF = 'Open Edit Panel for this PDF';
@@ -31,10 +34,15 @@ Do not use chrome.runtime.getBackgroundPage() or chrome.runtime.sendMessage() fr
 // When popup.html is loaded by clicking on the W icon as specified in the manifest.json
 document.addEventListener('DOMContentLoaded', function () {
   console.log('hello from popup');
+  if (!mostRecentState) {
+    mostRecentState = {...initialExtensionState};
+  }
   // The DOM is loaded, now get the active tab number
+  const { chrome } = window;
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    const { id: tabId, windowId, url } = tabs[0];
-    console.log('hello from after tabs query tab tabId', tabId, tabs[0]);
+    const [tab] = tabs;
+    const { id: tabId, windowId, url } = tab;
+    console.log('hello from after tabs query tab tabId', tabId, tab);
     chrome.tabs.sendMessage(tabId, {
       command: 'logFromPopup',
       payload: 'Initial message after getting active tabId: ' + tabId,
@@ -69,6 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
         extState.tabId = tabId;
         extState.windowId = windowId;
         extState.url = url;
+        mostRecentState = {...extState};
         setStoredState(extState);
         chrome.action.setBadgeText({ text: '' });
       } else {
@@ -86,8 +95,12 @@ document.addEventListener('DOMContentLoaded', function () {
       if (bits.length > 5) {
         u += '/' + bits[4];
       }
-      $('#windowNumber').text(windowId.toString());
-      $('#hostName').text(u);
+      if (showTabAndWindowInPopup) {
+        $('#windowNumber').text(windowId.toString());
+        $('#hostName').text(u);
+      } else {
+        $('.tabReportDiv').attr('hidden', true);
+      }
     });
   });
 
@@ -167,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
       updateButtonState();
 
       setTimeout(() => {
-        timeoutToCloseDialog && window.close();
+        closeDialogAfterTimeout && window.close();
         // getBackgroundPage().handleButtonStateChange (showHighlights, showEditor, pdfURL);
       }, 1000);
     });
@@ -210,8 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
       updateButtonState();
 
       setTimeout(() => {
-        timeoutToCloseDialog && window.close();
-        // getBackgroundPage().handleButtonStateChange (showHighlights, showEditor, pdfURL);
+        closeDialogAfterTimeout && window.close();
       }, 1000);
     });
 
@@ -221,46 +233,3 @@ document.addEventListener('DOMContentLoaded', function () {
 
   }
 });
-
-function getStoredState () {
-  return new Promise((resolve) => {
-    chrome.storage.sync.get('extensionState', (resp) => {
-      if (chrome.runtime.error) {
-        return 'getStoredState error, ' + chrome.runtime.error;
-      }
-      mostRecentState = {...resp.extensionState};
-      console.log('qqqqqqqqqqqqqqqqqqqqqqq read of extensionState', mostRecentState);
-      resolve(mostRecentState);
-    });
-  });
-}
-
-function setStoredState (extState) {
-  extState.lastStateChange = Date.now();
-  mostRecentState = {...extState};
-  chrome.storage.sync.set({'extensionState': extState}, () => {
-    if (chrome.runtime.lastError) {
-      console.error('chrome.storage.sync.set({\'extensionState\': extState}) returned error ', chrome.runtime.lastError.message);
-    }
-  });
-}
-
-// July 2022:  Debug code do not delete
-// chrome.tabs.query({currentWindow: true}, (tabs) => {
-//   const tabsList = document.createElement('ul');
-//
-//   for (let tab of tabs) {
-//     console.log('Tab ID: ', tab.id, ' title: ', tab.title);
-//     const listItem = document.createElement('li');
-//     listItem.innerText = tab.id + ' - ' + tab.title;
-//     tabsList.append(listItem);
-//   }
-//
-//   document.body.append(tabsList);
-// });
-//
-// chrome.storage.sync.get().then((all) => {
-//   for (const [key, val] of Object.entries(all)) {
-//     console.log(':::::::::: popup.js storage.sync dump', key, val);
-//   }
-// });

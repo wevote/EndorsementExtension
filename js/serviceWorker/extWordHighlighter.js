@@ -442,80 +442,6 @@ function setEnableForActiveTab (showHighlights, showEditor, tabId, tabUrl) {
   });
 }
 
-// Enable or Disable highlights for all tabs.
-// Note 1: while debugging this code, make sure the chrome://extensions/ tab is furthest to the right in your browser,
-// since otherwise the other tabs will not be in the 'tabs' array.  Having devtools open in the current window can also cause trouble -- just open it as a separate window.
-// Note 2:  If you are reloading the extension with the chrome://extensions/, make sure you hard reload every tab in the window before continuing your test or tabs will
-// be left in a messed up state, and things won't go well.
-// function enableHighlightsForAllTabs (showHighlights) {
-//   const { chrome: { runtime: { lastError }, tabs: { query, sendMessage } } } = window;  July 2022 no window in service workers!
-//   let activeTab = -1;
-//
-// I don't think this can work!
-//   query({}, function (tabs) {
-//     if (activeWindowId < 0) {
-//       debugSwLog('enableHighlightsForAllTabs called with a uninitialized activeWindowId, this function will fail');
-//     }
-//
-//     for (let i = 0; i < tabs.length; i++) {
-//       const { active, id: tabId, url, windowId } = tabs[i];
-//       let skip = false;  // Skip those tabs whose URLs are on the neverHighlightOn list
-//
-//       if (windowId !== activeWindowId) {
-//         skip = true;
-//         break;
-//       } else {
-//         for (let neverShowOn in HighlightsData.neverHighlightOn) {
-//           if (url.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))) {
-//             skip = true;
-//             break;
-//           }
-//         }
-//       }
-//
-//       if (url.startsWith('chrome:') || url.startsWith('devtools:')) skip = true;
-//
-//       if (!skip && tabId > 0) {
-//         const never = HighlightsData && HighlightsData.neverHighlightOn && HighlightsData.neverHighlightOn.length ?
-//           HighlightsData.neverHighlightOn : defaultNeverHighlightOn;
-//         // Create a new default tabInfoObj, if one does not exist
-//         if (!tabsHighlighted[tabId]) {
-//           createNewTabsHighlightedElement(tabId, url);
-//         }
-//
-//         const showEditor = tabsHighlighted[tabId] && showHighlights && active ? tabsHighlighted[tabId].showEditor : false;
-//         const { highlighterEnabled } = window;  July 2022 no window in service workers!
-//
-//         debugSwLog('enableHighlightsForAllTabs action showHighlights: ', showHighlights, ', tabId: ', tabId, ', showEditor: ', showEditor,
-//           ', highlighterEnabled: ', highlighterEnabled, ', url: ', url);
-//
-//         Object.assign(tabsHighlighted[tabId], {
-//           highlighterEnabled,
-//           showHighlights,
-//           showEditor,
-//           neverHighlightOn: never,
-//           url,
-//           tabId,
-//         });
-//
-//         sendMessage(tabId, {     // 5/1/2020: This MUST be chrome.tabs.sendMessage, not chrome.runtime.sendMessage
-//           command: 'displayHighlightsForTabAndPossiblyEditPanes',
-//           highlighterEnabled,
-//           showHighlights,
-//           showEditor,
-//           tabId,
-//           url,
-//         }, function (result) {
-//           if (lastError) {
-//             debugSwLog(' chrome.runtime.sendMessage("displayHighlightsForTabAndPossiblyEditPanes")', lastError.message);
-//           }
-//           debugSwLog('on click icon, response received to displayHighlightsForTabAndPossiblyEditPanes ', result);
-//         });
-//       }
-//     }
-//   });
-// }
-
 function removeHighlightsForAllTabs () {
   const { runtime: { lastError }, tabs: { sendMessage } } = chrome;
 
@@ -632,7 +558,7 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
     if (HighlightsData.Groups[groupName].Words.indexOf(info.selectionText) > -1) {
       wordAlreadyAdded = true;
     }
-    // Removed May 2020, so that we do not have to request the notificatons permission
+    // Removed May 2020, so that we do not have to request the notifications permission
     // if (wordAlreadyAdded) {
     //   chrome.notifications.create('1', {
     //     'type': 'basic',

@@ -176,7 +176,7 @@ function getStoredState () {
         return 'getStoredState error, ' + chrome.runtime.error;
       }
       let mostRecentState = {...resp.extensionState};
-      console.log('qqqqqqqqqqqqqqqqqqqqqqq read of extensionState', mostRecentState);
+      console.log('from getStoredState in commonWeVote.js read of extensionState', mostRecentState);
       resolve(mostRecentState);
     });
   });
