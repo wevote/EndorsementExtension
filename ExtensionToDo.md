@@ -1,15 +1,15 @@
 **2/17/23**
-* Delete in right pane, does deletion in right pane, then causes entire page to reload instead of just the left pane.
-* Newly created/edited in main pane, should cause side pane to reload
-* Completely eliminate weContentState, just causes stale date and confusion
 * Handle close error in popup.js: Unchecked runtime.lastError: The message port closed before a response was received.
-* Integrate Max's edit dialog (create is hard coded)
 * Speed Final checks, and without so much logging
 * Test PDF processing
-* More main pane/side pane testing 
-* Still have (lower priority) multi-tab selection code to clean out.
+* Still have a small bit of (lower priority) multi-tab selection code to clean out.
 * Sign in works, but sometimes has 30ish second blue window, with no logging after returning from WebApp 
-* 
+* Integrate Max's edit dialog (create is hard coded)
+* ~~Newly created/edited in main pane, should cause side pane to reload~~
+* ~~Completely eliminate weContentState, just causes stale date and confusion~~
+* ~~More main pane/side pane testing~~
+* ~~Delete in right pane, does deletion in right pane, then causes entire page to reload instead of just the left pane.~~
+
 **2/13/23**
 * Newly created/edited in main pane, should cause side pane to reload
 * Integrate Max's edit dialog (create is hard coded)
