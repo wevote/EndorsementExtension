@@ -1,34 +1,24 @@
-<html>
+<html lang="eng">
     <head>
         <script type="module" src="../popup/popup.js"></script>
-        <script src="../commonWeVote.js"></script>
+        <script src="../common/commonWeVote.js"></script>
+        <script src="../common/globalState.js"></script>
         <script src="../../libs/jquery/jquery-3.6.0.min.js"></script>
         <link rel="stylesheet" href="../../css/onOffSwitch.css" type="text/css">
         <link rel="stylesheet" href="../../css/application.css" type="text/css">
+        <title>We Vote Pop Up</title>
     </head>
     <body style="padding-bottom: 15px;">
 
         <div class="containerDiv">
-            <img id="orgLogo" class="gridOrgIcon" src="https://wevote.us/img/we-vote-logo-horizontal-color-dark-141x46.svg" alt="">
-
-            <div class="buttonDiv">
-                <button type='button' id='jumpToMyBallot' class='weButton weButtonBlue'>JUMP TO MY BALLOT</button>
-            </div>
-            <div class="buttonDiv">
-                <button type='button' id='allEndorsementsButton' class='weButton weButtonDisable'>ENDORSEMENTS</button>
-            </div>
-
-            <hr>
-
-            <div id="enableHighlighting" class="switchRow">
-                <div class="switchTextLabel" >Enable Highlighting</div>
-                <div class="onoffswitch">
-                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="highlightingMasterSwitch">
-                    <label class="onoffswitch-label" for="highlightingMasterSwitch"></label>
+            <div style="display: flex; padding-bottom: 15px;" >
+                <img id="orgLogo" class="gridOrgIcon"
+                     src="https://quality.wevote.us/img/endorsement-extension/we-vote-logo-horizontal-color-dark-141x46.svg"
+                     alt="">
+                <div class="resetButtonDiv">
+                    <button type='button' id='resetThisTabButton' class='smallWeButton'>Reset</button>
                 </div>
             </div>
-
-            <hr>
 
             <div class="buttonDiv">
                 <button type='button' id='highlightCandidatesThisTabButton' class='weButton'>Highlight Candidates on This Tab</button>
@@ -38,11 +28,13 @@
                 <button type='button' id='openEditPanelButton' class='weButton'>Open Edit Panel for this Tab</button>
             </div>
 
-            <div style="padding-top: 10px">
-                For best performance, open as few tabs as possible in this window.
+            <hr />
+
+            <div class="buttonDiv">
+                <button type='button' id='allEndorsementsButton' class='weButton weButtonDisable'>Endorsements</button>
             </div>
 
-            <div class="tabReportDiv">
+            <div class="tabReportDiv" style="padding-top: 10px">
                 <table style="margin-left: 30px; margin-top: 10px; opacity: .25; font-size: 10px;">
                     <tr>
                         <td style="margin-right: 20px">Tab:</td>
@@ -58,6 +50,9 @@
                     </tr>
                 </table>
             </div>
+            <!--            <div class="buttonDiv">-->
+            <!--                <button type='button' id='jumpToMyBallot' class='weButton weButtonBlue'>JUMP TO MY BALLOT</button>-->
+            <!--            </div>-->
         </div>
     </body>
 </html>

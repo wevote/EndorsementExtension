@@ -5,8 +5,6 @@ let voterGuidePossibilityPositionsRetrieveT0 = 0;
 /* eslint-disable no-unused-vars */
 /* eslint no-undef: 0 */
 
-
-
 function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tabId, doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights) {
   const getHighlightsListsFromApiServerDebug = true;
   debugSwLog('ENTERING backgroundWeVoteAPICalls > getHighlightsListsFromApiServer, showVoterGuideHighlights:', showVoterGuideHighlights, ', showCandidateOptionsHighlights:', showCandidateOptionsHighlights);
@@ -15,8 +13,12 @@ function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tabId, do
   }
 
   const hrefEncoded = encodeURIComponent(locationHref); //'https://www.emilyslist.org/pages/entry/state-and-local-candidates');
-  const ballotItemHighlightsRetrieve = `${rootCdnURL}/ballotItemHighlightsRetrieve/`; // Use CDN
+  let ballotItemHighlightsRetrieve = `${rootCdnURL}/ballotItemHighlightsRetrieve/`; // Use CDN
+  if (overrideStartingYear) {  // This is for testing old endorsement pages that need candidate data that is a few years old
+    ballotItemHighlightsRetrieve += '?starting_year=' + startingYearOverride;
+  }
   const voterGuidePossibilityHighlightsRetrieve = `${rootApiURL}/voterGuidePossibilityHighlightsRetrieve/?voter_device_id=${voterDeviceId}&limit_to_existing=true&url_to_scan=${hrefEncoded}`;
+  debugSwLog('voterGuidePossibilityHighlightsRetrieve: ', voterGuidePossibilityHighlightsRetrieve);
   debugSwLog('ballotItemHighlightsRetrieve: ' + ballotItemHighlightsRetrieve);
 
   const t1 = performance.now();
@@ -61,7 +63,7 @@ function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tabId, do
 
       const t21 = performance.now();
       // Send them to the page for speed
-      processVoterGuideHighlightsRetrieve(tabId, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse);
+      processVoterGuideHighlightsRetrieve(tabId, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse, voterGuidePossibilityRecognizedNamesRetrieveUrl);
       const t22 = performance.now();
       timingSwLog(t21, t22, 'processVoterGuideHighlightsRetrieve end-to-end took', 8.0);
     }).catch((err) => {
@@ -90,8 +92,8 @@ function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tabId, do
 }
 
 function processHighlightsRetrieve (tabId, url, ballotItemHighlightsRetrieveResponse, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse) {
-  const processHighlightsRetrieveDebug = true;
-  processHighlightsRetrieveDebug && debugSwLog('ENTERING backgroundWeVoteAPICalls > processHighlightsRetrieve');
+  const processHighlightsRetrieveDebug = false;
+  debugSwLog('ENTERING backgroundWeVoteAPICalls > processHighlightsRetrieve');
   let ballotItemHighlights = ballotItemHighlightsRetrieveResponse['highlight_list'];
   let neverHighLightOnLocal = ballotItemHighlightsRetrieveResponse['never_highlight_on'];
   let voterGuideHighlights = voterGuidePossibilityHighlightsRetrieveResponse['highlight_list'];
@@ -103,8 +105,8 @@ function processHighlightsRetrieve (tabId, url, ballotItemHighlightsRetrieveResp
   // neverHighLightOnLocal.push('vars.hotjar.com');
   // neverHighLightOnLocal.push('*.google.com');
   // neverHighLightOnLocal.push('regex101.com');
-  debugSwLog('get json ballotItemHighlights: ', ballotItemHighlights);
-  processHighlightsRetrieveDebug && debugSwLog('get json ballotItemHighlights.length: ', ballotItemHighlights.length);
+  processHighlightsRetrieveDebug && debugSwLog('get json ballotItemHighlights: ', ballotItemHighlights);
+  debugSwLog('get json ballotItemHighlights.length: ', ballotItemHighlights.length);
   const t0 = performance.now();
   initializeHighlightsData(ballotItemHighlights, voterGuideHighlights, neverHighLightOnLocal);
   timingSwLog(t0, performance.now(), 'initializeHighlightsData took', 5.0);
@@ -118,7 +120,7 @@ function processHighlightsRetrieve (tabId, url, ballotItemHighlightsRetrieveResp
   });
 }
 
-function processVoterGuideHighlightsRetrieve (tabId, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse) {
+function processVoterGuideHighlightsRetrieve (tabId, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse, reHighlightUrl) {
   const processVoterGuideHighlightsRetrieveDebug = true;
   processVoterGuideHighlightsRetrieveDebug && debugSwLog('ENTERING backgroundWeVoteAPICalls > processVoterGuideHighlightsRetrieve');
 
@@ -138,7 +140,7 @@ function processVoterGuideHighlightsRetrieve (tabId, voterGuidePossibilityHighli
   initializeVoterGuideHighlightsData(tabId, voterGuideHighlights, neverHighLightOnLocal);
   timingSwLog(t0, performance.now(), 'initializeHighlightsData took', 5.0);
   if (doReHighlight) {
-    requestReHighlight(tabId, url);
+    requestReHighlight(tabId, reHighlightUrl);
   }
   sendResponse({
     success: voterGuidePossibilityHighlightsRetrieveResponse.success,
@@ -184,10 +186,12 @@ function getOrganizationFound (locationHref, sendResponse) {
         voterGuidePossibilityIdCache[locationHref] = voterGuidePossibilityId;
         debugSwLog('voter_guide_possibility_id:', voterGuidePossibilityId);
 
-        mergeStoredState({
+        updateGlobalState({
           'organizationName': orgName,
           'organizationWeVoteId': weVoteId,
           'organizationTwitterHandle': twitterHandle,
+        }).then(() => {
+          console.log('Updated state with organization info for ', orgName);
         });
 
         for (let tabId in tabsHighlighted) {
@@ -292,9 +296,7 @@ function getPossiblePositions (voterGuidePossibilityId, hrefURL, voterDeviceId, 
     console.log('background apiURL', apiURL);
     fetch(apiURL).then((resp) => resp.json()).then((results) => {
       debugSwLog('get json from getPossiblePositions API returned ', results);
-
       const {possible_position_list: possiblePositions} = results;
-
       sendResponse({data: possiblePositions});
       voterGuidePossibilityPositionsRetrieveT0 = performance.now();
     }).catch((err) => {

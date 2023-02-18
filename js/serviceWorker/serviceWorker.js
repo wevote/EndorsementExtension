@@ -1,11 +1,14 @@
 self.oninstall = () => {
   console.log('serviceWorker.js install');
   try {
+    console.log('serviceWorker.js install 2');
+    // import the singleton "background" scripts to start the extension
     importScripts(
-      'extWordHighlighter.js',
+      '../common/commonWeVote.js',
+      '../common/globalState.js',
       'backgroundWeVoteAPICalls.js',
-      '../commonWeVote.js');
+      'extWordHighlighter.js');
   } catch (e) {
-    // No DOM or equivalent here yet, so can't call console.error('serviceWorker load error', e);
+    console.log('ERROR serviceWorker.js install:', JSON.stringify(e));
   }
 };

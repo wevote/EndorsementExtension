@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 
 const debugServiceWorker = true;
+const debugStorageEvents = true;
 const debugTimingServiceWorker = true;
 const debugTimingForegroundContent = true;
 const debugHilitorEnabled = false;
@@ -33,29 +34,42 @@ const colors = {
   DELETED_BACKGROUND: '#f0c7c8',
 };
 
-
-const useProductionAPIs = true;
-const useProductionWebApp = true;
-const webAppRoot = useProductionWebApp ? 'https://wevote.us' : 'https://localhost:3000';
+const webAppChoice = 'quality';           // should be 'production' in git repository
+const apiServerChoice = 'production';     // should be 'production' in git repository
+const overrideStartingYear = true;  // Should be 'false' in git repository
+const startingYearOverride = 2022;
+let webAppRoot = '';
+let apiRoot = '';
+let cdnRoot = '';
+let extensionSrc = '';
+switch (webAppChoice) {
+  case 'production':
+    webAppRoot = 'https://wevote.us'; break;
+  case 'quality':
+    webAppRoot = 'https://quality.wevote.us'; break;
+  case 'developer':
+    webAppRoot = 'https://wevotedeveloper.com:3000'; break;
+}
+switch (apiServerChoice) {
+  case 'production':
+    apiRoot = 'https://api.wevoteusa.org';
+    cdnRoot = 'https://cdn.wevoteusa.org';
+    extensionSrc = '';
+    break;
+  case 'developer':
+    apiRoot = 'https://wevotedeveloper.com:8000';
+    cdnRoot =  'https://wevotedeveloper.com:8000';
+    extensionSrc = '/src';
+    break;
+}
+const rootApiURL = `${apiRoot}/apis/v1`;
+const rootCdnURL = `${cdnRoot}/apis/v1`;
 const candidateExtensionWebAppURL = `${webAppRoot}/candidate-for-extension`;
 const addCandidateExtensionWebAppURL = `${webAppRoot}/add-candidate-for-extension`;
-const ballotWebAppURL = `${webAppRoot}/ballot`;
-const extensionWarmUpPage = `${webAppRoot}/extension.html`;
+const extensionWarmUpPage = `${webAppRoot}${extensionSrc}/extension.html`;
 const extensionSignInPage = `${webAppRoot}/more/extensionsignin`;
-const apiRoot = useProductionAPIs ? 'https://api.wevoteusa.org' : 'https://wevotedeveloper.com:8000';
-const rootApiURL = `${apiRoot}/apis/v1`;
-const cdnRoot = useProductionAPIs ? 'https://cdn.wevoteusa.org' : 'https://wevotedeveloper.com:8000';
-const rootCdnURL = `${cdnRoot}/apis/v1`;
 const defaultNeverHighlightOn = ['*.wevote.us', 'api.wevoteusa.org', 'localhost', 'platform.twitter.com', '*.addthis.com', 'localhost'];
 
-
-// function isInOurDialogIFrame () {
-//   return $('.weVoteEndorsementFrame').length > 0;   // this is true if in our dialog's iframe containing the WebApp at wevote.us
-// }
-
-// function isInOurIFrame () {
-//   return $('div#wedivheader').length > 0;   // this is true if in our highlighted "Endorsement Page" that is framed by the "Open Edit Panel" button action}
-// }
 
 // SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
 function markupForThumbSvg (classString, type, fillColor) {
@@ -119,26 +133,20 @@ function debugHilitor (...args) {
   }
 }
 
-function getVoterDeviceId () {
-  return new Promise((resolve, reject) => {
-    chrome.storage.sync.get('voterDeviceId', (id) => {
-      if (chrome.runtime.error) {
-        return 'error, ' + chrome.runtime.error;
-      }
-
-      resolve(id.voterDeviceId);
-    });
-  });
-}
-
-
 function debugFgLog (...args) {
   if (debugTimingForegroundContent) {
     stampedLog(...args);
   }
 }
 
-constructionT0 = performance.now();
+function debugStorage (...args) {
+  if (debugStorageEvents) {
+    args[0] = 'STORAGE --- ' + args[0];
+    stampedLog(...args);
+  }
+}
+
+let constructionT0 = performance.now();
 
 function stampedLog (...args) {
   const t1 = performance.now();
@@ -154,7 +162,7 @@ function inArray (elem, array) {
     return array.indexOf(elem);
   }
 
-  for (var i = 0, {length} = array; i < length; i++) {
+  for (let i = 0, {length} = array; i < length; i++) {
     if (array[i] === elem) {
       return i;
     }
@@ -168,34 +176,3 @@ function getCookie (name) {
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
 }
-
-function getStoredState () {
-  return new Promise((resolve) => {
-    chrome.storage.sync.get('extensionState', (resp) => {
-      if (chrome.runtime.error) {
-        return 'getStoredState error, ' + chrome.runtime.error;
-      }
-      let mostRecentState = {...resp.extensionState};
-      console.log('from getStoredState in commonWeVote.js read of extensionState', mostRecentState);
-      resolve(mostRecentState);
-    });
-  });
-}
-
-function setStoredState (extState) {
-  extState.lastStateChange = Date.now();
-  let mostRecentState = {...extState};
-  chrome.storage.sync.set({'extensionState': extState}, () => {
-    if (chrome.runtime.lastError) {
-      console.error('chrome.storage.sync.set({\'extensionState\': extState}) returned error ', chrome.runtime.lastError.message);
-    }
-  });
-}
-
-function mergeStoredState (dict) {
-  getStoredState().then((oldState) => {
-    const newState = {...oldState, ...dict};
-    setStoredState (newState);
-  });
-}
-
