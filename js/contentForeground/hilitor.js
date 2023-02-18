@@ -273,7 +273,7 @@ function Hilitor (id, tag) {
     }
   };
 
-  this.weVoteDomMods = function (node, match, wordfound) {
+  this.weVoteDomMods = async function (node, match, wordfound) {
     const possibleA = node.parentNode;
     let candidateHomePage = '';
     // eslint-disable-next-line no-nested-ternary
@@ -305,11 +305,14 @@ function Hilitor (id, tag) {
           id += char1;
         }
       }
+      const state = await getGlobalState();
+      const { voterGuidePossibilityId } = state;
+
       const frameUrl = candidateExtensionWebAppURL + '?candidate_name=' + encodedName +
         '&candidate_we_vote_id=' + candidateId +
         '&endorsement_page_url=' + encodeURIComponent(location.href) +
         '&candidate_specific_endorsement_url=' + candidateHomePage +
-        '&voter_guide_possibility_id=' + weContentState.voterGuidePossibilityId;
+        '&voter_guide_possibility_id=' + voterGuidePossibilityId;
       // debugHilitor('frameUrl ==================== ' + frameUrl);
       const clickIFrame = 'setModal(true, \'' + frameUrl + '\', \'' + id + '\', event)';
 

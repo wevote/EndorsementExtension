@@ -1,6 +1,6 @@
-/* global defaultNeverHighlightOn */
+/* global chrome, defaultNeverHighlightOn */
 
-console.log('-------- extWordHighlighter');
+console.log('===================== extWordHighlighter ==========================');
 
 // const { runtime: { getPlatformInfo}, contextMenus: { create, removeAll } } = chrome;
 
@@ -14,6 +14,9 @@ console.log('-------- extWordHighlighter');
 /* eslint no-undef: 0 */
 /* eslint no-unused-vars: 0 */
 /* eslint complexity: 0 */
+/* global defaultNeverHighlightOn */
+
+console.log('-------- extWordHighlighter');
 
 const debugE = true;
 let HighlightsData = {};
@@ -21,7 +24,7 @@ let activeTabIdGlobal = -1;
 let activeUrlGlobal = '';
 let activeWindowId =  -1;
 let aliasNames = [];
-let createSearchMenuT0 = 0;
+// let createSearchMenuT0 = 0;
 let highlighterEnabled = false;   // This is changed from popup.js
 let nameToIdMap = {};
 let noContextMenu = ['_generated_background_page.html'];
@@ -49,7 +52,7 @@ const tabInfoObj = {
   weVoteId: '',
 };
 
-let constructionT0 = -1;
+constructionT0 = -1;
 // Immediately Invoked Function Expression
 (() => {
   console.log('extWordHighlighter constructor');
@@ -132,7 +135,7 @@ function initializeHighlightsData (ballotItemHighlights, voterGuideHighlights, n
 
   HighlightsData.Version = '12';
   HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOnLocal);
-  let neverHighlightOn = HighlightsData.neverHighlightOn;
+  // let neverHighlightOn = HighlightsData.neverHighlightOn;
   // debugSwLog('neverHighLightOn:', HighlightsData.neverHighLightOn);
   // HighlightsData.ShowFoundWords = true;
   HighlightsData.PrintHighlights = true;
@@ -154,7 +157,7 @@ function initializeHighlightsData (ballotItemHighlights, voterGuideHighlights, n
       'Type': 'local',
       'Modified': Date.now()
     };
-    debugSwLog('groupName: ' + groupName + ', group: ' + group);
+    debugSwLog('initializeHighlightsData groupName: ', groupName, group);
     HighlightsData.Groups.push(groupName, group);
   }
 
@@ -169,7 +172,7 @@ function initializeVoterGuideHighlightsData (tabId, voterGuideHighlights, neverH
 
   HighlightsData.Version = '12';
   HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOnLocal);
-  let {neverHighlightOn} = HighlightsData;
+  // let {neverHighlightOn} = HighlightsData;
   // debugSwLog('neverHighLightOn:', HighlightsData.neverHighLightOn);
   // HighlightsData.ShowFoundWords = true;
   HighlightsData.PrintHighlights = true;
@@ -191,7 +194,7 @@ function initializeVoterGuideHighlightsData (tabId, voterGuideHighlights, neverH
       'Type': 'local',
       'Modified': Date.now()
     };
-    debugSwLog('groupName: ' + groupName + ', group: ' + group);
+    debugSwLog('initializeVoterGuideHighlightsData groupName: ', groupName, group);
     HighlightsData.Groups.push(groupName, group);
   }
 
@@ -291,13 +294,13 @@ function createNewTabsHighlightedElement (tabId, url) {
 }
 
 
-function updateContextMenu (inUrl){
-  debugSwLog('updating context menu', inUrl);
+function updateContextMenu (inUrl, tabId){
+  debugSwLog('updating context menu', tabId, inUrl);
   if(inUrl&&noContextMenu.indexOf(inUrl) === -1){
     chrome.contextMenus.removeAll();
     createSearchMenu();
     let contexts = ['selection'];
-    let filteredGroups=getWordsBackground(inUrl);  // Don't show highlights on pages that have been excluded
+    let filteredGroups=getWordsBackground(inUrl, tabId);  // Don't show highlights on pages that have been excluded
 
     let sortedByModified = [];
 
@@ -311,53 +314,12 @@ function updateContextMenu (inUrl){
         return b[1] - a[1];
       }
     );
-    // let showGroupsInRightClickMenu = false;  // Sept 17, 2019 Disable the display of groups (adding to groups) in the right click menu
-    //
-    // if (showGroupsInRightClickMenu) {
-    //   let numItems = 0;
-    //   for (let i = 0; i < contexts.length; i++) {
-    //     let context = contexts[i];
-    //     sortedByModified.forEach(function (group) {
-    //       if (numItems === 10) {
-    //         //create a parent menu
-    //         let parentid = create({
-    //           'title': 'More',
-    //           'contexts': [context],
-    //           'id': 'more'
-    //         });
-    //       }
-    //       let title = '+ ' + group[0];
-    //       if (numItems > 9) {
-    //         let id = create({
-    //           'title': title,
-    //           'contexts': [context],
-    //           'id': 'AddTo_' + group[0],
-    //           'parentId': 'more'
-    //         });
-    //       } else {
-    //         let id = create({
-    //           'title': title,
-    //           'contexts': [context],
-    //           'id': 'AddTo_' + group[0]
-    //         });
-    //       }
-    //       numItems += 1;
-    //     });
-    //   }
-    // }
 
-    let idContextMenuCreateNew = chrome.contextMenus.create({
+    chrome.contextMenus.create({
       'title': 'Create We Vote Endorsement',
       'contexts': [contexts[0]],
       'id': 'idContextMenuCreateNew'
     });
-
-    // Feb 6, 2020 -- Removed so that there's a single choice on the right click dialog
-    // let idContextMenuRevealRight = chrome.contextMenus.create({
-    //   'title': 'Reveal in Candidate List',
-    //   'contexts': [contexts[0]],
-    //   'id': 'idContextMenuRevealRight'
-    // });
   }
 }
 
@@ -374,10 +336,22 @@ function processUniqueNames (uniqueNamesFromPage) {
   }
 }
 
+function hardResetActiveTab (tabId) {
+  debugSwLog('sendMessage hardResetActiveTab tabId:', tabId);
+  sendMessage(tabId, {
+    tabId: tabId,
+  }, function () {
+    if (lastError) {
+      debugSwLog(' chrome.runtime.sendMessage("hardResetActiveTab")', lastError.message);
+    }
+    debugSwLog('RESPONSE sendMessage hardResetActiveTab tabId:',tabId);
+  });
+}
+
 // Called by the "highlight this tab" button on the popup
 function setEnableForActiveTab (showHighlights, showEditor, tabId, tabUrl) {
   const setEnableForActiveTabDebug = true;
-  const { tabs: { getAllInWindow, sendMessage, lastError } } = chrome;
+  const { tabs: { sendMessage, lastError } } = chrome;
   (debugE || setEnableForActiveTabDebug) && debugSwLog('POPUP BUTTON CLOCKED: enabling highlights on active tab ', tabId, ', showEditor: ', showEditor, ', showHighlights:', showHighlights);
 
   if (!tabId) {
@@ -410,21 +384,8 @@ function setEnableForActiveTab (showHighlights, showEditor, tabId, tabUrl) {
     clearHighlightsCount();
   }
 
-  if (!tabsHighlighted[tabId]) {
-    createNewTabsHighlightedElement(tabId, tentativeURL);
-  }
-
-  debugSwLog('^^^^^^^^ setEnableForActiveTab before:', tabId, tabsHighlighted[tabId]);
-  Object.assign(tabsHighlighted[tabId], {
-    highlighterEnabled,
-    neverHighlightOn,
-    showHighlights,
-    showEditor,
-    url: tentativeURL,
-    tabId: tabId
-  });
-
-  debugSwLog('sendMessage displayHighlightsForTabAndPossiblyEditPanes tabId:', tabId);
+  debugSwLog('sendMessage displayHighlightsForTabAndPossiblyEditPanes tabId:', tabId,
+    ', showHighlights: ', showHighlights, ', showEditor', showEditor);
   sendMessage(tabId, {
     command: 'displayHighlightsForTabAndPossiblyEditPanes',
     highlighterEnabled,
@@ -481,17 +442,6 @@ function removeHighlightsForAllTabs () {
   }
 }
 
-// July 22, 2022:  We want this, but it is frosting for now
-// chrome.tabs.onActiveChanged.addListener(function (tabId) {
-//   console.log('extWordHighlighter detected tab change, removing extensionState');
-//   chrome.storage.sync.remove('extensionState', () => {
-//     if (chrome.runtime.lastError) {
-//       console.error('chrome.storage.sync.remove(extensionState) failed with', chrome.runtime.lastError.message);
-//     }
-//     chrome.action.setBadgeText({ text: '' });
-//   });
-// });
-
 chrome.tabs.onActivated.addListener(function (tabId){
   // TODO: I don't think this can work!
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
@@ -504,24 +454,32 @@ chrome.tabs.onActivated.addListener(function (tabId){
       activeUrlGlobal = url;
       activeWindowId = windowId;
 
-      debugSwLog('MESSAGING: chrome.tabs.onActivated.addListener', tabs[0]);
-      updateContextMenu(tabs[0].url);
+      debugSwLog('MESSAGING: chrome.tabs.onActivated.addListener', url, id);
+      updateContextMenu(url, id);
     } else {
-      debugSwLog('chrome.tabs.onActivated.addListener found no currentWindow for tabId: ' + tabId);
+      debugSwLog('chrome.tabs.onActivated.addListener found no currentWindow for tabId: ' + id);
     }
   });
 });
 
 chrome.tabs.onUpdated.addListener(
-  function (tabId, tab){
-    debugSwLog('in tabs onupdated', tabId, tab);
+  function (tab){
+    const { url, id } = tab;
+    debugSwLog('in tabs onUpdated', id, url);
 
     if(tab.url !== undefined){
-      updateContextMenu(tab.url);
+      updateContextMenu(url, id);
     }
   }
 );
-chrome.tabs.onCreated.addListener(function (tab){if(tab.url !== undefined){updateContextMenu(tab.url);}});
+chrome.tabs.onCreated.addListener(
+  function (tab) {
+    const { url, id } = tab;
+    if(url !== undefined) {
+      updateContextMenu(url, id);
+    }
+  }
+);
 
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
   const { tabs: { sendMessage, lastError, query } } = chrome;
@@ -628,8 +586,6 @@ chrome.commands.onCommand.addListener(function (command) {
 chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {    // eslint-disable-line complexity
     debugSwLog('MESSAGING: message received -- ' + request.command + ': ', request, sender, sender.tab.id);
-    // console.log('MESSAGING: message received -- ' + request.command + ': ', request, sender, sender.tab.id);
-    //request=JSON.parse(evt.data);
     let showVoterGuideHighlights;
     let showCandidateOptionsHighlights;
     if (request.command === 'getTopMenuData') {
@@ -663,12 +619,9 @@ chrome.runtime.onMessage.addListener(
     } else if(request.command === 'getVoterInfo') {
       getVoterSignInInfo (sendResponse);
     } else if(request.command === 'getWords') {
-      // if (request.id && request.id.length > 0) {
-      //    7/2/22 can't do it this way:localStorage['voterDeviceId'] = request.id;     // Incoming voterDeviceId if we are viewing a wevote domain page.
-      // }
       sendResponse({
         command: request.command,
-        words: getWordsBackground(request.url),
+        words: getWordsBackground(request.url, request.id),
         storedDeviceId: request.voterDeviceId,  // Outgoing voterDeviceId for viewing all other pages
         url: request.url,
 
@@ -707,7 +660,7 @@ chrome.runtime.onMessage.addListener(
       // debugSwLog('if(request.command === \'getStatus\') highlighterEnabled: ', highlighterEnabled);
       getThisTabsStatus(request.tabURL, sendResponse);
     } else if(request.command === 'updateContextMenu'){
-      updateContextMenu(request.url);
+      updateContextMenu(request.url, request.id);
       sendResponse({command: request.command, success: 'ok'});
     } else if(request.command === 'flipGroup') {
       sendResponse({command: request.command, success: flipGroup(request.group, request.action)});
@@ -746,6 +699,10 @@ chrome.runtime.onMessage.addListener(
     } else if (request.command === 'closeDialogAndUpdatePositionsPanel') {
       const tabId = sender.tab.id;
       debugSwLog('extWordHighlighter "closeDialogAndUpdatePositionsPanel" received from tab: ' + tabId);
+    } else if (request.command === 'hardResetActiveTab') {
+      const tabId = sender.tab.id;
+      debugSwLog('extWordHighlighter "hardResetActiveTab" received from tab: ' + tabId);
+      hardResetActiveTab(tabId);
     } else if (request.command === 'updateBackgroundForButtonChange') {
       debugSwLog('extWordHighlighter "updateBackgroundForButtonChange" received from popup');
 
@@ -779,10 +736,10 @@ function getStatusForActiveTab (tabId, url) {
  * @returns {void}
  */
 function getThisTabsStatus (tabURL, sendResponse) {
-  const {tabs: {sendMessage, query}} = chrome;
-  debugSwLog('extWordHighligher.getThisTabsStatus () {() called for url', tabURL);
+  const { tabs: { query } } = chrome;
+  debugSwLog('extWordHighlighter.getThisTabsStatus () {() called for url', tabURL);
   // 7/22/4:30pm, this does work
-  chrome.tabs.query({}, function (tabs) {
+  chrome.tabs.query({}, async function (tabs) {
     tab = {};
     for (let i = 0; i < tabs.length; i++) {
       // debugSwLog('extWordHighlighter getThisTabsStatus >>>>>>>>>>>>>>> "' + tabs[i].url );
@@ -793,70 +750,61 @@ function getThisTabsStatus (tabURL, sendResponse) {
     }
 
     let status = {};
-    let found = false;
+    // let found = false;
     if (tab !== {}) {
-    // if (Object.keys(tab).length > 0) {
       const { id: tabId, url } = tab;
       if (!tabsHighlighted[tabId]) {
-        debugSwLog('extWordHighligher.getThisTabsStatus created a NEW tabsHighlighted entry for id ', tabId,  url);
+        debugSwLog('extWordHighlighter.getThisTabsStatus created a NEW tabsHighlighted entry for id ', tabId,  url);
         status = createNewTabsHighlightedElement(tabId, url);
+        debugSwLog('extWordHighlighter.getThisTabsStatus created a new tabsHighlighted entry for id ', tabId, url, status);
       } else {
         status = tabsHighlighted[tabId];
-        debugSwLog('extWordHighligher.getThisTabsStatus found an EXISTING tabsHighlighted entry for id ', tabId, url);
+        debugSwLog('extWordHighlighter.getThisTabsStatus found an EXISTING tabsHighlighted entry for id ', tabId, url);
       }
       status = tabsHighlighted[tabId];
     } else {
       status = createNewTabsHighlightedElement(-1, tabURL);
       status = {...status, url: tabURL, tabId: tabId};
-      debugSwLog('extWordHighligher.getThisTabsStatus query returned no tabs, and DID NOT FIND AN EXISTING tabsHighlighted SO WE created a new tabInfoObj entry with a tabId of -1');
+      debugSwLog('extWordHighlighter.getThisTabsStatus query returned no tabs, and DID NOT FIND AN EXISTING tabsHighlighted SO WE created a new tabInfoObj entry with a tabId of -1');
     }
 
-    // debugSwLog('extWordHighligher.getThisTabsStatus: ', status);
+    // Feb 16, 2023 partial abandoning of the local storage of global state
+    const state = await getGlobalState();
+    const { highlighterEditorEnabled: showEditor, highlighterEnabledThisTab: showHighlights } = state;
+    status = {...status, showEditor: showEditor, showHighlights: showHighlights, highlighterEnabled: showHighlights};
+    // Feb 16, 2023 end of change
+
+    debugSwLog('extWordHighlighter.getThisTabsStatus: ', status);
     sendResponse(status);
   });
 }
 
 function getThisTabsId (sendResponse) {
-  debugSwLog('extWordHighligher.getThisTabsId');
+  debugSwLog('extWordHighlighter.getThisTabsId');
   // TODO: I don't think this can work!
   query({active: true, currentWindow: true}, function (tabs) {
     const tabId = tabs[0].id;
-    debugSwLog('extWordHighligher.getThisTabsId: ',tabId);
+    debugSwLog('extWordHighlighter.getThisTabsId: ',tabId);
     sendResponse({tabId});
   });
+  return tabId;
 }
 
 function requestReHighlight (tabId, url){
-  const requestReHighlightDebug = true;
   debugSwLog('ENTERING extWordHighlighter > requestReHighlight');
-  const {tabs: {sendMessage}} = chrome;
+  const {tabs: {sendMessage, lastError}} = chrome;
   if (tabId && tabId > 0) {
-    debugSwLog('In extWordHighligher.requestReHighlight, ReHighlight WAS sent -- for tabId:', tabId);
-    sendMessage(tabId, {command: 'ReHighlight', words: getWordsBackground(url)});
+    debugSwLog('In extWordHighlighter.requestReHighlight, ReHighlight WAS sent -- for tabId:', tabId);
+    sendMessage(tabId, {command: 'ReHighlight', words: getWordsBackground(url)}, function () {
+      debugSwLog(lastError ? `requestReHighlight lastError ${lastError.message}` : 'requestReHighlight returned');
+    });
   } else {
-    debugSwLog('In extWordHighligher.requestReHighlight, ReHighlight could not be sent -- missing tabId:', tabId);
+    debugSwLog('In extWordHighlighter.requestReHighlight, ReHighlight could not be sent -- missing tabId:', tabId);
   }
-  // });
 }
 
-// function importFile(contents){
-//   //validation needed
-//   let validated=true;
-//   let temp=JSON.parse(contents);
-//   if (temp.Version!==undefined){
-//     if (temp.Groups===undefined){validated=false;}
-//   }
-//   else {
-//     validated=false;
-//   }
-//   if (validated === true){
-//     HighlightsData=upgradeVersion(temp);
-//   }
-//   return validated;
-// }
-
-function getWordsBackground (inUrl) {
-  debugSwLog('ENTRY to extWordHighligher.getWordsBackground inURL: ' + inUrl);
+function getWordsBackground (inUrl, tabId) {
+  debugSwLog('ENTRY to extWordHighlighter.getWordsBackground inURL: ' + inUrl);
   let result={};
   for(let neverShowOn in HighlightsData.neverHighlightOn){
     if (inUrl.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))){
@@ -866,7 +814,7 @@ function getWordsBackground (inUrl) {
   for (let highlightData in HighlightsData.Groups) {
     let returnHighlight=false;
     if (HighlightsData.Groups[highlightData].Enabled){
-      if (HighlightsData.Groups[highlightData].ShowOn.length==0){
+      if (HighlightsData.Groups[highlightData].ShowOn.length === 0){
         returnHighlight=true;
       }
       else {
@@ -890,7 +838,7 @@ function getWordsBackground (inUrl) {
     result['nameToIdMap'] = nameToIdMap;  // Needed if the endorsement page is in an iFrame, and probably is sufficent if not in an iFrame 3/20/20
   }
 
-  debugSwLog('Exit from extWordHighligher.getWordsBackground: ' + inUrl);
+  debugSwLog('Exit from extWordHighlighter.getWordsBackground: ' + inUrl);
   return result;
 }
 
@@ -911,7 +859,7 @@ function onPage () {
 // Set badge color, icon overlay
 function showHighlightsCount (label, altColor, tabId)
 {
-  debugSwLog('ENTERING extWordHighligher.showHighlightsCount');
+  debugSwLog('ENTERING extWordHighlighter.showHighlightsCount');
   chrome.action.setBadgeText({ text: label });
   let color = altColor.length === 0 ? 'limegreen' : altColor;
   chrome.action.setBadgeBackgroundColor ({'color': color}); //"#0091EA"});
@@ -919,38 +867,14 @@ function showHighlightsCount (label, altColor, tabId)
 
 // Clear badge
 function clearHighlightsCount () {
-  debugSwLog('ENTERING extWordHighligher.clearHighlightsCount');
+  debugSwLog('ENTERING extWordHighlighter.clearHighlightsCount');
   chrome.action.setBadgeText({ text: '' });
 }
-
-// function getDataFromStorage(dataType) {
-//    7/2/22 can't do it this way: if(localStorage[dataType]) {return JSON.parse(localStorage[dataType]);} else {return {};}
-// }
-
-/*function addWord(inWord) {
-  HighlightsData.Words[inWord]="";
-  return true;
-}*/
 
 function showWordsFound (inState) {
   HighlightsData.ShowFoundWords=inState;
   showFoundWords=inState;
 }
-
-// function showDonate(){
-//   let today=new Date();
-//   return HighlightsData.Donate < today;
-// }
-
-// function setDonate(state){
-//   let today=new Date();
-//   if(state){
-//     HighlightsData.Donate=today.setDate(today.getDate()+365);
-//   }
-//   else {
-//     HighlightsData.Donate=today.setDate(today.getDate()+100);
-//   }
-// }
 
 function setPrintHighlights (inState) {
   HighlightsData.PrintHighlights=inState;
@@ -1023,12 +947,13 @@ function setWords (inWords, inGroup, inColor, inFcolor, inIcon, findwords, showo
     delete HighlightsData.Groups[inGroup];
   }
 
-  // TODO: I don't think this can work!
+  // ~~TODO: I don't think this can work!~~  Feb 2023: Maybe it can now?
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    updateContextMenu(tabs.url);
+    const { 0 : { id, url, windowId } } = tabs;
+    updateContextMenu(url, id);
   });
   /*chrome.tabs.getSelected(null,function(tab) {
-        updateContextMenu(tab.url);
+        updateContextMenu(url, id);
     })*/
   requestReHighlight();
   return true;
@@ -1106,7 +1031,7 @@ function getWeVoteTabs () {
       const { id: tabId, url } = tabs[i];
       if (url.includes('https://wevote.us/') || url.includes('https://quality.wevote.us/') || url.includes('https://localhost:3000/')) {
         results += '|' + tabId +'|';
-        debugSwLog('extWordHighligher.getWeVoteTabs: ' + tabId + ', : ' + url);
+        debugSwLog('extWordHighlighter.getWeVoteTabs: ' + tabId + ', : ' + url);
       }
     }
     return results;
@@ -1115,13 +1040,13 @@ function getWeVoteTabs () {
 
 function reloadPdfTabAsHTML (pdfURL, showEditor, tabId) {
   const {tabs: {create, onUpdated, get}} = chrome;
-  debugSwLog('extWordHighligher.reloadPdfTabAsHTML pdfURL: ' + pdfURL);
+  debugSwLog('extWordHighlighter.reloadPdfTabAsHTML pdfURL: ' + pdfURL);
   convertPdfToHtmlInS3(pdfURL, (response) => {
     const { s3_url_for_html: htmlURL } = response.res;
     debugSwLog('reloadPdfTabAsHTML htmlURL: ' + htmlURL);
     const tabId = tab.id;
     debugSwLog('reloadPdfTabAsHTML tab.id: ' + tabId);
-    create({ url: htmlURL }, (newTabId) => {
+    create({ url: htmlURL }, () => {
       onUpdated.addListener(function (newTabId, info) {
         if (info.status === 'complete') {
           get(newTabId, (newTab) => setEnableForActiveTab(true, showEditor, newTab));
@@ -1134,7 +1059,7 @@ function reloadPdfTabAsHTML (pdfURL, showEditor, tabId) {
 function handleButtonStateChange (showHighlights, showEditor, pdfURL, tabId, tabUrl) {
   // debugSwLog('enabling editor on active tab from openEditPanelButton, handleButtonStateChange tab.id: ', tabId, 'showHighlights:', showHighlights, 'showEditor:',showEditor);
   if (pdfURL) {
-    debugSwLog('extWordHighligher.handleButtonStateChange enabling highlights on active tab FOR A PDF -- popup.js tab.id: ', tabId, pdfURL);
+    debugSwLog('extWordHighlighter.handleButtonStateChange enabling highlights on active tab FOR A PDF -- popup.js tab.id: ', tabId, pdfURL);
     reloadPdfTabAsHTML(pdfURL, showEditor, tabId);
   } else {
     setEnableForActiveTab(showHighlights, showEditor, tabId, tabUrl);
@@ -1171,6 +1096,7 @@ function handleButtonStateChange (showHighlights, showEditor, pdfURL, tabId, tab
 //   };
 // };
 
+// eslint-disable-next-line camelcase
 function preg_quote (str,delimiter) {
   // http://kevin.vanzonneveld.net
   // +   original by: booeyOH

@@ -1,9 +1,8 @@
 body
 {
-  font-family:Arial;
+  font-family: Arial, serif;
   width:410px;
   font-size:12px;
-  min-height:450px;
   margin:0;
 }
 
@@ -31,7 +30,7 @@ form table tr{
 }
 
 .gridOrgIcon {
-    padding: 26px 0 16px 0;
+    padding: 26px 0 16px 10px;
 }
 
 .switchRow {
@@ -58,9 +57,13 @@ form table tr{
     padding-bottom: 16px;
 }
 
+.resetButtonDiv {
+    padding: 32px 0 16px 175px;
+}
+
 hr {
     display: block;
-    margin: 15px auto 24px auto;
+    margin: 15px auto 32px auto;
     border-style: inset;
     border-width: 1px;
     width: 95%;
@@ -70,6 +73,17 @@ hr {
     width: 90%;
     height: 2.5em;
     font-size: 17px;
+    font-weight: bold;
+    color: darkblue;
+    background-color: white;
+    background: unset;
+    border-radius: .5em;
+    box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+
+.smallWeButton {
+    height: 2em;
+    font-size: 16px;
     font-weight: bold;
     color: darkblue;
     background-color: white;

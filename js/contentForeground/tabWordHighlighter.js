@@ -1,10 +1,10 @@
 // Content scripts are the only component of an extension that has access to the web-page's DOM. (this js file and contentWeVoteUI!)
 // Chrome extensions Treat these as the contact script, and create nn instance of a pair of them, for every tab which the background Scripps communicate.
-// As far as loging and access is concerned, these are part of the DOM and JavaScript of the endorsement page.
-// These log to the console of the endorsement page (like sierraclub.org) in the browser, Aand communicate with the background script via chrome extension messages that are sent.
+// As far as logging and access is concerned, these are part of the DOM and JavaScript of the endorsement page.
+// These log to the console of the endorsement page (like sierraclub.org) in the browser, And communicate with the background script via chrome extension messages that are sent.
 // When the endorsement page is re-opened in an iframe, access to that DOM is greatly limited.
 
-/* global preloadPositionsForAnotherVM, updatePositionPanelFromTheIFrame, updateHighlightsIfNeeded */
+/* global chrome, preloadPositionsForAnotherVM, updatePositionPanelFromTheIFrame, updateHighlightsIfNeeded */
 
 /* eslint no-unused-vars: 0 */
 /* eslint init-declarations: 0 */
@@ -16,30 +16,29 @@
 /* eslint no-ternary: 0 */
 // import jQuery from 'libs/jquery/jquery-3.6.0';
 
-var wordsArray = [];
-var namesToIds;
-var ReadyToFindWords = true; //indicates if not in a highlight execution
+let wordsArray = [];
+let namesToIds;
+let ReadyToFindWords = true; //indicates if not in a highlight execution
 
-var Highlight=true; // indicates if the extension needs to highlight at start or due to a change. This is evaluated in a loop
-var HighlightLoopFrequency=300; // the frequency of checking if a highlight needs to occur
-var HighlightLoop;
-var HighlightWarmup=300; // min time to wait before running a highlight execution
+let Highlight=true; // indicates if the extension needs to highlight at start or due to a change. This is evaluated in a loop
+let HighlightLoopFrequency=300; // the frequency of checking if a highlight needs to occur
+let HighlightLoop;
+let HighlightWarmup=300; // min time to wait before running a highlight execution
 
-var alreadyNotified = false;
-var wordsReceived = false;
-var searchEngines = {
+let wordsReceived = false;
+let searchEngines = {
   'google.com': 'q',
   'bing.com': 'q'
 };
-var markerCurrentPosition = -1;
-var markerPositions = [];
-var highlightMarkers = {};
-var markerScroll = false;
-var printHighlights = true;
+let markerCurrentPosition = -1;
+let markerPositions = [];
+let highlightMarkers = {};
+let markerScroll = false;
+let printHighlights = true;
 let voterInfo = {};
 let uniqueNameMatches = [];
 let voterDeviceId = '';
-var debug = false;
+let debug = false;
 let urlsForHighlights = {};
 
 // importScripts(
@@ -51,7 +50,8 @@ let urlsForHighlights = {};
 // document.body.append(img);
 // const $ = jQuery;
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {  // This wastes about 1 ms for every open tab in the browser, that we are not going to highlight on
+  const t0 = performance.now();
   if (jQuery === undefined) {
     const script = document.createElement('script');
     script.src = chrome.runtime.getURL('./libs/jquery/jquery-3.6.0.min.js');
@@ -60,11 +60,31 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   console.log(`jQuery ${$.fn.jquery} has been loaded successfully!`);
   // use jQuery below
-  initializeTabWordHighlighter();
+  await initializeTabWordHighlighter();
   detectBodyBind();
+  const t1 = performance.now();
+  timingLog(t0, t1, 'DOMContentLoaded for tab took', 8.0);
 });
 
-
+// function getThisTabId () {
+//   const { chrome: { runtime: { sendMessage, lastError } } } = window;
+//   console.log('ENTRY to command myTabId ');
+//
+//   return new Promise ((resolve) => {
+//     sendMessage({
+//       command: 'myTabId',
+//     }, function (response) {
+//       if (lastError) {
+//         debugFgLog(' chrome.runtime.sendMessage("myTabId")', lastError.message);
+//       }
+//       console.log('command myTabId response ', response);
+//       const {tabId} = response;
+//       $('#frame').attr('name', 'tabId=' + tabId);
+//       debugFgLog('tabWordHighlighter getThisTabId tab.id: ' + tabId);
+//       resolve(tabId);
+//     });
+//   });
+// }
 
 // Immediately-invoked function expression
 // const { chrome: { runtime: { tabs } } } = window;  // NO NO NO NMOMN  OWEEEEEEEEEE !!!
@@ -106,7 +126,7 @@ function isInANonWeVoteIFrame () {
 }
 
 // $(() => {
-function initializeTabWordHighlighter () {
+async function initializeTabWordHighlighter () {
   if (window.location.href === 'about:blank' || window.location.href.includes('extension.html')) {
     debugFgLog('############ tabWordHighligher NOT initializing for:', window.location.href);
     return;
@@ -115,23 +135,26 @@ function initializeTabWordHighlighter () {
   }
 
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
-  weContentState.neverHighlightOn = defaultNeverHighlightOn;
+  // weContentState.neverHighlightOn = defaultNeverHighlightOn;
+  await updateGlobalState({ neverHighlightOn: defaultNeverHighlightOn });
 
-  const deb = $('div#wedivheader').length > 0;
-  const host = window.location.host;
+  // const deb = $('div#wedivheader').length > 0;
+  // const host = window.location.host;
 
   if (isInOurIFrame()) {
     sendMessage({
       command: 'myTabId',
-    }, function (response) {
+    }, async function (response) {
       if (lastError) {
         debugFgLog(' chrome.runtime.sendMessage("myTabId")', lastError.message);
       }
 
-      const {tabId: tab} = response;
+      const { tabId } = response;
+      console.log('3/17/23  TEST TEST TEST think this is a tabId: ', tabId);
       $('#frame').attr('name', 'tabId=' + tabId);
-      weContentState.tabId = tab;  // TODO: 7/8/22  this looks wrong
-      debugFgLog('tabWordHighlighter this tab.id: ' + tabId);
+      // weContentState.tabId = tab;
+      await updateGlobalState({ tabId: tabId });  // TODO: 7/8/22  this looks wrong
+      debugFgLog('tabWordHighlighter initializeTabWordHighlighter tab.id: ' + tabId);
     });
     debugFgLog('Hack that sets debugLocal to true in place ------------------------------------');
     window.debugLocal = true;
@@ -146,34 +169,17 @@ function initializeTabWordHighlighter () {
         getVoterDeviceId().then((voterDeviceId) => {
           console.log('initializeTabWordHighlighter voterDeviceId Value was ', voterDeviceId);
           const junk = voterDeviceId + 'x|x';
-          // TODO: wtf, chrome.storage.local.set({'voterDeviceId': junk});
-          // ((store) => {
-          //   if(chrome.runtime.lastError) {
-          //     console.error(
-          //       'Error setting voterDeviceId to ' + JSON.stringify(voterDeviceId) +
-          //       ': ' + chrome.runtime.lastError.message
-          //     );
-          //   }
           console.log('initializeTabWordHighlighter voterDeviceId Value set to ', junk);
-          // });
         });
-
-        // sendMessage({
-        //   command: 'storeDeviceId',
-        //   voterDeviceId
-        // }, function (response) {
-        //   if (lastError) {
-        //     debugFgLog('chrome.runtime.sendMessage("storeDeviceId")', lastError.message);
-        //   }
-        // });
       }
     }
     //only listen for messages in the main page, not in iframes
     chrome.runtime.onMessage.addListener(
       // eslint-disable-next-line complexity
-      function (request, sender, sendResponse) {
+      async function (request, sender, sendResponse) {
         const tabWordHighlighterListenerDebug = true;
         tabWordHighlighterListenerDebug && debugFgLog('onMessage.addListener() in tabWordHighlighter got a message: ', request, sender, sendResponse);
+        // console.log('Message listener in tabWordHighlighter received: ', request.command);
 
         if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
             sender.id === 'lfifjogjdncflocpmhfhhlflgndgkjdo' ||
@@ -181,30 +187,43 @@ function initializeTabWordHighlighter () {
             sender.id === 'ikoadphkdpbhakeghnjpepfgnodmonpk' ||
             sender.id === 'highlightthis@deboel.eu') {
 
+          const state = await getGlobalState();
+          // const { priorHighlighterEnabledThisTab, highlighterEnabledThisTab, highlighterEditorEnabled, showHighlights,
+          //   showEditor, tabId, orgName, organizationWeVoteId, organizationTwitterHandle } = request;
+
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
             if (window.location.href.toLowerCase().endsWith('.pdf')) {
               debugFgLog('displayHighlightsForTabAndPossiblyEditPanes skipping PDF file');
               return false;
             }
             const t1 = performance.now();
-            const {priorHighlighterEnabledThisTab} = weContentState;
-            const {highlighterEnabled, showHighlights, showEditor, tabId} = request;
-            clearPriorDataOnModeChange(showHighlights, showEditor);
-            weContentState.highlighterEnabled = highlighterEnabled;
-            weContentState.highlighterEnabledThisTab = showHighlights;  // Will always be true if showEditor is true
-            weContentState.highlighterEditorEnabled = showEditor;
-            if (tabId > 0) weContentState.tabId = tabId;
-            debugFgLog('------------------------------- ENTERING tabWordHighlighter > displayHighlightsFo');
-            debugFgLog('ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes request.showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', tabId: ', weContentState.tabId, ', href: ', window.location.href);
+            // const { priorHighlighterEnabledThisTab } = state;
+            const { showHighlights, showEditor, tabId } = request;
+            await clearPriorDataOnModeChange(showHighlights, showEditor);
+            // Feb 17, 2023., these should have already been set in the popup
+            // weContentState.highlighterEnabled = highlighterEnabled;
+            // weContentState.highlighterEnabledThisTab = showHighlights;  // Will always be true if showEditor is true
+            // weContentState.highlighterEditorEnabled = showEditor;
+            // if (tabId > 0) weContentState.tabId = tabId;
+
+            debugFgLog('------------------------------- ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes');
+            debugFgLog('ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes request.showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', href: ', window.location.href);
             if (!showHighlights) {
               // if we were enabled (master switch), and now we are not, reload the page -- if this proves to be a problem, we could remove the highlighting in the DOM.
               debugFgLog('displayHighlightsForTabAndPossiblyEditPanes (before reload)');
-              weContentState.priorData = [];
-              weContentState.priorHighlighterEnabledThisTab = false;
+              // weContentState.priorData = [];
+              // weContentState.priorHighlighterEnabledThisTab = false;
+              // weContentState.priorData = [];
+              // weContentState.priorHighlighterEnabledThisTab = false;
+              await updateGlobalState({
+                priorData: [],
+                priorHighlighterEnabledThisTab: false,
+              });
               location.reload();
             }
-            if (window.location.href !== 'about:blank' && weContentState.highlighterEnabledThisTab) {  // Avoid worthless queries
-              displayHighlightingAndPossiblyEditor(weContentState.highlighterEnabledThisTab, weContentState.highlighterEditorEnabled, weContentState.tabId);
+            const { highlighterEnabledThisTab, highlighterEditorEnabled } = state;
+            if (window.location.href !== 'about:blank' && highlighterEnabledThisTab) {  // Avoid worthless queries
+              displayHighlightingAndPossiblyEditor(highlighterEnabledThisTab, highlighterEditorEnabled, tabId);
             }
             const t2 = performance.now();
             timingFgLog(t1, t2, 'displayHighlightsForTabAndPossiblyEditPanes processing took', 8.0);
@@ -213,6 +232,9 @@ function initializeTabWordHighlighter () {
             jumpNext();
             showMarkers();
             return false;
+          } else if (request.command === 'hardResetActiveTab') {
+            location.reload();
+            return false;
           } else if (request.command === 'getMarkers') {
             sendResponse(highlightMarkers);
             return true;
@@ -220,19 +242,24 @@ function initializeTabWordHighlighter () {
             highlightMarkers = {};
             return false;
           } else if (request.command === 'ReHighlight') {
-            weContentState.highlighterEnabled = true;
-            weContentState.highlighterEnabledThisTab = true;
+            // weContentState.highlighterEnabled = true;
+            // weContentState.highlighterEnabledThisTab = true;
+            await updateGlobalState({
+              highlighterEnabled: true,
+              highlighterEnabledThisTab: true,
+            });
+
             reHighlight(request.words);
             return false;
           } else if (request.command === 'createEndorsement') {
             openSuggestionPopUp(request.selection);
             return false;
           } else if (request.command === 'revealRight') {
-            revealRightAction(request.selection, request.pageURL, request.tabId);
+            revealRightAction(request.selection);
             return false;
           } else if (request.command === 'getTabStatusValues' || request.command === 'getStatusForActiveTab') {
             const encodedHref = encodeURIComponent(location.href);
-            const {orgName, organizationWeVoteId, organizationTwitterHandle, tabId, highlighterEnabledThisTab, highlighterEditorEnabled} = weContentState;
+            const {orgName, organizationWeVoteId, organizationTwitterHandle, tabId, highlighterEnabledThisTab, highlighterEditorEnabled} = state;
             debugFgLog('getTabStatusValues tabId: ', tabId, ', highlighterEnabledThisTab: ', highlighterEnabledThisTab, ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', href: ', window.location.href);
             sendResponse({
               highlighterEnabledThisTab,
@@ -244,7 +271,7 @@ function initializeTabWordHighlighter () {
             });
             return false;
           } else if (request.command === 'disableExtension') {
-            enableHighlightsForAllTabs(false);
+            // enableHighlightsForAllTabs(false);
             return false;
           } else if (request.command === 'logFromPopup') {
             console.log('popup: ' + request.payload);
@@ -253,7 +280,7 @@ function initializeTabWordHighlighter () {
           } else if (request.command === 'updateForegroundForButtonChange') {
             debugSwLog('extWordHighlighter "updateForegroundForButtonChange" received from popup');
             const { showHighlights, openEditPanel, pdfURL, tabId, tabUrl } = request.payload;
-            console.log('updateForegroundForButtonChange: ' + request.payload);
+            console.log('updateForegroundForButtonChange: ', request.payload);
 
             sendMessage({
               command: 'updateBackgroundForButtonChange',
@@ -262,7 +289,7 @@ function initializeTabWordHighlighter () {
               pdfURL,
               tabId,
               tabUrl
-            }, function (response) {
+            }, function () {
               if (lastError) {
                 debugFgLog('chrome.runtime.sendMessage("updateBackgroundForButtonChange")', lastError.message);
               }
@@ -279,7 +306,7 @@ function initializeTabWordHighlighter () {
   }
 
   if (window.location.href !== 'about:blank') {  // Avoid worthless queries
-    sendGetStatus();  // Initial get statos
+    await sendGetStatus();  // Initial get statos
   }
 }
 
@@ -294,19 +321,19 @@ function jumpNext () {
 
 function showMarkers () {
   debugFgLog('STEVE, background showMarkers');
-  var element = document.getElementById('HighlightThisMarkers');
+  let element = document.getElementById('HighlightThisMarkers');
   if (element) {
     element.parentNode.removeChild(element);
   }
 
-  var containerElement = document.createElement('DIV');
+  let containerElement = document.createElement('DIV');
   containerElement.id = 'HighlightThisMarkers';
 
-  for (marker in highlightMarkers) {
-    var span = document.createElement('SPAN');
+  for (let marker in highlightMarkers) {
+    let span = document.createElement('SPAN');
     span.className = 'highlightThisMarker';
     span.style.backgroundColor = highlightMarkers[marker].color;
-    var markerposition = document.body.scrollTop + (highlightMarkers[marker].offset / document.body.clientHeight) * window.innerHeight;
+    let markerposition = document.body.scrollTop + (highlightMarkers[marker].offset / document.body.clientHeight) * window.innerHeight;
     span.style.top = markerposition + 'px';
     containerElement.appendChild(span);
   }
@@ -324,7 +351,7 @@ function reHighlight (words) {
   reHighlightDebug && debugFgLog('ENTERING function reHighlight(words), words:', words);
   for (let group in words) {
     if (words[group].Enabled) {
-      for (word in words[group].Words) {
+      for (let word in words[group].Words) {
         // reHighlightDebug && debugFgLog('reHighlight word = ' + word);
         if (words[group].Words[word]) {
           wordsArray.push({
@@ -342,55 +369,43 @@ function reHighlight (words) {
       }
     }
   }
-  reHighlightDebug && debugFgLog('reHighlight before findWords --------------------------- namesToIds: ', namesToIds, ', tabId: ', weContentState.tabId);
+  reHighlightDebug && debugFgLog('reHighlight before findWords --------------------------- namesToIds: ', namesToIds);
 
   findWords();
 }
 
-function getVoterDeviceIdFromWeVoteDomainPage () {
+async function getVoterDeviceIdFromWeVoteDomainPage () {
   // Capture the voter_device_id if we are on a wevote page
   const tag = 'voter_device_id';
   let b = document.cookie.match('(^|[^;]+)\\s*' + tag + '\\s*=\\s*([^;]+)');
   let id = b ? b.pop() : '';
-  if (id.length) {
-    debugFgLog('=======  voter_device_id captured from a wevote page, id: ' + id);
-  }
-
-  let voterDeviceId = '';
   if (id && id.length > 5) {
-    chrome.storage.sync.get().then((all) => {
-      for (const [key, val] of Object.entries(all)) {
-        debugFgLog('======= voterDeviceId storage.sync ', key, val);
-        if (key === 'voterDeviceId') {
-          debugFgLog(`======= voterDeviceId storage.sync previous value of voterDeviceId: "${val}", new value: "${id}"`);
-          voterDeviceId = val;
-        }
-      }
-      chrome.storage.sync.set({'voterDeviceId': id}, () => {
-        if (chrome.runtime.lastError) {
-          console.error('chrome.storage.sync.set({\'voterDeviceId\': id}) returned error ', chrome.runtime.lastError.message);
-        }
-      });
-    });
+    debugFgLog('=======  voter_device_id captured from a wevote page, id: ' + id);
+    await mergeToGlobalState({'voterDeviceId': id});
+    debugFgLog('======= voterDeviceId was merged mergeToGlobalState from a wevote page, id: ' + id);
+  } else {
+    debugFgLog('======= voterDeviceId WAS NOT MERGED mergeToGlobalState from a wevote page since no id');
   }
-  return voterDeviceId;
+  return id;
 }
 
 // When a tab sends the getStatus message, it starts a whole sequence of events and other messages, that go to the API server
 // and retrieves the appropriate candidate names, brings them back to the extension, and then starts highlighting the candidate names
 // on the endorsement page that is displayed in the tab (for example, https://www.sierraclub.org/california/2020-endorsements/).
-function sendGetStatus () {
+async function sendGetStatus () {
   const {chrome: {runtime: {sendMessage, lastError}}} = window;
+  const state = await getGlobalState();
+  const { neverHighlightOn } = state;
 
-  for (let i = 0; i < weContentState.neverHighlightOn.length; i++) {
-    let reg = new RegExp(weContentState.neverHighlightOn[i].replace('*', '.*?'));
+  for (let i = 0; i < neverHighlightOn.length; i++) {
+    let reg = new RegExp(neverHighlightOn[i].replace('*', '.*?'));
     if (window.location.hostname.match(reg)) {
       debugFgLog('sendGetStatus found a neverHighlightOn match: ', window.location.hostname);
       return;
     }
   }
 
-  sendMessage({command: 'getStatus', tabURL: window.location.href}, function (response) {
+  sendMessage({command: 'getStatus', tabURL: window.location.href}, async function (response) {
     debugFgLog('chrome.runtime.sendMessage({command: \'getStatus\'}', document.URL);
     if (lastError) {
       debugFgLog('chrome.runtime.sendMessage("getStatus")', lastError.message);
@@ -401,7 +416,7 @@ function sendGetStatus () {
       debugFgLog('ERROR: sendMessage for getStatus returned no status');
       return;
     }
-    const { highlighterEnabled, neverHighlightOn, showHighlights, showEditor, tabId, url } = response;
+    const { showHighlights, showEditor, tabId, url } = response;
 
     // if (!existenceOfTab) {
     //   debugFgLog('"getStatus called for a url that is not a tabUrl, probably for an iframe within a tab: ', url);
@@ -414,68 +429,96 @@ function sendGetStatus () {
       return;
     }
 
-    clearPriorDataOnModeChange(showHighlights, showEditor);
-    weContentState.highlighterEnabled = highlighterEnabled;
-    weContentState.highlighterEnabledThisTab  = showHighlights;
-    weContentState.highlighterEditorEnabled = showEditor;
-    if (tabId > 0) weContentState.tabId = tabId;
-    weContentState.neverHighlightOn = neverHighlightOn && neverHighlightOn.length ? neverHighlightOn : weContentState.neverHighlightOn;
+    await clearPriorDataOnModeChange(showHighlights, showEditor);
+    // Feb 27, 2023 now set in popup
+    // weContentState.highlighterEnabled = highlighterEnabled;
+    // weContentState.highlighterEnabledThisTab  = showHighlights;
+    // weContentState.highlighterEditorEnabled = showEditor;
+    // if (tabId > 0) weContentState.tabId = tabId;
+    // weContentState.neverHighlightOn = neverHighlightOn && neverHighlightOn.length ? neverHighlightOn : weContentState.neverHighlightOn;
+    // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary --  April 26, 2020, do we even need 'myTabId' msg chain?
+    const state = await getGlobalState();
+    const { highlighterEnabledThisTab } = state;
 
-    // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary TODO: April 26, 2020, do we even need 'myTabId' msg chain?
-    if (weContentState.highlighterEnabledThisTab) {
+    if (highlighterEnabledThisTab) {
       debugFgLog('about to get words', window.location);
-      getWordsThenStartHighlighting();
+      await getWordsThenStartHighlighting();
     }
   });
 }
 
-function refreshVoterGuidePanel () {  // Based on updatePositionPanelFromTheIFrame
-  const {chrome: {runtime: {sendMessage, lastError}}} = window;
+// async function refreshVoterGuidePanel () {  // Based on updatePositionPanelFromTheIFrame
+//   const {chrome: {runtime: {sendMessage, lastError}}} = window;
+//   const state = await getGlobalState();
+//   const { neverHighlightOn, highlighterEnabledThisTab } = state;
+//
+//   for (let i = 0; i < neverHighlightOn.length; i++) {
+//     let reg = new RegExp(neverHighlightOn[i].replace('*', '.*?'));
+//     if (window.location.hostname.match(reg)) {
+//       debugFgLog('refreshVoterGuidePanel found a neverHighlightOn match: ', window.location.hostname);
+//       return;
+//     }
+//   }
+//
+//   const showHighlights = true;
+//   const showEditor = true;
+//   clearPriorDataOnModeChange(showHighlights, showEditor);
+//   // Feb 17, 2023., these should have already been set in the popup
+//   // weContentState.highlighterEnabled = highlighterEnabled;
+//   // weContentState.highlighterEnabledThisTab  = showHighlights;
+//   // weContentState.highlighterEditorEnabled = showEditor;
+//   // if (tabId > 0) weContentState.tabId = tabId;
+//   // weContentState.neverHighlightOn = neverHighlightOn && neverHighlightOn.length ? neverHighlightOn : weContentState.neverHighlightOn;
+//   // weContentState.neverHighlightOn = false;
+//
+//   // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary TODO: April 26, 2020, do we even need 'myTabId' msg chain?
+//   if (highlighterEnabledThisTab) {
+//     debugFgLog('about to get words', window.location);
+//     await getWordsThenStartHighlighting();
+//   }
+//   // });
+// }
 
-  for (let i = 0; i < weContentState.neverHighlightOn.length; i++) {
-    let reg = new RegExp(weContentState.neverHighlightOn[i].replace('*', '.*?'));
-    if (window.location.hostname.match(reg)) {
-      debugFgLog('refreshVoterGuidePanel found a neverHighlightOn match: ', window.location.hostname);
-      return;
-    }
-  }
+async function clearPriorDataOnModeChange (showHighlights, showEditor) {
+  const state = await getGlobalState();
+  const { highlighterEnabledThisTab, highlighterEditorEnabled } = state;
 
-  const showHighlights = true;
-  const showEditor = true;
-  clearPriorDataOnModeChange(showHighlights, showEditor);
-  weContentState.highlighterEnabled = highlighterEnabled;
-  weContentState.highlighterEnabledThisTab  = showHighlights;
-  weContentState.highlighterEditorEnabled = showEditor;
-  // if (tabId > 0) weContentState.tabId = tabId;
-  // weContentState.neverHighlightOn = neverHighlightOn && neverHighlightOn.length ? neverHighlightOn : weContentState.neverHighlightOn;
-  weContentState.neverHighlightOn = false;
-
-  // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary TODO: April 26, 2020, do we even need 'myTabId' msg chain?
-  if (weContentState.highlighterEnabledThisTab) {
-    debugFgLog('about to get words', window.location);
-    getWordsThenStartHighlighting();
-  }
-  // });
-}
-
-function clearPriorDataOnModeChange (showHighlights, showEditor) {
   if ((!showHighlights && !showEditor) ||
-    (weContentState.highlighterEnabledThisTab && weContentState.highlighterEditorEnabled !== showEditor)) {
-    weContentState.priorData = [];  // Needed to avoid the 'unchanged data ... abort' when swapping display editor/highlights only
+    (highlighterEnabledThisTab && highlighterEditorEnabled !== showEditor)) {
+    await updateGlobalState({ priorData: [] });
+    // weContentState.priorData = [];  // Needed to avoid the 'unchanged data ... abort' when swapping display editor/highlights only
   }
 }
 
-function getWordsThenStartHighlighting () {
-  const getWordsThenStartHighlightingDebug = true;
+async function closeIFrameDialog () {
+  const dialogClosed = true;
+  if (isInOurIFrame()) { // if in an iframe
+    debugFgLog('With editors displayed, and the endorsement page in an iFrame, the modal containing an iFrame to the webapp has closed.  Evaluating the need to update the PositionsPanel,state ');
+    // replaced 2/17/23: updatePositionPanelFromTheIFrame(dialogClosed);  // which calls getRefreshedHighlights() if the positions data has changed
+    const state = await getGlobalState();
+    const { highlighterEditorEnabled, highlighterEnabledThisTab, tabId } = state;
+    debugFgLog('calling displayHighlightingAndPossiblyEditor highlighterEnabledThisTab:', highlighterEnabledThisTab, highlighterEditorEnabled, tabId);
+    displayHighlightingAndPossiblyEditor(highlighterEnabledThisTab, highlighterEditorEnabled, tabId);
+  } else {
+    debugFgLog('dialog containing iFrame has closed, either without the editor displayed, or for newly discovered positions, ie right click on highlighed position');
+    updateHighlightsIfNeeded(dialogClosed);
+  }
+  $('#weVoteModal').remove();
+}
+
+async function getWordsThenStartHighlighting () {
+  const getWordsThenStartHighlightingDebug = false;
   const t1 = performance.now();
   const {chrome: {runtime: {sendMessage, lastError}}} = window;
-  getWordsThenStartHighlightingDebug && debugFgLog('ENTERING tabWordHighlighter > getWordsThenStartHighlighting,  Called \'getWords\'');
+  debugFgLog('ENTERING tabWordHighlighter > getWordsThenStartHighlighting,  Called \'getWords\'');
+  const state = await getGlobalState();
+  const { tabId } = state;
 
   sendMessage({
     command: 'getWords',
     url: location.href.replace(location.protocol + '//', ''),
     voterDeviceId: getVoterDeviceIdFromWeVoteDomainPage(),  // is this nonsense?
-    tabId: weContentState.tabId,
+    tabId: tabId,
   }, function (response) {
     if (!response) {
       debugFgLog('chrome runtime sendMessage("getWords") did not receive a response');
@@ -497,8 +540,8 @@ function getWordsThenStartHighlighting () {
 
     for (let group in words) {
       if (words[group].Enabled) {
-        for (word in words[group].Words) {
-          debugFgLog('getWords response, ' + word + ', group: ' + group + ', findWords: ' + words[group].FindWords + ' icon: ' + words[group].Icon);
+        for (let word in words[group].Words) {
+          getWordsThenStartHighlightingDebug && debugFgLog('getWords response, ' + word + ', group: ' + group + ', findWords: ' + words[group].FindWords + ' icon: ' + words[group].Icon);
           let wordText = words[group].Words[word];
           if (wordText) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
             wordsArray.push({
@@ -533,20 +576,11 @@ function getWordsThenStartHighlighting () {
 
       const style = document.createElement('style');
       head.append(style);
-      style.type = 'text/css';
+      // style.type = 'text/css';
       // Note that the source code for this css is in popupIFrame.html, where it can be tested in a browser, then minified with https://cssminifier.com/
-      const css = '#wediv{position:absolute;z-index:10000;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4);height:600px;}#wedivheader{cursor:move;z-index:10;background-color:#2e3c5d;color:#fff;height:30px}#weIFrame{width:450px;height:568px;border-width:0;border:none}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;float:right;margin-right:16px;background-color:#2e3c5d;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}.highlight{padding:1px;box-shadow:#e5e5e5 1px 1px;border-radius:3px;-webkit-print-color-adjust:exact;background-color:#ff6;color:#000;font-style:inherit}';
+      const css = '#wediv{position:absolute;z-index:10000;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4);height:640px;}#wedivheader{cursor:move;z-index:10;background-color:#2e3c5d;color:#fff;height:30px}#weIFrame{width:450px;height:568px;border-width:0;border:none}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;float:right;margin-right:16px;background-color:#2e3c5d;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}.highlight{padding:1px;box-shadow:#e5e5e5 1px 1px;border-radius:3px;-webkit-print-color-adjust:exact;background-color:#ff6;color:#000;font-style:inherit}';
       style.appendChild(document.createTextNode(css));
 
-      const tabId = weContentState.tabId;
-
-
-      //  7/4/22:  Don't need to inject script, since we can just include it in manifest
-      // const js = document.createElement('script');
-      // // Note that the source code for this innerHTML is in popupIFrame.html, where it can be tested, then minified with https://javascript-minifier.com/
-      // js.innerHTML ='function dragElement(e){let t=0,n=0,o=0,l=0;function d(e){(e=e||window.event).preventDefault(),o=e.clientX,l=e.clientY,document.onmouseup=s,document.onmousemove=f}function f(d){(d=d||window.event).preventDefault(),t=o-d.clientX,n=l-d.clientY,o=d.clientX,l=d.clientY,e.style.top=e.offsetTop-n+"px",e.style.left=e.offsetLeft-t+"px"}function s(){document.onmouseup=null,document.onmousemove=null}document.getElementById(e.id+"header")?document.getElementById(e.id+"header").onmousedown=d:e.onmousedown=d}function setModal(e,t,n){let o=document.getElementById(n);o||(o={offsetLeft:0,offsetTop:0});const l=document.getElementById("wediv"),d=document.getElementById("weIFrame"),f=window.pageYOffset||document.documentElement.scrollTop;l.hidden=!e,l.style.left=o.offsetLeft+300+"px",l.style.top=o.offsetTop+f+"px",t&&t.length&&(d.src=t),dragElement(l)}';
-      // js.onload = () => debugFgLog('------------- js loaded');
-      // head.appendChild(js);
       const markup = document.createElement('div');
       markup.id = 'wediv';
       markup.hidden = true;
@@ -563,15 +597,15 @@ function getWordsThenStartHighlighting () {
         preloadPositionsForAnotherVM();  // preLoad positions for this VM, if it is a VM within an iFrame
       }
       $('.weclose').click(() => {
-        const dialogClosed = true;
-        if (isInOurIFrame()) { // if in an iframe
-          debugFgLog('With editors displayed, and the endorsement page in an iFrame, the modal containing an iFrame to the webapp has closed.  Evaluating the need to update the PositionsPanel, weContentState ', weContentState);
-          updatePositionPanelFromTheIFrame(dialogClosed);  // which calls getRefreshedHighlights() if the positions data has changed
-        } else {
-          debugFgLog('dialog containing iFrame has closed, either without the editor displayed, or for newly discovered positions, ie right click on highlighed position');
-          updateHighlightsIfNeeded(dialogClosed);
-        }
+        closeIFrameDialog();
       });
+      window.addEventListener('message', function (e) {
+        debugFgLog('tabWordHighlighter receiving close message from iFrame: ', e.data);
+        if (e.data === 'closeIFrameDialog') {
+          debugFgLog('closing iFrame dialog');
+          closeIFrameDialog();
+        }
+      }, false);
     }
   });
 }
@@ -599,22 +633,22 @@ function highlightLoop (){
 
 }
 
-function getSearchKeyword () {
-  let searchKeyword = null;
-  if (document.referrer) {
-    for (searchEngine in searchEngines) {
-      if (document.referrer.indexOf(searchEngine)) {
-        searchKeyword = getSearchParameter(searchEngines[searchEngine]);
-      }
-    }
-  }
-  return searchKeyword;
-}
+// function getSearchKeyword () {
+//   let searchKeyword = null;
+//   if (document.referrer) {
+//     for (searchEngine in searchEngines) {
+//       if (document.referrer.indexOf(searchEngine)) {
+//         searchKeyword = getSearchParameter(searchEngines[searchEngine]);
+//       }
+//     }
+//   }
+//   return searchKeyword;
+// }
 
-function getSearchParameter (n) {
-  const half = document.referrer.split(n + '=')[1];
-  return half !== undefined ? decodeURIComponent(half.split('&')[0]) : null;
-}
+// function getSearchParameter (n) {
+//   const half = document.referrer.split(n + '=')[1];
+//   return half !== undefined ? decodeURIComponent(half.split('&')[0]) : null;
+// }
 
 /*function start() {
     debugFgLog("in start");
@@ -646,8 +680,8 @@ function getSearchParameter (n) {
 //
 //   // let bod = $('body');
 //   // let ems = $(bod).children().find('em.Highlight');
-//   var arr = document.getElementsByTagName('EM');
-//   var fd = document.getElementById('frameDiv');
+//   let arr = document.getElementsByTagName('EM');
+//   let fd = document.getElementById('frameDiv');
 //   let f0 = $('iframe')[0];
 //   let f0b = $(f0).find(':button');
 //   let f0e = $(f0).find('em');
@@ -669,7 +703,6 @@ function getSearchParameter (n) {
 
 
 function findWords () {
-  const findWordsDebug = true;
   const {chrome: {runtime: {sendMessage, lastError}}} = window;
   if (Object.keys(wordsArray).length > 0) {
     Highlight=false;
@@ -679,11 +712,9 @@ function findWords () {
 
       ReadyToFindWords=false;
 
-      var changed = false;
-
       const t1 = performance.now();
-      var myHilitor = new Hilitor();
-      var highlights = myHilitor.apply(wordsArray, printHighlights);
+      let myHilitor = new Hilitor();
+      let highlights = myHilitor.apply(wordsArray, printHighlights);
       const t2 = performance.now();
       timingFgLog(t1, t2, 'in findWords, Hilitor (apply) took', 8.0);
 
@@ -691,7 +722,7 @@ function findWords () {
       if (highlights.numberOfHighlights > 0) {
         highlightMarkers = highlights.markers;
         markerPositions = [];
-        for (marker in highlightMarkers) {
+        for (let marker in highlightMarkers) {
           if (markerPositions.indexOf(highlightMarkers[marker].offset) === -1) {
             markerPositions.push(highlightMarkers[marker].offset);
           }
@@ -713,7 +744,7 @@ function findWords () {
             label: uniqueNameMatches.length.toString(),
             uniqueNames: uniqueNameMatches,
             altColor: uniqueNameMatches.length ? '' : 'darkgreen',
-          }, function (response) {
+          }, function () {
             if (lastError) {
               debugFgLog('findWords() ... chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
             }
@@ -728,7 +759,7 @@ function findWords () {
             label: '0',
             uniqueNames: [],
             altColor: 'darkgreen',
-          }, function (response) {
+          }, function () {
             if (lastError) {
               debugFgLog(' chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
             }
@@ -768,7 +799,7 @@ function convertV2onClickToV3 () {
           el.attr('id', id);
         }
         convertedOnClicks.push(id);
-        const url = onClickText.split('\'')[1];
+        const { url } = onClickText.split('\'');
         el.removeAttr('onClick');  // Remove the V2 onClick
         el.click(() => {
           console.log('converted onClick for ' + id);
@@ -799,7 +830,7 @@ function convertV2onClickToV3 () {
   });
 }
 
-function revealRightAction (selection, pageURL, tabId) {
+function revealRightAction (selection) {
   const nameMatchElement = $('#sideArea').contents().find(':contains(' + selection + '):last');
   if (nameMatchElement.length) {
     $(nameMatchElement)[0].scrollIntoView({
@@ -811,8 +842,10 @@ function revealRightAction (selection, pageURL, tabId) {
 }
 
 // This allows the popup to find out if this tab is highlighted and/or editors are displayed
-function getDisplayedTabStatus (tabId) {
-  const { highlighterEnabledThisTab, highlighterEditorEnabled} = weContentState;
+async function getDisplayedTabStatus (tabId) {
+  const state = await getGlobalState();
+  const { highlighterEditorEnabled, highlighterEnabledThisTab, editorEnabledThisTab } = state;
+  // const { highlighterEnabledThisTab, highlighterEditorEnabled} = weContentState;
   debugFgLog('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', highlighterEditorEnabled: ' + highlighterEditorEnabled);
   return {
     highlighterEnabledThisTab,
@@ -824,6 +857,7 @@ function globStringToRegex (str) {
   return preg_quote(str).replace(/\\\*/g, '\\S*').replace(/\\\?/g, '.');
 }
 
+// eslint-disable-next-line camelcase
 function preg_quote (str,delimiter) {
   // http://kevin.vanzonneveld.net
   // +   original by: booeyOH

@@ -72,7 +72,8 @@
             "js/contentForeground/tabWordHighlighter.js",
             "js/contentForeground/contentWeVoteUI.js",
             "js/contentForeground/dragElement.js",
-            "js/commonWeVote.js",
+            "js/common/commonWeVote.js",
+            "js/common/globalState.js",
             "libs/jquery/jquery-3.6.0.min.js",
             "libs/jquery-ui-modified/jquery-ui-1.12.1.min-we-vote.js",
             "libs/string-similarity/compare-strings.js"

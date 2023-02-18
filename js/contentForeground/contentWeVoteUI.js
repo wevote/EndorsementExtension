@@ -1,28 +1,30 @@
-/* global $, markupForThumbSvg, extensionSignInPage, extensionSignInPage, addCandidateExtensionWebAppURL, colors */
+/* global $, markupForThumbSvg, extensionSignInPage, extensionSignInPage, addCandidateExtensionWebAppURL, colors,
+   chrome, updateGlobalState, getGlobalState, getVoterDeviceId, sendGetStatus, debugServiceWorker, debugTimingForegroundContent
+*/
 
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
 
-let weContentState = {
-  allNames: '',
-  candidateName: '',
-  highlighterEditorEnabled: false,
-  highlighterEnabled: false,
-  highlighterEnabledThisTab: false,
-  priorHighlighterEnabledThisTab: false,
-  isFromPDF:  false,
-  neverHighlightOn: {},
-  orgName: '',
-  organizationTwitterHandle: '',
-  organizationWeVoteId: '',
-  positions: [],
-  positionsCount: 0,
-  possibleOrgsList: [],
-  priorData: [],
-  tabId: -1,
-  voterGuidePossibilityId: '',
-  voterIsSignedIn: false,
-  voterWeVoteId: '',
-};
+// let weContentState = {
+//   allNames: '',
+//   candidateName: '',
+//   highlighterEditorEnabled: false,
+//   highlighterEnabled: false,
+//   highlighterEnabledThisTab: false,
+//   priorHighlighterEnabledThisTab: false,
+//   isFromPDF:  false,
+//   neverHighlightOn: {},
+//   orgName: '',
+//   organizationTwitterHandle: '',
+//   organizationWeVoteId: '',
+//   positions: [],
+//   positionsCount: 0,
+//   possibleOrgsList: [],
+//   priorData: [],
+//   tabId: -1,
+//   voterGuidePossibilityId: '',
+//   voterIsSignedIn: false,
+//   voterWeVoteId: '',
+// };
 
 function isInOurIFrame () {
   // const headerExists = $('div#wedivheader').length > 0;   // this is true if in our highlighted "Endorsement Page" that is framed by the "Open Edit Panel" button action}
@@ -39,16 +41,17 @@ function isInOurIFrame () {
  * @param {number} tabId - chromes tab number for currently displayed tab
  * @returns {boolean} - return true to indicate that we want to call the response function asynchronously
  */
-function displayHighlightingAndPossiblyEditor (highlighterEnabledThisTab, highlighterEditorEnabled, tabId) {  // eslint-disable-line no-unused-vars
+async function displayHighlightingAndPossiblyEditor (highlighterEnabledThisTab, highlighterEditorEnabled, tabId) {  // eslint-disable-line no-unused-vars
   const displayHighlightingAndPossiblyEditorDebug = true;
   displayHighlightingAndPossiblyEditorDebug && debugFgLog('ENTERING contentWeVoteUI > displayHighlightingAndPossiblyEditor highlighterEnabledThisTab: ', highlighterEnabledThisTab, ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', tabId: ', tabId);
-  if (tabId && !isNaN(tabId)) {
-    weContentState.tabId = tabId;
-  }
+  // if (tabId && !isNaN(tabId)) {
+  //   weContentState.tabId = tabId; // 2/17/23 Needed anymore?
+  // }
 
   const urlToQuery = $('input[name="pdfFileName"]').val();
-  weContentState.isFromPDF = urlToQuery && urlToQuery.length > 0;   // This is for PDFs that have been converted to HTML by PDFMinerSix
-  if (weContentState.isFromPDF) {
+  const isFromPDF = urlToQuery && urlToQuery.length > 0;   // This is for PDFs that have been converted to HTML by PDFMinerSix
+  await updateGlobalState({ isFromPDF: isFromPDF });
+  if (isFromPDF) {
     fixupForPdfMinerSix();
   }
 
@@ -140,14 +143,18 @@ function displayEditPanes () {
 // }
 
 function initializeOrgChoiceList () {
-  setTimeout(() => {
-    if (weContentState.voterWeVoteId && weContentState.voterWeVoteId.length) {
-      if (weContentState.possibleOrgsList && weContentState.possibleOrgsList.length) {
-        orgChoiceDialog(weContentState.possibleOrgsList);
-      } else if (weContentState.positionsCount === 0) {
+  setTimeout(async () => {
+    const state = await getGlobalState();
+    const { voterWeVoteId, possibleOrgsList, positionsCount } = state;
+    // if (weContentState.voterWeVoteId && weContentState.voterWeVoteId.length) {
+    //   if (weContentState.possibleOrgsList && weContentState.possibleOrgsList.length) {
+    if (voterWeVoteId && voterWeVoteId.length) {
+      if (possibleOrgsList && possibleOrgsList.length) {
+        orgChoiceDialog(possibleOrgsList);
+      } else if (positionsCount === 0) {
         setSideAreaStatus('No Candidate endorsements have been captured yet for this endorsement page.');
         setTimeout(() => {
-          debugFgLog('Second attempt to get a weContentState.position value, 6 secs later.');
+          debugFgLog('Second attempt to get a globalState position value, 6 secs later.');
           retryLoadPositionPanel();
         }, 6000);
       }
@@ -171,7 +178,7 @@ function debugWarn (...args) {
   Then when you navigate to some endorsement page. the device id will become available in local storage.
   Sept 10, 2019, you may have to clear storage.local 'voterDeviceId'.  You will have to be running a local webapp, which
   is pointed to a local python server, so that they all share a voterDeviceId.  If you have had a valid voterDeviceId
-  in the past, you can get the most recent one form pgAdmin/voter_voterdevicelink and paste it into the value for
+  in the past, you can get the most recent one from pgAdmin/voter_voterdevicelink and paste it into the value for
   voterDeviceId in the chrome-extension's DevTools Application tab.
  */
 // Called on click true, or topbar init false, and also when the panels are created for a page
@@ -179,14 +186,14 @@ function signIn (attemptLogin) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugFgLog('new signIn');
   sendMessage({ command: 'getVoterInfo',},
-    function (response) {
+    async function (response) {
       if (lastError) {
         debugFgLog(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
+      debugFgLog('chrome.runtime.sendMessage("getVoterInfo") raw response ', response);
       const {success, error, err, voterName, photoURL, weVoteId, voterEmail, isSignedIn} = response.data;
       debugFgLog(' chrome.runtime.sendMessage("getVoterInfo") success', response.data);
-      weContentState.voterWeVoteId = weVoteId || '';
-      debugFgLog('signIn response: ', response);
+      await updateGlobalState({ voterWeVoteId: weVoteId || '' });
       let voterInfo = {
         success: success,
         error: error,
@@ -209,7 +216,7 @@ function signIn (attemptLogin) {
         $('body').on('domChanged', function () {
           domHasChanged = true;
         });
-        // Sign in has been confined, the panels have been drawn, now it is time to do the highlighting (on a loading page) so
+        // Sign in has been confirmed, the panels have been drawn, now it is time to do the highlighting (on a loading page) so
         // we need to keep looping until the page has finished updating)
         const interval = setInterval(function (){
           try {
@@ -246,10 +253,13 @@ function signIn (attemptLogin) {
       debugFgLog('90 seconds to sign in timeout occurred, without having signed in');
     }, 90000);
 
-    const interval = setInterval(function (){
+    const interval = setInterval(async function (){
       // debugFgLog('loop weContentState.voterIsSignedIn: ', weContentState.voterIsSignedIn);
       getVoterInfo();
-      if (weContentState.voterIsSignedIn || stopWaiting) {
+      const state = await getGlobalState();
+      const { voterIsSignedIn } = state;
+
+      if (voterIsSignedIn || stopWaiting) {
         clearInterval(interval);
       }
     }, 100);
@@ -263,20 +273,21 @@ function setSignInOutMarkup (voterInfo) {
     signInSelector.replaceWith(
       '<img id="signIn" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" src="' + photo + '" ' +
       'style="margin: 12px; width: 50px; height: 50px;" />');
-    signInSelector.click(() => {
-      // We are currently signed in, so this click signs us out
-      debugFgLog('Sign out pressed');
-      // Removing the stored voterDeviceId deauthenticates us, signs us out, within the chrome extension
-      chrome.storage.sync.remove('voterDeviceId', () => {
-        if (chrome.runtime.lastError) {
-          console.error('chrome.storage.sync.remove(voterDeviceId) failed with', chrome.runtime.lastError.message);
-        }
-        let voterInfo = {
-          isSignedIn: false,
-        };
-        setSignInOutMarkup(voterInfo);
-      });
-    });
+    // Feb 15, 2023 -- disable the ability to sign out, plus this does it using the old storage scheme
+    // signInSelector.click(() => {
+    //   // We are currently signed in, so this click signs us out
+    //   debugFgLog('Sign out pressed');
+    //   // Removing the stored voterDeviceId deauthenticates us, signs us out, within the chrome extension
+    //   chrome.storage.sync.remove('voterDeviceId', () => {
+    //     if (chrome.runtime.lastError) {
+    //       console.error('chrome.storage.sync.remove(voterDeviceId) failed with', chrome.runtime.lastError.message);
+    //     }
+    //     let voterInfo = {
+    //       isSignedIn: false,
+    //     };
+    //     setSignInOutMarkup(voterInfo);
+    //   });
+    // });
   } else {
     const html = signInSelector[0].outerHTML;
     if (html.includes('voterPhoto')) {
@@ -295,12 +306,12 @@ function setSignInOutMarkup (voterInfo) {
 function getVoterInfo () {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   sendMessage({ command: 'getVoterInfo',},
-    function (response) {
+    async function (response) {
       if (lastError) {
         debugFgLog(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
       const { success, error, err, voterName, photoURL, weVoteId, voterEmail, isSignedIn } = response.data;
-      weContentState.voterWeVoteId = weVoteId || '';
+      // weContentState.voterWeVoteId = weVoteId || '';
       debugFgLog('signIn response: ', response);
       let voterInfo = {
         success: success,
@@ -313,7 +324,10 @@ function getVoterInfo () {
         isSignedIn
       };
       if (success) {
-        weContentState.voterIsSignedIn = isSignedIn;
+        await updateGlobalState({
+          voterIsSignedIn: isSignedIn,
+          voterWeVoteId: weVoteId || '',
+        });
       }
 
       if (success && isSignedIn) {
@@ -368,7 +382,7 @@ function topMenu () {
 }
 
 // Get the href into the extension
-function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tabId) {
+async function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tabId) {
   const timingLogDebug = false;
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   const t0 = performance.now();
@@ -381,10 +395,10 @@ function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tab
   // TODO: We need to send both urls, html and pdf to the server
 
   // Start by just retrieving the endorsements already captured
-  getVoterDeviceId().then((voterDeviceId) => {
-    console.log('**************** before send message getHighlights in getVoterDeviceId(), weContentState.tabId', weContentState.tabId);
-    sendMessage({ command: 'getHighlights', url: urlToQuery, 'voterDeviceId': voterDeviceId, tabId: weContentState.tabId, doReHighlight: false },
-      function (response) {
+  await getVoterDeviceId().then((voterDeviceId) => {
+    console.log('**************** before send message getHighlights in getVoterDeviceId(), tabId', tabId);
+    sendMessage({ command: 'getHighlights', url: urlToQuery, 'voterDeviceId': voterDeviceId, tabId: tabId, doReHighlight: false },
+      async function (response) {
         if (lastError) {
           debugFgLog(' chrome.runtime.sendMessage("getHighlights")', lastError.message);
         }
@@ -405,7 +419,7 @@ function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tab
             // See the call to sendGetStatus in the initialization code for tabWordHighlighter
             updateTopMenu(false);  // Get the voterGuidePossiblityId without attempting to update the non-existent top menu
           }
-          sendGetStatus();
+          await sendGetStatus();
 
           // By now, the endorsements already captured should be displayed,
           // so we can move on to also showing recognized candidate names
@@ -413,7 +427,7 @@ function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tab
           debugFgLog('sendMESSAGE contentWeVoteUI > getCombinedHighlights command ========================== ');
           const timeoutDuration = 7000;  // 7 seconds so the voterGuidePossibilityHighlightsRetrieve can finish
           debugFgLog('STARTING === 7 Second Delay === contentWeVoteUI > getHighlights > getCombinedHighlights');
-          setTimeout(() => {
+          setTimeout(async () => {
             // We added a 7 second delay to let the page finish updating from the getHighlights command
             const justSetUpPanels = false;
             // if (isInOurIFrame()) { // if in an iframe
@@ -424,7 +438,9 @@ function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tab
               retryLoadPositionPanel();
             } else {
               // NOTE FROM DALE: 2020-06-08 This works when we haven't put the organization voter guide in a panel
-              sendMessage({command: 'getCombinedHighlights', voterWeVoteId: weContentState.voterWeVoteId, tabId: weContentState.tabId, url: urlToQuery, doReHighlight: true},
+              const state = await getGlobalState();
+              const { voterWeVoteId } = state;
+              sendMessage({command: 'getCombinedHighlights', voterWeVoteId: voterWeVoteId, tabId: tabId, url: urlToQuery, doReHighlight: true},
                 function (response) {
                   if (lastError) {
                     debugFgLog('ERROR: chrome.runtime.sendMessage("getCombinedHighlights")', lastError.message);
@@ -452,13 +468,16 @@ function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tab
   });
 }
 
-function getRefreshedHighlights (dialogClosed) {
+async function getRefreshedHighlights (dialogClosed) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugFgLog('getRefreshedHighlights called');
-  getVoterDeviceId().then((voterDeviceId) => {
-    console.log('**************** before send message getRefreshedHighlights in getVoterDeviceId(), weContentState.tabId', weContentState.tabId);
-    sendMessage({ command: 'getHighlights', url: window.location.href, 'voterDeviceId': voterDeviceId, doReHighlight: true, tabId: weContentState.tabId },
-      function (response) {
+  await getVoterDeviceId().then(async (voterDeviceId) => {
+    const state = await getGlobalState();
+    const { tabId } = state;
+
+    console.log('**************** before send message getRefreshedHighlights in getVoterDeviceId(), tabId:', tabId);
+    sendMessage({ command: 'getHighlights', url: window.location.href, 'voterDeviceId': voterDeviceId, doReHighlight: true, tabId: tabId },
+      async function (response) {
         if (lastError) {
           debugFgLog(' chrome.runtime.sendMessage("getRefreshedHighlights") ', lastError.message);
         }
@@ -466,7 +485,9 @@ function getRefreshedHighlights (dialogClosed) {
 
         if (response) {
           debugFgLog('SUCCESS: getRefreshedHighlights received a response', response);
-          const { highlighterEditorEnabled } = weContentState;
+          // const { highlighterEditorEnabled } = weContentState;
+          const state = await getGlobalState();
+          const { highlighterEditorEnabled } = state;
           if (highlighterEditorEnabled) {
             debugFgLog('getRefreshedHighlights reloading iframe (before reload)');
             if (dialogClosed) {
@@ -490,7 +511,7 @@ function updateTopMenu (update) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugFgLog('updateTopMenu()');
   sendMessage({ command: 'getTopMenuData', url: window.location.href },
-    function (response) {
+    async function (response) {
       if (lastError) {
         debugFgLog(' chrome.runtime.sendMessage("getTopMenuData")', lastError.message);
       }
@@ -498,12 +519,19 @@ function updateTopMenu (update) {
 
       if (response && Object.entries(response).length > 0) {
         const { orgName, orgLogo, voterGuidePossibilityId, noExactMatchOrgList, twitterHandle, weVoteId, tabId } = response.data;
-        weContentState.organizationWeVoteId = weVoteId;
-        weContentState.organizationTwitterHandle = twitterHandle;
-        weContentState.orgName = orgName;
-        weContentState.voterGuidePossibilityId = voterGuidePossibilityId;
-        weContentState.possibleOrgsList = noExactMatchOrgList;
-        if (tabId > 0) weContentState.tabId = tabId;
+        // weContentState.organizationWeVoteId = weVoteId;
+        // weContentState.organizationTwitterHandle = twitterHandle;
+        // weContentState.orgName = orgName;
+        // weContentState.voterGuidePossibilityId = voterGuidePossibilityId;
+        // weContentState.possibleOrgsList = noExactMatchOrgList;
+        await updateGlobalState({
+          organizationWeVoteId: weVoteId,
+          organizationTwitterHandle: twitterHandle,
+          orgName: orgName,
+          voterGuidePossibilityId: voterGuidePossibilityId,
+          possibleOrgsList: noExactMatchOrgList,
+          tabId: tabId,
+        });
 
         if (update) {
           $('#orgLogo').attr('src', orgLogo);
@@ -511,7 +539,7 @@ function updateTopMenu (update) {
           $('#sendTopComment').click(() => {
             sendTopComment();
           });
-          debugFgLog('updateTopMenu voterGuidePossibilityId: ' + weContentState.voterGuidePossibilityId);
+          debugFgLog('updateTopMenu voterGuidePossibilityId: ' + voterGuidePossibilityId);
         }
 
         signIn(false);                       // Calls handleUpdatedOrNewPositions() to draw the initial position pane if the editor has been chosen on popup.js
@@ -528,7 +556,7 @@ function updateTopMenu (update) {
 
 /* eslint-disable no-unused-vars */
 function updateHighlightsIfNeeded (dialogClosed) {
-  debugFgLog('ENTERING contentWeVoteUI > updateHighlightsIfNeeded ==========================');
+  debugFgLog('ENTERING contentWeVoteUI > updateHighlightsIfNeeded ========================== dialogClosed:', dialogClosed);
   handleUpdatedOrNewPositions(false, false, false, dialogClosed);
 }
 
@@ -553,10 +581,10 @@ function preloadPositionsForAnotherVM () {
   }
 }
 
-function updatePositionPanelFromTheIFrame (dialogClosed) {
-  debugFgLog('ENTERING contentWeVoteUI > updatePositionPanelFromTheIFrame ==========================');
-  handleUpdatedOrNewPositions(true, true, false, dialogClosed);
-}
+// function updatePositionPanelFromTheIFrame (dialogClosed) {
+//   debugFgLog('ENTERING contentWeVoteUI > updatePositionPanelFromTheIFrame ==========================');
+//   handleUpdatedOrNewPositions(true, true, false, dialogClosed);
+// }
 
 function retryLoadPositionPanel () {
   debugFgLog('ENTERING contentWeVoteUI > retryLoadPositionPanel ==========================');
@@ -564,9 +592,12 @@ function retryLoadPositionPanel () {
 }
 /* eslint-enable no-unused-vars */
 
-function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogClosed) {
+async function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogClosed) {
   const { runtime: { sendMessage, lastError } } = chrome;
-  debugFgLog('ENTERING contentWeVoteUI > handleUpdatedOrNewPositions() getPositions, weContentState.voterGuidePossibilityId: ' + weContentState.voterGuidePossibilityId);
+  const state = await getGlobalState();
+  const { voterGuidePossibilityId, voterWeVoteId } = state;
+
+  debugFgLog('ENTERING contentWeVoteUI > handleUpdatedOrNewPositions() getPositions,voterGuidePossibilityId: ' + voterGuidePossibilityId);
 
   getVoterDeviceId().then((voterDeviceId) => {
     sendMessage({
@@ -574,10 +605,10 @@ function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogClosed)
       voterDeviceId,
       hrefURL: window.location.href,
       isIFrame: isInOurIFrame(),
-      voterGuidePossibilityId: weContentState.voterGuidePossibilityId,
-      voterWeVoteId: weContentState.voterWeVoteId
+      voterGuidePossibilityId: voterGuidePossibilityId,
+      voterWeVoteId: voterWeVoteId,
     },
-    function (response) {
+    async function (response) {
       if (lastError) {
         debugFgLog(' chrome.runtime.sendMessage("getPositions")', lastError.message);
       }
@@ -585,7 +616,7 @@ function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogClosed)
       debugFgLog('handleUpdatedOrNewPositions() response', response);
       if ((response && Object.entries(response).length > 0) && (response.data !== undefined) && (response.data.length > 0)) {
         let {data} = response;
-        // debugFgLog('--------------- handleUpdatedOrNewPositions: booleans, response and previous', update, fromIFrame, preLoad, data, weContentState.priorData);
+        // debugFgLog('--------------- handleUpdatedOrNewPositions: booleans, response and previous', update, fromIFrame, preLoad, data, priorData);
         if (!preLoad && !hasCandidateDataChanged(data)) {
           // debugFgLog('handleUpdatedOrNewPositions -------------- no change in data, aborting update of positions panel');
           return;
@@ -596,7 +627,9 @@ function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogClosed)
           coreUpdatePositions(data, update);
         }
 
-        weContentState.priorData = data;
+        await updateGlobalState({ priorData: data });
+        // weContentState.priorData = data;
+
         if (fromIFrame && !preLoad) {
           getRefreshedHighlights(dialogClosed);
         }
@@ -608,34 +641,40 @@ function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogClosed)
   });
 }
 
-function hasCandidateDataChanged (data) {
-  if (data.length !== weContentState.priorData.length) {
+async function hasCandidateDataChanged (data) {
+  const state = await getGlobalState();
+  const { priorData } = state;
+
+  if (data.length !== priorData.length) {
     return true;
   }
   for (let i =0; i< data.length; i++) {
-    if (data[i].position_stance !== weContentState.priorData[i].position_stance) {
+    if (data[i].position_stance !== priorData[i].position_stance) {
       return true;
     }
-    if (data[i].statement_text !== weContentState.priorData[i].statement_text) {
+    if (data[i].statement_text !== priorData[i].statement_text) {
       return true;
     }
-    if (data[i].more_info_url !== weContentState.priorData[i].more_info_url) {
+    if (data[i].more_info_url !== priorData[i].more_info_url) {
       return true;
     }
   }
   return false;
 }
 
-function coreUpdatePositions (data, update) {
+async function coreUpdatePositions (data, update) {
   let names = [];
   let positions = [];
-  weContentState.positionsCount = data.length;
+  let organizationWeVoteIdOuter = '';
+  let positionsCount = data.length;
+  await updateGlobalState({ positionsCount: positionsCount });
+  // weContentState.positionsCount = data.length;  // Feb 17, 2023  deprecating
   let selector = $('#sideArea');
-  if (weContentState.positionsCount > 0) {
+  if (positionsCount > 0) {
     setSideAreaStatus();
     let insert = 0;
     let allHtml = $('#noDisplayPageBeforeFraming').html();
-    for (let i = 0; i < weContentState.positionsCount; i++) {
+    for (let i = 0; i < positionsCount; i++) {
       debugFgLog('coreUpdatePositions data: ', data[i]);
       // be sure not to use position_stance_stored, statement_text_stored, or more_info_url_stored -- we want the possibilities, not the live data
       let {
@@ -659,8 +698,8 @@ function coreUpdatePositions (data, update) {
         continue;
       }
       names.push(name.toLowerCase());
-
-      weContentState.organizationWeVoteId = organizationWeVoteId;
+      // weContentState.organizationWeVoteId = organizationWeVoteId;  // Feb 17, 2023  deprecating
+      organizationWeVoteIdOuter = organizationWeVoteId;
 
       let position = {
         name,
@@ -705,7 +744,12 @@ function coreUpdatePositions (data, update) {
       return a.sortOffset > b.sortOffset ? 1 : -1;
     });
   }
-  weContentState.positions = positions;
+  // weContentState.positions = positions;  // Feb 17, 2023  deprecating
+  await updateGlobalState({
+    positions,
+    positionsCount,
+    organizationWeVoteId: organizationWeVoteIdOuter,
+  });
 
   if (update) {
     for (let k = 0; k < positions.length; k++) {
@@ -929,7 +973,7 @@ function selectOneDeselectOthers (type, targetFurl) {
 }
 
 // We are only updating possibilities here, we are not changing the "stored" live presentation data
-function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDialog) {
+async function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDialog) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   const targetCand = event.currentTarget.className; // div.candidateWe.candidateWe-4
   const targetFurl = '#' + targetCand.replace('candidateWe candidateWe', 'furlable');
@@ -962,11 +1006,13 @@ function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDi
   const iconOnly = true;
   let iconContainer = unfurlableGrid (number, '', '', '', '', '', inLeftPane, detachedDialog, stance, isStored, statementText.length > 0, iconOnly);
   $('#iconContainer-' + number).wrap('<p/>').parent().html(iconContainer);
+  const state = await getGlobalState();
+  const { voterGuidePossibilityId } = state;
 
   sendMessage({
     command: 'savePosition',
     itemName,
-    voterGuidePossibilityId: weContentState.voterGuidePossibilityId,
+    voterGuidePossibilityId: voterGuidePossibilityId,
     voterGuidePossibilityPositionId,
     stance,
     statementText,
@@ -1019,9 +1065,11 @@ function saveUpdatedCandidatePossiblePosition (event, removePosition, detachedDi
   });
 }
 
-function unfurlOnePositionPane (event, forceNumber) {
-  let targetFurl = '';
-  let number = -1;
+async function unfurlOnePositionPane (event, forceNumber) {
+  // eslint-disable-next-line init-declarations
+  let targetFurl;
+  // eslint-disable-next-line init-declarations
+  let number;
   if (forceNumber > -1) {
     targetFurl = '#furlable-' + forceNumber;
     number = forceNumber;
@@ -1030,9 +1078,10 @@ function unfurlOnePositionPane (event, forceNumber) {
     targetFurl = '#' + targetCand.replace('candidateWe candidateWe', 'furlable');
     number = targetFurl.substring(targetFurl.indexOf('-') + 1);
     let selectorForName = '#' + event.currentTarget.classList[1].replace('candidateWe', 'candidateName');
-    weContentState.candidateName = $(selectorForName).val();
+    let candidateName = $(selectorForName).val();
     let selectorForAllNames = '#' + event.currentTarget.classList[1].replace('candidateWe', 'allNames');
-    weContentState.allNames = $(selectorForAllNames).val();
+    let allNames = $(selectorForAllNames).val();
+    await updateGlobalState({ candidateName: candidateName, allNames: allNames });
   }
   const element = document.getElementById('unfurlable-' + number);
   element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }); // alignTioTop
@@ -1058,10 +1107,13 @@ function addHandlersForCandidatePaneButtons (targetDiv, number, detachedDialog) 
         selectOneDeselectOthers('info', targetDiv);
       });
     } else if (className.startsWith('revealLeft')) {
-      $(but).click((event) => {
+      $(but).click(async (event) => {
         event.stopPropagation();
         // Try each name, hopefully only one will be on the screen, if not we will end up at the last matching name
-        let aliases = weContentState.allNames.split(',');
+        const state = await getGlobalState();
+        const { allNames } = state;
+
+        let aliases = allNames.split(',');
         for (let i = 0; i < aliases.length; i++) {
           const emphasizedElement = $('#frame:first').contents().find(':contains(' + aliases[i] + '):last');
           if (emphasizedElement.length) {
@@ -1132,10 +1184,10 @@ function openSuggestionPopUp (selection) {
   debugFgLog('openSuggestionPopUp addCandidateForExtension frameUrl', frameUrl);
 
   $('<iframe id="weIFrame" src="' + frameUrl + '" style="width: 448px" name="weIframeByName"></div>').dialog({
-    title: 'iframe from contentWeVoteUI',
+    title: 'Add a candidate endorsement',
     show: true,
     width: 450,
-    height: 600,
+    height: 6580,
     resizable: false,
     fixedDimensions: true,
     closeText: ''
@@ -1307,45 +1359,50 @@ function orgChoiceDialog (orgList) {
   setSideAreaStatus();
   $('#sideArea').append(markup);
   $('.orgChoiceButton').each((i, but) => {
-    $(but).click((event) => {
+    $(but).click(async (event) => {
       const {id} = event.currentTarget;
       const {href} = window.location;
       let organizationWeVoteId = id.substring(id.indexOf('-') + 1);
+      const state = await getGlobalState();
+      const { voterGuidePossibilityId, voterWeVoteId } = state;
 
       debugFgLog('orgChoiceDialog voterGuidePossibilitySave, orgChoiceButton button onclick:  ' + event.currentTarget.id);
       sendMessage({
         command: 'voterGuidePossibilitySave',
         organizationWeVoteId: organizationWeVoteId,
-        voterGuidePossibilityId: weContentState.voterGuidePossibilityId,
+        voterGuidePossibilityId: voterGuidePossibilityId,
         internalNotes: 'Proposed endorsement page: ' + href,
-        voterWeVoteId : weContentState.voterWeVoteId,
+        voterWeVoteId : voterWeVoteId,
       },
       function (res) {
         if (lastError) {
           debugFgLog(' chrome.runtime.sendMessage("setSideAreaStatus voterGuidePossibilitySave")', lastError.message);
         }
         debugFgLog('setSideAreaStatus voterGuidePossibilitySave() response', res);
-        const{ organization_we_vote_id: id } = res.res.organization;
+        const{ results: { organization: { organization_we_vote_id: id } } } = res;
         if (id && id.length) {
           updateTopMenu(true);
           $('#orgChoiceDialog').remove();  // Remove this selection menu/dialog
-          setSideAreaStatus('No Candidate endorsements have been captured yet for this endorsement page.');
+          setSideAreaStatus('No Candidate endorsements have been captured yet for this endorsement page..');
         }
       });
     });
   });
 }
 
-function sendTopComment () {
+async function sendTopComment () {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
-  debugFgLog('ENTERING sendTopComment voterGuidePossibilitySave, orgChoiceDialog button onclick:  ' + event.currentTarget.id);
+  debugFgLog('ENTERING sendTopComment voterGuidePossibilitySave, orgChoiceDialog button onclick');
+  const state = await getGlobalState();
+  const { organizationWeVoteId, voterGuidePossibilityId, voterWeVoteId } = state;
+
   sendMessage({
     command: 'voterGuidePossibilitySave',
-    organizationWeVoteId: weContentState.organizationWeVoteId,
-    voterGuidePossibilityId: weContentState.voterGuidePossibilityId,
+    organizationWeVoteId: organizationWeVoteId,
+    voterGuidePossibilityId: voterGuidePossibilityId,
     internalNotes: $('#topComment').val(),
     contributorEmail: $('#emailWe').val(),
-    voterWeVoteId : weContentState.voterWeVoteId,
+    voterWeVoteId : voterWeVoteId,
   },
   function (res) {
     if (lastError) {
@@ -1388,4 +1445,44 @@ function setSideAreaStatus (text) {
   } else if ($('#sideAreaStatus').length === 0) {
     $('#sideArea').append('<div id="sideAreaStatus">' + text + '</div>');
   }
+}
+
+function timingLog (time0, time1, text, warnAt) {
+  const duration = time1 - time0;
+
+  if (duration < 1000) {
+    const niceDuration = Number.parseFloat(duration).toPrecision(4);
+    console.log('ttttt TIMING: time to ' + text + ' ' + niceDuration + ' milliseconds.');
+  } else {
+    const niceDuration = Number.parseFloat(duration/1000).toPrecision(4);
+    const msg = 'ttttt TIMING: time to ' + text + '  ' + niceDuration + ' SECONDS.';
+    if ((duration)/1000 > warnAt) {
+      // console.warn(msg);  // too heavy handed for the extension log file
+      console.log('WARNING ' + msg);
+    } else {
+      console.log(msg);
+    }
+  }
+}
+
+// eslint-disable-next-line no-unused-vars
+function debugSwLog (...args) {
+  if (debugServiceWorker) {
+    stampedLog(...args);
+  }
+}
+
+function debugFgLog (...args) {
+  if (debugTimingForegroundContent) {
+    stampedLog(...args);
+  }
+}
+
+function stampedLog (...args) {
+  const t1 = performance.now();
+  if (!window.constructionT0) window.constructionT0 = t1;  // REMEMBER: that the dom in the extension is not the same as the dom in the foreground web page!
+  const timeStr = Number.parseFloat((t1 - window.constructionT0)/1000).toFixed(3);
+  args.unshift(':');
+  args.unshift(timeStr);
+  console.log(...args);
 }
