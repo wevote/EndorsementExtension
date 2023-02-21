@@ -1,5 +1,6 @@
 **2/17/23**
 * Handle close error in popup.js: Unchecked runtime.lastError: The message port closed before a response was received.
+* More efficient replacement for tabWordHighligher L 449, where we dont even ask status from "other" tabs.
 * Speed Final checks, and without so much logging
 * Test PDF processing
 * Still have a small bit of (lower priority) multi-tab selection code to clean out.

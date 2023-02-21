@@ -377,16 +377,21 @@ function reHighlight (words) {
 async function getVoterDeviceIdFromWeVoteDomainPage () {
   // Capture the voter_device_id if we are on a wevote page
   const tag = 'voter_device_id';
-  let b = document.cookie.match('(^|[^;]+)\\s*' + tag + '\\s*=\\s*([^;]+)');
-  let id = b ? b.pop() : '';
-  if (id && id.length > 5) {
-    debugFgLog('=======  voter_device_id captured from a wevote page, id: ' + id);
-    await mergeToGlobalState({'voterDeviceId': id});
-    debugFgLog('======= voterDeviceId was merged mergeToGlobalState from a wevote page, id: ' + id);
-  } else {
-    debugFgLog('======= voterDeviceId WAS NOT MERGED mergeToGlobalState from a wevote page since no id');
+  try {
+    let b = document.cookie.match('(^|[^;]+)\\s*' + tag + '\\s*=\\s*([^;]+)');
+    let id = b ? b.pop() : '';
+    if (id && id.length > 5) {
+      debugFgLog('=======  voter_device_id captured from a wevote page, id: ' + id);
+      await mergeToGlobalState({'voterDeviceId': id});
+      debugFgLog('======= voterDeviceId was merged mergeToGlobalState from a wevote page, id: ' + id);
+    } else {
+      debugFgLog('======= voterDeviceId WAS NOT MERGED mergeToGlobalState from a wevote page since no id');
+    }
+    return id;
+  } catch (e) {
+    debugFgLog('======= voterDeviceId cookie does not exist so no id');
+    return '';
   }
-  return id;
 }
 
 // When a tab sends the getStatus message, it starts a whole sequence of events and other messages, that go to the API server
@@ -438,10 +443,10 @@ async function sendGetStatus () {
     // weContentState.neverHighlightOn = neverHighlightOn && neverHighlightOn.length ? neverHighlightOn : weContentState.neverHighlightOn;
     // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary --  April 26, 2020, do we even need 'myTabId' msg chain?
     const state = await getGlobalState();
-    const { highlighterEnabledThisTab } = state;
+    const { highlighterEnabledThisTab, url: urlFromState, tabId: tabIdFromState } = state;
 
-    if (highlighterEnabledThisTab) {
-      debugFgLog('about to get words', window.location);
+    debugFgLog('sendGetStatus -- Testing for correct tab -- correct: ', (tabId === tabIdFromState), ', this tabID: ', tabId, ', tabIdFromState:', tabIdFromState, window.location.href, urlFromState);
+    if (highlighterEnabledThisTab && tabId === tabIdFromState) {
       await getWordsThenStartHighlighting();
     }
   });
