@@ -246,20 +246,22 @@ function signIn (attemptLogin) {
     const url = extensionSignInPage + '?title=' + encodeURIComponent(document.title);
     window.open(url, '_blank');
 
-    debugFgLog('opened: ', url);
+    debugFgLog('SIGNIN: opened webapp url for signin: ', url);
     let stopWaiting = false;
-    setTimeout(function (){
+    const maxTimeTimer = setTimeout(function (){
       stopWaiting = true;
-      debugFgLog('90 seconds to sign in timeout occurred, without having signed in');
+      debugFgLog('SIGNIN: 90 seconds to sign in timeout occurred, without having signed in');
     }, 90000);
 
     const interval = setInterval(async function (){
-      // debugFgLog('loop weContentState.voterIsSignedIn: ', weContentState.voterIsSignedIn);
       getVoterInfo();
       const state = await getGlobalState();
-      const { voterIsSignedIn } = state;
+      const { voterIsSignedIn, voterDeviceId } = state;
+      debugFgLog('SIGNIN: loop weContentState.voterIsSignedIn: ', voterIsSignedIn, voterDeviceId);
 
       if (voterIsSignedIn || stopWaiting) {
+        debugFgLog('SIGNIN: **** clearInterval');
+        if (maxTimeTimer) clearTimeout(maxTimeTimer);
         clearInterval(interval);
       }
     }, 100);
@@ -312,7 +314,7 @@ function getVoterInfo () {
       }
       const { success, error, err, voterName, photoURL, weVoteId, voterEmail, isSignedIn } = response.data;
       // weContentState.voterWeVoteId = weVoteId || '';
-      debugFgLog('signIn response: ', response);
+      debugFgLog('SIGNIN:  response: ', response.data || response);
       let voterInfo = {
         success: success,
         error: error,
@@ -324,10 +326,7 @@ function getVoterInfo () {
         isSignedIn
       };
       if (success) {
-        await updateGlobalState({
-          voterIsSignedIn: isSignedIn,
-          voterWeVoteId: weVoteId || '',
-        });
+        await updateGlobalState({ voterIsSignedIn: isSignedIn });
       }
 
       if (success && isSignedIn) {

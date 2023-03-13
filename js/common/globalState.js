@@ -1,4 +1,4 @@
-// New state object 2/8/2023
+// New state object 2/8/2023 ONLY FOR WEVOTE ChromeExtension ... do not use this in WebApp
 // Assumes only one active tab, which is a bit of a retreat from original plans, but provides manageable performance
 // Prior to this change we were having one minute delays loading a page with lots of endorsements and the right editor pane
 /* global debugStorage, chrome */
@@ -15,7 +15,7 @@ const initialState = {
   highlighterEnabled: false,
   highlighterEnabledThisTab: false,
   isEnabled: false,
-  isFromPDF:  false,
+  isFromPDF: false,
   lastStateChange: 0,
   neverHighlightOn: {},
   noExactMatchOrgList: {},
@@ -68,7 +68,7 @@ async function updateGlobalState (dict) {
 
   let state = dict;
   if (oldState) {
-    state = {...oldState, ...dict};
+    state = { ...oldState, ...dict };
   }
   debugStorage('saveGlobalState old: ', oldState);
   debugStorage('saveGlobalState new merged state: ', state);
@@ -76,7 +76,7 @@ async function updateGlobalState (dict) {
 }
 
 function clearGlobalState () {
-  return new Promise ((resolve) => {
+  return new Promise((resolve) => {
     chrome.storage.local.remove('extensionGlobalState', resolve);
   });
 }
@@ -84,7 +84,7 @@ function clearGlobalState () {
 async function reInitializeGlobalState () {
   const oldState = (await lowLevelGetStorage());
   debugStorage('oldState reInitializeGlobalState from lowLevelGetStorage:', oldState);
-  const newState = {...initialState, 'voterDeviceId': oldState.voterDeviceId || ''};                   // Make a copy of the simple object
+  const newState = { ...initialState, voterDeviceId: oldState.voterDeviceId || '' };                   // Make a copy of the simple object
   await lowLevelSetStorage(newState);
   const newStateFromStorage = (await lowLevelGetStorage());
   debugStorage('reInitializeGlobalState initialized newStateFromStorage ', newStateFromStorage);
@@ -96,7 +96,7 @@ async function mergeToGlobalState (dict) {
   const stored = await lowLevelGetStorage();
   debugStorage('stored mergeToGlobalState from lowLevelGetStorage:', stored);
 
-  return new Promise (() => {
+  return new Promise(() => {
     const newState = { ...stored, ...dict };
     debugStorage('mergeToGlobalState combined state:', newState);
     lowLevelSetStorage(newState);

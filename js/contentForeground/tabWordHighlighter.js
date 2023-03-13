@@ -63,7 +63,19 @@ document.addEventListener('DOMContentLoaded', async function () {  // This waste
   await initializeTabWordHighlighter();
   detectBodyBind();
   const t1 = performance.now();
-  timingLog(t0, t1, 'DOMContentLoaded for tab took', 8.0);
+  timingLog(t0, t1, `DOMContentLoaded for tab ${window.location.href} took`, 8.0);
+
+  // If we are on a WeVote WebApp domain page tab, capture the voter_device_id (this will capture signin when we redirect to WebApp for signin)
+  const { hostname } = window.location;
+  const webAppHosts = ['wevote.us', 'quality.wevote.us', 'localhost', 'wevotedeveloper.com'];
+  if (webAppHosts.includes(hostname)) {
+    const voterDeviceId = getCookie ('voter_device_id');
+    timingLog(t0, t1, `DOMContentLoaded for tab with voterDeviceId ${voterDeviceId} took`, 8.0);
+    if (voterDeviceId && voterDeviceId.length > 10) {
+      await mergeToGlobalState({'voterDeviceId': voterDeviceId});
+      timingLog(t0, t1, 'DOMContentLoaded mergeToGlobalState voterDeviceId took', 8.0);
+    }
+  }
 });
 
 // function getThisTabId () {
@@ -445,6 +457,7 @@ async function sendGetStatus () {
     const state = await getGlobalState();
     const { highlighterEnabledThisTab, url: urlFromState, tabId: tabIdFromState } = state;
 
+    // console.log('STORAGE ***************************** state ', state);
     debugFgLog('sendGetStatus -- Testing for correct tab -- correct: ', (tabId === tabIdFromState), ', this tabID: ', tabId, ', tabIdFromState:', tabIdFromState, window.location.href, urlFromState);
     if (highlighterEnabledThisTab && tabId === tabIdFromState) {
       await getWordsThenStartHighlighting();
