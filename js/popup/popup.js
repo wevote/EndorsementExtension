@@ -158,7 +158,6 @@ document.addEventListener('DOMContentLoaded', function () {
           showPanel: showPanel,
           showHighlights: showHighlights,
           tabId: tabId,
-          highlighterEditorEnabled: true,
           highlighterEnabledThisTab: true,  // TODO: Remove this vestigial leftover from multiple highlighted tabs version
         });
       } else {

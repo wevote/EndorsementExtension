@@ -58,7 +58,7 @@ switch (apiServerChoice) {
     break;
   case 'developer':
     apiRoot = 'https://wevotedeveloper.com:8000';
-    cdnRoot =  'https://wevotedeveloper.com:8000';
+    cdnRoot = 'https://wevotedeveloper.com:8000';
     extensionSrc = '/src';
     break;
 }
