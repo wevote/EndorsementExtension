@@ -24,7 +24,10 @@ runtime errors.  It can be useful, but not as useful as the "background page" de
 
 
 
-<!-- https://docs.google.com/drawings/d/1C32qtyMrsqAZXxN7TEG3lryZXn56owVHnZhwxoAAOLo/edit?usp=sharing -->
+<!--
+fileArchitectureDrawing.png
+https://docs.google.com/drawings/d/1C32qtyMrsqAZXxN7TEG3lryZXn56owVHnZhwxoAAOLo/edit?usp=sharing 
+-->
 
 ### Debugging notes
 * The (otherwise excellent) Chrome Dev Tools debugger, gets confused with extensions.  

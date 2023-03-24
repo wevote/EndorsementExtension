@@ -25,6 +25,7 @@ const initialState = {
   organizationName: '',
   organizationTwitterHandle: '',
   organizationWeVoteId: 0,
+  pdfURL: '',
   positions: [],
   positionsCount: 0,
   possibilityUrl: '',
@@ -64,14 +65,14 @@ async function getGlobalState () {
 async function updateGlobalState (dict) {
   debugStorage('saveGlobalState entry');
   const oldState = (await lowLevelGetStorage());
-  debugStorage('oldState updateGlobalState from lowLevelGetStorage:', oldState);
+  debugStorage('oldState updateGlobalState from updateGlobalState:', oldState);
 
   let state = dict;
   if (oldState) {
     state = { ...oldState, ...dict };
   }
   debugStorage('saveGlobalState old: ', oldState);
-  debugStorage('saveGlobalState new merged state: ', state);
+  debugStorage('saveGlobalState in updateGlobalState new merged state: ', state);
   await lowLevelSetStorage(state);
 }
 
@@ -84,7 +85,11 @@ function clearGlobalState () {
 async function reInitializeGlobalState () {
   const oldState = (await lowLevelGetStorage());
   debugStorage('oldState reInitializeGlobalState from lowLevelGetStorage:', oldState);
-  const newState = { ...initialState, voterDeviceId: oldState.voterDeviceId || '' };                   // Make a copy of the simple object
+  const newState = {
+    ...initialState,
+    voterDeviceId: oldState.voterDeviceId || '',
+    voterIsSignedIn: oldState.voterIsSignedIn,
+  };                   // Make a copy of the simple object
   await lowLevelSetStorage(newState);
   const newStateFromStorage = (await lowLevelGetStorage());
   debugStorage('reInitializeGlobalState initialized newStateFromStorage ', newStateFromStorage);

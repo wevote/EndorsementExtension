@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 
-const debugServiceWorker = true;
-const debugStorageEvents = true;
+const debugServiceWorker = false;
+const debugStorageEvents = false;
 const debugTimingServiceWorker = true;
-const debugTimingForegroundContent = true;
+const debugTimingForegroundContent = false;
 const debugHilitorEnabled = false;
 
 const groupNames = {

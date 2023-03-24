@@ -2,7 +2,7 @@
 /* eslint-disable no-undef */
 
 // Debug settings
-const closeDialogAfterTimeout = false;
+const closeDialogAfterTimeout = true;
 const showTabAndWindowInPopup = true;
 // Other constants and variables
 const removeEditText = 'Remove Edit Panel From This Tab';
@@ -50,16 +50,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (state.tabId !== tabId || state.windowId !== windowId || state.url !== url || lastPlus12 < Date.now()) {
       console.log('RESETTING STORAGE DUE TO TAB CHANGE OR OUTDATED STORAGE');
       await reInitializeGlobalState();
+      const isFromPDF = url.toLowerCase().endsWith('.pdf');
       await updateGlobalState({
         tabId: tabId,
         windowId: windowId,
         url: url,
+        isFromPDF: isFromPDF,
         lastStateChange: Date.now(),
       });
-      console.log('reinitialized state: ' + tabId + ', windowId ' + windowId + ', url: ' + url);
+      debugStorage('reinitialized state: ' + tabId + ', windowId ' + windowId + ', url: ' + url);
       chrome.action.setBadgeText({text: ''});
     } else {
-      console.log('PRESERVING STORAGE ON POPUP OPEN');
+      debugStorage('PRESERVING STORAGE ON POPUP OPEN');
     }
     await updateButtonDisplayedState();
 
@@ -86,6 +88,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const isPDF = url.toLowerCase().endsWith('.pdf');
     if (isPDF) {
       pdfURL = url;
+      if (!state.voterIsSignedIn) {
+        $('.notLoggedInWarning').css('display', 'unset');
+        $('#highlightCandidatesThisTabButton').css('display', 'none');
+        $('#openEditPanelButton').css('display', 'none');
+        return;
+      }
     }
     if (showHighlights) {
       $('#highlightCandidatesThisTabButton').addClass('weButtonRemove').removeClass('wePDF').text(removeHighlightThisText);
@@ -147,10 +155,9 @@ document.addEventListener('DOMContentLoaded', function () {
       console.log('addButtonListeners highlightCandidatesThisTabButton click tabId', tabId);
       console.log('getGlobalState in popup 137');
       let state = await getGlobalState();
-
-      // state.showPanel = false;
       const showHighlights = !state.showHighlights;
       const showPanel = false;
+      const isFromPDF = pdfURL && pdfURL.length > 0;
 
       if (showHighlights) {
         // $('#highlightingMasterSwitch').prop('checked', true);
@@ -169,10 +176,11 @@ document.addEventListener('DOMContentLoaded', function () {
       sendMessage(tabId, {
         command: 'updateForegroundForButtonChange',
         payload: {
-          showHighlights: showHighlights,
+          isFromPDF,
           openEditPanel: showPanel,
-          pdfURL: '',
-          tabId: tabId,
+          pdfURL,
+          showHighlights: showHighlights,
+          tabId,
           tabUrl: url,
         }
       }, function (response) {
@@ -198,6 +206,7 @@ document.addEventListener('DOMContentLoaded', function () {
       let highlighterEditorEnabled = false;
       let highlighterEnabledThisTab = false;  // TODO: Remove this
       let newTabId = tabId;
+      const isFromPDF = pdfURL && pdfURL.length > 0;
 
       let state = await getGlobalState();
       if (state.showPanel) {  // if pressing the button would do a remove...
@@ -215,6 +224,8 @@ document.addEventListener('DOMContentLoaded', function () {
         highlighterEnabledThisTab = true;  // TODO: Remove this
       }
       await updateGlobalState({
+        isFromPDF: isFromPDF,
+        pdfURL: pdfURL,
         showPanel: showPanel,
         showHighlights: showHighlights,
         tabId: newTabId,
@@ -225,9 +236,10 @@ document.addEventListener('DOMContentLoaded', function () {
       sendMessage(tabId, {
         command: 'updateForegroundForButtonChange',
         payload: {
-          showHighlights: showHighlights,
+          isFromPDF,
           openEditPanel: showPanel,
-          pdfURL: '',
+          pdfURL,
+          showHighlights: showHighlights,
           tabId,
           tabUrl: url
         }

@@ -4,28 +4,6 @@
 
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
 
-// let weContentState = {
-//   allNames: '',
-//   candidateName: '',
-//   highlighterEditorEnabled: false,
-//   highlighterEnabled: false,
-//   highlighterEnabledThisTab: false,
-//   priorHighlighterEnabledThisTab: false,
-//   isFromPDF:  false,
-//   neverHighlightOn: {},
-//   orgName: '',
-//   organizationTwitterHandle: '',
-//   organizationWeVoteId: '',
-//   positions: [],
-//   positionsCount: 0,
-//   possibleOrgsList: [],
-//   priorData: [],
-//   tabId: -1,
-//   voterGuidePossibilityId: '',
-//   voterIsSignedIn: false,
-//   voterWeVoteId: '',
-// };
-
 function isInOurIFrame () {
   // const headerExists = $('div#wedivheader').length > 0;   // this is true if in our highlighted "Endorsement Page" that is framed by the "Open Edit Panel" button action}
   const correctFrameExists = $('iframe.weVoteEndorsementFrame').length > 0;
@@ -51,9 +29,6 @@ async function displayHighlightingAndPossiblyEditor (highlighterEnabledThisTab, 
   const urlToQuery = $('input[name="pdfFileName"]').val();
   const isFromPDF = urlToQuery && urlToQuery.length > 0;   // This is for PDFs that have been converted to HTML by PDFMinerSix
   await updateGlobalState({ isFromPDF: isFromPDF });
-  if (isFromPDF) {
-    fixupForPdfMinerSix();
-  }
 
   try {
     if (highlighterEnabledThisTab) {
@@ -70,47 +45,6 @@ async function displayHighlightingAndPossiblyEditor (highlighterEnabledThisTab, 
     debugFgLog('jQuery dialog in contentWeVoteUI threw: ', err);
   }
   return true;  // indicates that we call the response function asynchronously.  https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
-}
-
-function fixupForPdfMinerSix () {
-  $('div').each((i, div) => {
-    $(div).each((j, span) => {
-      const markup = span.outerHTML;
-      // debugFgLog('Initial span markup: ', markup);
-      try {
-        let startSpan = markup.match(/(<span .*?>)/);
-        if (startSpan) {
-          // debugFgLog('startSpan: ', startSpan[0]);
-          const count = (markup.match(/(<br>)/gm) || []).length;
-          if (count > 1) {
-            // eslint-disable-next-line prefer-destructuring
-            let divSpanLeader = markup.match(/(<div.*?span.*?>)/)[0];
-            let thisTop = divSpanLeader.match(/top:(\d*)px;/);
-            let top = parseInt(thisTop[1], 10);
-            // debugFgLog('divSpanLeader: ', divSpanLeader);
-            let previous = span;
-            let lines = markup.match(/(?:[\f\n]<br>|<span.*?>)(.*?)*\n/gm);
-            for (let line in lines) {
-              // debugFgLog('line: ', lines[line]);
-              let clean = lines[line] ? lines[line].replace(/(<.*?>)/g, '') : '';
-              // debugFgLog('clean: ', clean);
-              top += 12;
-              let thisLeader = divSpanLeader.replace(/(top:\d*px;)/g, 'top:' + top + 'px;');
-              let newLine = thisLeader + clean + '</span><br></div>\n';
-              // debugFgLog('newLine: ', newLine);
-              previous = $(newLine).insertAfter(previous);
-            }
-            if (span !== previous) {
-              span.remove();
-            }
-          }
-        }
-      } catch (e) {
-        console.error('fixupForPdfMinerSix threw exception: ', e, ' while parsing ', markup);
-
-      }
-    });
-  });
 }
 
 function displayEditPanes () {
@@ -137,10 +71,6 @@ function displayEditPanes () {
   topMenu();
   updateTopMenu(true);
 }
-
-// function updateIframeByNameWithTabId() {
-//
-// }
 
 function initializeOrgChoiceList () {
   setTimeout(async () => {
@@ -176,7 +106,7 @@ function debugWarn (...args) {
   For now if the API server gets swapped from local/production you will need to get a new device ID.
   With the extension running, go to the wevote.us or localhost:3000 page, and open the popup, and press the login button.
   Then when you navigate to some endorsement page. the device id will become available in local storage.
-  Sept 10, 2019, you may have to clear storage.local 'voterDeviceId'.  You will have to be running a local webapp, which
+  Sept 10, 2019, you may have to clear storage 'voterDeviceId'.  You will have to be running a local webapp, which
   is pointed to a local python server, so that they all share a voterDeviceId.  If you have had a valid voterDeviceId
   in the past, you can get the most recent one from pgAdmin/voter_voterdevicelink and paste it into the value for
   voterDeviceId in the chrome-extension's DevTools Application tab.
@@ -191,7 +121,7 @@ function signIn (attemptLogin) {
         debugFgLog(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
       debugFgLog('chrome.runtime.sendMessage("getVoterInfo") raw response ', response);
-      const {success, error, err, voterName, photoURL, weVoteId, voterEmail, isSignedIn} = response.data;
+      const {success, error, err, voterName, photoURL, weVoteId, voterEmail, voterIsSignedIn} = response.data;
       debugFgLog(' chrome.runtime.sendMessage("getVoterInfo") success', response.data);
       await updateGlobalState({ voterWeVoteId: weVoteId || '' });
       let voterInfo = {
@@ -204,11 +134,12 @@ function signIn (attemptLogin) {
           : photoURL,
         voterId: weVoteId,
         email: voterEmail,
-        isSignedIn
+        voterIsSignedIn: voterIsSignedIn,
       };
       // False in V3, could be simplified: (pre 2022 comment) Unfortunately /avatar-generic.png can't be "served" from the extension, since file loading is relative to the endorsement page
 
-      if (voterInfo.success && voterInfo.isSignedIn) {
+      if (voterInfo.success && voterInfo.voterIsSignedIn && voterInfo.voterIsSignedIn !== undefined) {
+        await updateGlobalState({ voterIsSignedIn: voterIsSignedIn });
         setSignInOutMarkup (voterInfo);
 
         // everytime the dom changes, reset domHasChanged to true
@@ -269,9 +200,9 @@ function signIn (attemptLogin) {
 }
 
 function setSignInOutMarkup (voterInfo) {
-  const { isSignedIn, photo } = voterInfo;
+  const { voterIsSignedIn, photo } = voterInfo;
   const signInSelector = $('#signIn');
-  if (isSignedIn) {
+  if (voterIsSignedIn) {
     signInSelector.replaceWith(
       '<img id="signIn" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" src="' + photo + '" ' +
       'style="margin: 12px; width: 50px; height: 50px;" />');
@@ -285,7 +216,7 @@ function setSignInOutMarkup (voterInfo) {
     //       console.error('chrome.storage.sync.remove(voterDeviceId) failed with', chrome.runtime.lastError.message);
     //     }
     //     let voterInfo = {
-    //       isSignedIn: false,
+    //       voterIsSignedIn: false,
     //     };
     //     setSignInOutMarkup(voterInfo);
     //   });
@@ -312,7 +243,7 @@ function getVoterInfo () {
       if (lastError) {
         debugFgLog(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
-      const { success, error, err, voterName, photoURL, weVoteId, voterEmail, isSignedIn } = response.data;
+      const { success, error, err, voterName, photoURL, weVoteId, voterEmail, isSignedIn: voterIsSignedIn } = response.data;
       // weContentState.voterWeVoteId = weVoteId || '';
       debugFgLog('SIGNIN:  response: ', response.data || response);
       let voterInfo = {
@@ -323,13 +254,13 @@ function getVoterInfo () {
         photo: (!photoURL || photoURL.length < 10) ? 'https://wevote.us/img/global/icons/avatar-generic.png' : photoURL,
         voterId: weVoteId,
         email: voterEmail,
-        isSignedIn
+        voterIsSignedIn
       };
       if (success) {
-        await updateGlobalState({ voterIsSignedIn: isSignedIn });
+        await updateGlobalState({ voterIsSignedIn: voterIsSignedIn });
       }
 
-      if (success && isSignedIn) {
+      if (success && voterIsSignedIn) {
         setSignInOutMarkup (voterInfo);
         updatePositionPanelUnconditionally ();
         return true;
@@ -338,21 +269,6 @@ function getVoterInfo () {
     }
   );
 }
-
-// function dialogTitlebarStyling () {
-//   $('.u2i-dialog-titlebar').css('background-color', '#2E3C5D');
-//   $('.u2i-icon-closethick').remove();
-//   $('.u2i-dialog-titlebar-close').css({
-//     'background-color': '#2E3C5D',
-//     'color': 'white',
-//     'border': '6px'
-//   });
-//   $('.u2i-button-icon-space').css({
-//     'padding-right': '4px',
-//   }).html('X&nbsp;');
-//   $('.u2i-resizable-handle').css('display', 'none');
-//   $('.u2i-dialog-title').addClass('createDlgTitle');
-// }
 
 function topMenu () {
   let topMarkup = '' +
@@ -374,7 +290,7 @@ function topMenu () {
   $('#topMenu').append(topMarkup);
 
   let voterInfo = {
-    isSignedIn: false,     // Start off as not signed in, call setSignInOutMarkup to set the click listener
+    voterIsSignedIn: false,     // Start off as not signed in, call setSignInOutMarkup to set the click listener
   };
 
   setSignInOutMarkup (voterInfo);
