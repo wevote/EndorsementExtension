@@ -1,12 +1,17 @@
-**3/8/23**
-* Test PDF processing (is broken)
-  https://cadem.org/wp-content/uploads/2022/09/2022-CADEM-General-Endorsements.pdf
-* Handle close error in popup.js: Unchecked runtime.lastError: The message port closed before a response was received.
-* More efficient replacement for tabWordHighligher L 449, where we don't even ask status from "other" tabs.
-* Edge case: Sign out.  Show editor with sign in avatar, then go to webapp and sign-out, when you return you get an all blue tab for about 30 seconds, and it still shows you as signed in via avatar.
-* Integrate Max's edit dialog (create is hard coded)
-* Maybe recover multi-tab processing, with a list at the bottom of pop-up to show which are enable.  Might need to check if "enabled" tab has been refreshed.
+**3/24/23
+
+**3/20/23**
 * Speed Final checks, and without so much logging
+* Minor issue: Handle close error in popup.js: Unchecked runtime.lastError: The message port closed before a response was received.
+* Minor issue: More efficient replacement for tabWordHighligher L 449, where we don't even ask status from "other" tabs.
+* Minor issue: Sign out.  Show editor with sign in avatar, then go to webapp and sign-out, when you return you get an all blue tab for about 30 seconds, and it still shows you as signed in via avatar.
+* Minor issue: Integrate Max's edit dialog (create is hard coded)
+* Someday: Maybe recover multi-tab processing, with a list at the bottom of pop-up to show which are enable.  Might need to check if "enabled" tab has been refreshed.
+
+**3/8/23**
+* ~~Pop up dialog from pop up if on a Tab, and not signed in~~
+* ~~Test PDF processing (is broken)
+  https://cadem.org/wp-content/uploads/2022/09/2022-CADEM-General-Endorsements.pdf~~
 * ~~After sign in, when you return there is a ~30 second blue screen~~
 * ~~Highlight tab button, opens edit panel~~
 

@@ -234,11 +234,10 @@ function getVoterSignInInfo (sendResponse) {
     debugSwLog('ENTERING backgroundWeVoteAPICalls > getVoterSignInInfo apiURL: ' + apiURL);
 
     if (voterDeviceId && voterDeviceId.length > 0) {
-      // TODO: 7/1 maybe not json?
       console.log('background apiURL', apiURL);
       fetch(apiURL).then((resp) => resp.json()).then((results) => {
         debugSwLog('get json from getVoterSignInInfo voterRetrieve API SUCCESS', results);
-        const {success, full_name: fullName, we_vote_id: weVoteId, voter_photo_url_medium: photoURL, is_signed_in: isSignedIn,
+        const {success, full_name: fullName, we_vote_id: weVoteId, voter_photo_url_medium: photoURL, is_signed_in: voterIsSignedIn,
           signed_in_facebook: signedInFacebook, signed_in_google: signedInGoogle, signed_in_twitter: signedInTwitter, signed_in_with_email: signedInWithEmail } = results;
         data = {
           success,
@@ -246,7 +245,7 @@ function getVoterSignInInfo (sendResponse) {
           fullName,
           photoURL,
           weVoteId,
-          isSignedIn,
+          voterIsSignedIn,
           signedInFacebook,
           signedInGoogle,
           signedInTwitter,
@@ -428,6 +427,7 @@ function getCandidate (candidateWeVoteId, sendResponse) {
       let results = {
         success: false,
         message: 'Can not make ths api call unless you are logged in, and have a voterDeviceId',
+        s3_url_for_html: '',    // eslint-disable-line camelcase
       };
       sendResponse({results});
     }

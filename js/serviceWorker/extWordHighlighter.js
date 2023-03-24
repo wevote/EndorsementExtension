@@ -352,7 +352,7 @@ function hardResetActiveTab (tabId) {
 function setEnableForActiveTab (showHighlights, showEditor, tabId, tabUrl) {
   const setEnableForActiveTabDebug = true;
   const { tabs: { sendMessage, lastError } } = chrome;
-  (debugE || setEnableForActiveTabDebug) && debugSwLog('POPUP BUTTON CLOCKED: enabling highlights on active tab ', tabId, ', showEditor: ', showEditor, ', showHighlights:', showHighlights);
+  (debugE || setEnableForActiveTabDebug) && debugSwLog('POPUP BUTTON CLICKED: enabling highlights on active tab ', tabId, ', showEditor: ', showEditor, ', showHighlights:', showHighlights);
 
   if (!tabId) {
     console.error('setEnableForActiveTab received invalid tab object, and activeTabIdGlobal was undefined');
@@ -443,35 +443,40 @@ function removeHighlightsForAllTabs () {
 }
 
 chrome.tabs.onActivated.addListener(function (tabId){
-  // TODO: I don't think this can work!
+  // TODO: I don't think this can work!  March 2023, still thinking it doesn't work
   chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    debugSwLog('XXXXXX set GLOBALS in tabs onactivated', tabId, tabs);
-    debugSwLog('XXXXXX set GLOBALS in tabs onactivated', tabId, tabs);
+    debugSwLog('XXXXXX set GLOBALS in tabs onactivated 1', tabId, tabs);
+    debugSwLog('XXXXXX set GLOBALS in tabs onactivated 2', tabId, tabs);
     // Sept 25, 2019: Todo this assumes that the first tab, when you turn it on, is the one that gets the menu!
     if (tabs.length) {
+      debugSwLog('XXXXXX decompose tabs onactivated raw tabs: ', JSON.stringify(tabs));
       const { 0 : { id, url, windowId } } = tabs;
-      activeTabIdGlobal = id;
-      activeUrlGlobal = url;
-      activeWindowId = windowId;
+      if (url !== 'chrome://extensions/') {
+        debugSwLog('XXXXXX decompose tabs onactivated 3', id, url);
+        activeTabIdGlobal = id;
+        activeUrlGlobal = url;
+        activeWindowId = windowId;
 
-      debugSwLog('MESSAGING: chrome.tabs.onActivated.addListener', url, id);
-      updateContextMenu(url, id);
+        debugSwLog('MESSAGING: chrome.tabs.onActivated.addListener', url, id);
+        updateContextMenu(url, id);
+      } else {
+        debugSwLog('XXXXXX chrome.tabs.onActivated chrome.tabs.query triggered for "chrome://extensions/" so it was ignored');
+      }
     } else {
-      debugSwLog('chrome.tabs.onActivated.addListener found no currentWindow for tabId: ' + id);
+      debugSwLog('chrome.tabs.onActivated.addListener found no currentWindow for tabId: ' + tabId);
     }
   });
 });
 
-chrome.tabs.onUpdated.addListener(
-  function (tab){
-    const { url, id } = tab;
-    debugSwLog('in tabs onUpdated', id, url);
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  const { url, id } = tab;
+  debugSwLog('in tabs onUpdated', id, url);
 
-    if(tab.url !== undefined){
-      updateContextMenu(url, id);
-    }
+  if (tab.url !== undefined) {
+    updateContextMenu(url, id);
   }
-);
+});
+
 chrome.tabs.onCreated.addListener(
   function (tab) {
     const { url, id } = tab;
@@ -1038,19 +1043,29 @@ function getWeVoteTabs () {
   });
 }
 
-function reloadPdfTabAsHTML (pdfURL, showEditor, tabId) {
+function reloadPdfTabAsHTML (pdfURL, showHighlights, showEditor, tabId) {
   const {tabs: {create, onUpdated, get}} = chrome;
   debugSwLog('extWordHighlighter.reloadPdfTabAsHTML pdfURL: ' + pdfURL);
   convertPdfToHtmlInS3(pdfURL, (response) => {
-    const { s3_url_for_html: htmlURL } = response.res;
-    debugSwLog('reloadPdfTabAsHTML htmlURL: ' + htmlURL);
-    const tabId = tab.id;
-    debugSwLog('reloadPdfTabAsHTML tab.id: ' + tabId);
+    const { s3_url_for_html: htmlURL, message, success } = response.results;
+    if (success === false) {
+      console.log('reloadPdfTabAsHTML, Convert failed with :', message);
+    }
+    debugSwLog('reloadPdfTabAsHTML htmlURL: ' + htmlURL + ', tabId: ' + tabId);
     create({ url: htmlURL }, () => {
-      onUpdated.addListener(function (newTabId, info) {
-        if (info.status === 'complete') {
-          get(newTabId, (newTab) => setEnableForActiveTab(true, showEditor, newTab));
-        }
+      debugSwLog('reloadPdfTabAsHTML in create() : ' + htmlURL);
+      onUpdated.addListener(async function (newTabId, info) {
+        await updateGlobalState({
+          'isFromPDF': true,
+          'pdfUrl': '',
+          'tabId': newTabId,
+          'url': htmlURL,
+        }).then(() => {
+          debugSwLog('reloadPdfTabAsHTML in create()  onUpdated   newTabId: ' + newTabId + ', info: ' + JSON.stringify(info));
+          if (info.status === 'complete') {
+            get(newTabId, (newTab) => setEnableForActiveTab(showHighlights, showEditor, newTabId, htmlURL));
+          }
+        });
       });
     });
   });
@@ -1060,7 +1075,7 @@ function handleButtonStateChange (showHighlights, showEditor, pdfURL, tabId, tab
   // debugSwLog('enabling editor on active tab from openEditPanelButton, handleButtonStateChange tab.id: ', tabId, 'showHighlights:', showHighlights, 'showEditor:',showEditor);
   if (pdfURL) {
     debugSwLog('extWordHighlighter.handleButtonStateChange enabling highlights on active tab FOR A PDF -- popup.js tab.id: ', tabId, pdfURL);
-    reloadPdfTabAsHTML(pdfURL, showEditor, tabId);
+    reloadPdfTabAsHTML(pdfURL, showHighlights, showEditor, tabId);
   } else {
     setEnableForActiveTab(showHighlights, showEditor, tabId, tabUrl);
   }

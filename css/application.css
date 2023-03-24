@@ -108,6 +108,21 @@ hr {
     color: #A04000;
 }
 
+.displayNotLoggedInWarning {
+    display: unset;
+    font-size: 16px;
+    font-weight: bold;
+    color: black;
+    background-color: white;
+    background: unset;
+    border-radius: .5em;
+}
+
+.caveats {
+    font-size: 14px;
+    margin: 10px;
+}
+
 /*table{font-size: 12px;}*/
 /*.header{*/
 /*  height:35px;*/

@@ -820,7 +820,7 @@ function convertV2onClickToV3 () {
         const { url } = onClickText.split('\'');
         el.removeAttr('onClick');  // Remove the V2 onClick
         el.click(() => {
-          console.log('converted onClick for ' + id);
+          console.log('converted onClick for ' + id + ', at url ' + url);
           setModal(true, url, id);
         });
       }
