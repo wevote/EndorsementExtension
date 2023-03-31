@@ -20,11 +20,8 @@ console.log('-------- extWordHighlighter');
 
 const debugE = true;
 let HighlightsData = {};
-let activeTabIdGlobal = -1;
 let activeUrlGlobal = '';
-let activeWindowId =  -1;
 let aliasNames = [];
-// let createSearchMenuT0 = 0;
 let highlighterEnabled = false;   // This is changed from popup.js
 let nameToIdMap = {};
 let noContextMenu = ['_generated_background_page.html'];
@@ -135,9 +132,6 @@ function initializeHighlightsData (ballotItemHighlights, voterGuideHighlights, n
 
   HighlightsData.Version = '12';
   HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOnLocal);
-  // let neverHighlightOn = HighlightsData.neverHighlightOn;
-  // debugSwLog('neverHighLightOn:', HighlightsData.neverHighLightOn);
-  // HighlightsData.ShowFoundWords = true;
   HighlightsData.PrintHighlights = true;
   let today = new Date();
   HighlightsData.Donate = today.setDate(today.getDate() + 20);
@@ -265,8 +259,8 @@ function createSearchMenu () {
     function () {
       chrome.contextMenus.create({
         'title': 'Select a Candidate\'s full name, then try again!',
-        'id': 'Highlight'  // Is this causing?:  Unchecked runtime.lastError: Cannot create item with duplicate id Highlight
-      });
+        'id': 'Highlight'
+      }, () => chrome.runtime.lastError);  // March 2023, suppresses...   Unchecked runtime.lastError: Cannot create item with duplicate id Highlight
     }
   );
 }
@@ -338,6 +332,8 @@ function processUniqueNames (uniqueNamesFromPage) {
 
 function hardResetActiveTab (tabId) {
   debugSwLog('sendMessage hardResetActiveTab tabId:', tabId);
+  console.log('XXXXXVV hardResetActiveTab extWordHighlighter location: ', location);
+
   sendMessage(tabId, {
     tabId: tabId,
   }, function () {
@@ -355,7 +351,7 @@ function setEnableForActiveTab (showHighlights, showEditor, tabId, tabUrl) {
   (debugE || setEnableForActiveTabDebug) && debugSwLog('POPUP BUTTON CLICKED: enabling highlights on active tab ', tabId, ', showEditor: ', showEditor, ', showHighlights:', showHighlights);
 
   if (!tabId) {
-    console.error('setEnableForActiveTab received invalid tab object, and activeTabIdGlobal was undefined');
+    console.error('setEnableForActiveTab received invalid tab object');
   }
 
   let tentativeURL = (tabUrl  && tabUrl.length) ? tabUrl : activeUrlGlobal;
@@ -443,24 +439,22 @@ function removeHighlightsForAllTabs () {
 }
 
 chrome.tabs.onActivated.addListener(function (tabId){
-  // TODO: I don't think this can work!  March 2023, still thinking it doesn't work
-  chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-    debugSwLog('XXXXXX set GLOBALS in tabs onactivated 1', tabId, tabs);
+  chrome.tabs.query({active: true, currentWindow: true}, async function (tabs) {
+
     debugSwLog('XXXXXX set GLOBALS in tabs onactivated 2', tabId, tabs);
-    // Sept 25, 2019: Todo this assumes that the first tab, when you turn it on, is the one that gets the menu!
+    const state = await getGlobalState();
+    debugSwLog('XXXXXX getGlobalState in tabs onactivated 2.5', state.tabId, state.url);
+
     if (tabs.length) {
       debugSwLog('XXXXXX decompose tabs onactivated raw tabs: ', JSON.stringify(tabs));
       const { 0 : { id, url, windowId } } = tabs;
-      if (url !== 'chrome://extensions/') {
-        debugSwLog('XXXXXX decompose tabs onactivated 3', id, url);
-        activeTabIdGlobal = id;
-        activeUrlGlobal = url;
-        activeWindowId = windowId;
 
+      if (url !== 'chrome://extensions/' && id === state.tabId ) {
+        debugSwLog('XXXXXX decompose tabs onactivated 3', id, url);
         debugSwLog('MESSAGING: chrome.tabs.onActivated.addListener', url, id);
         updateContextMenu(url, id);
       } else {
-        debugSwLog('XXXXXX chrome.tabs.onActivated chrome.tabs.query triggered for "chrome://extensions/" so it was ignored');
+        debugSwLog('XXXXXX chrome.tabs.onActivated chrome.tabs.query triggered for "chrome://extensions/" or for a tab that is not supposed to be highlighted so it was ignored');
       }
     } else {
       debugSwLog('chrome.tabs.onActivated.addListener found no currentWindow for tabId: ' + tabId);
@@ -478,7 +472,12 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 chrome.tabs.onCreated.addListener(
-  function (tab) {
+  async function (tab) {
+    const state = await getGlobalState();
+    // debugSwLog('XXXXXXYY getGlobalState in tabs onCreated 1 state TabId url', state.tabId, state.url);
+    // debugSwLog('XXXXXXYY getGlobalState in tabs onCreated 2 state pdfURL', state.pdfURL);
+    // debugSwLog('XXXXXXYY getGlobalState in tabs onCreated 2 state state', state);
+
     const { url, id } = tab;
     if(url !== undefined) {
       updateContextMenu(url, id);
@@ -594,6 +593,7 @@ chrome.runtime.onMessage.addListener(
     let showVoterGuideHighlights;
     let showCandidateOptionsHighlights;
     if (request.command === 'getTopMenuData') {
+      console.log('--|------------------------- request.url ', request.url);
       getOrganizationFound(request.url, sendResponse);
     } else if (request.command === 'getHighlights') {
       // Highlight the captured positions
@@ -800,7 +800,7 @@ function requestReHighlight (tabId, url){
   const {tabs: {sendMessage, lastError}} = chrome;
   if (tabId && tabId > 0) {
     debugSwLog('In extWordHighlighter.requestReHighlight, ReHighlight WAS sent -- for tabId:', tabId);
-    sendMessage(tabId, {command: 'ReHighlight', words: getWordsBackground(url)}, function () {
+    sendMessage(tabId, {command: 'ReHighlight', words: getWordsBackground(url, tabId)}, function () {
       debugSwLog(lastError ? `requestReHighlight lastError ${lastError.message}` : 'requestReHighlight returned');
     });
   } else {
@@ -809,10 +809,16 @@ function requestReHighlight (tabId, url){
 }
 
 function getWordsBackground (inUrl, tabId) {
-  debugSwLog('ENTRY to extWordHighlighter.getWordsBackground inURL: ' + inUrl);
+  // "heal" messed up urls (from pdfs) March 2023
+  let urlToHighlight = inUrl;
+  if (!urlToHighlight.startsWith('https://') || !urlToHighlight.startsWith('http://')) {
+    urlToHighlight = 'https://' + urlToHighlight;
+  }
+
+  debugSwLog('ENTRY to extWordHighlighter.getWordsBackground urlToHighlight: ' + urlToHighlight);
   let result={};
   for(let neverShowOn in HighlightsData.neverHighlightOn){
-    if (inUrl.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))){
+    if (urlToHighlight.match(globStringToRegex(HighlightsData.neverHighlightOn[neverShowOn]))){
       return result;
     }
   }
@@ -824,13 +830,13 @@ function getWordsBackground (inUrl, tabId) {
       }
       else {
         for(let showOn in HighlightsData.Groups[highlightData].ShowOn){
-          if (inUrl.match(globStringToRegex(HighlightsData.Groups[highlightData].ShowOn[showOn]))){
+          if (urlToHighlight.match(globStringToRegex(HighlightsData.Groups[highlightData].ShowOn[showOn]))){
             returnHighlight=true;
           }
         }
       }
       for(let dontShowOn in HighlightsData.Groups[highlightData].DontShowOn){
-        if (inUrl.match(globStringToRegex(HighlightsData.Groups[highlightData].DontShowOn[dontShowOn]))){
+        if (urlToHighlight.match(globStringToRegex(HighlightsData.Groups[highlightData].DontShowOn[dontShowOn]))){
           returnHighlight=false;
         }
       }
@@ -843,7 +849,7 @@ function getWordsBackground (inUrl, tabId) {
     result['nameToIdMap'] = nameToIdMap;  // Needed if the endorsement page is in an iFrame, and probably is sufficent if not in an iFrame 3/20/20
   }
 
-  debugSwLog('Exit from extWordHighlighter.getWordsBackground: ' + inUrl);
+  debugSwLog('Exit from extWordHighlighter.getWordsBackground: ' + urlToHighlight);
   return result;
 }
 
@@ -885,11 +891,6 @@ function setPrintHighlights (inState) {
   HighlightsData.PrintHighlights=inState;
   printHighlights=inState;
 }
-
-// function setNeverHighligthOn(inUrls){
-//   HighlightsData.neverHighlightOn=inUrls;
-//   neverHighlightOn=inUrls;
-// }
 
 function addGroup (inGroup, color, fcolor, findwords, showon, dontshowon, inWords, groupType, remoteConfig, regex, showInEditableFields) {
   for(word in inWords){

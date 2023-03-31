@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async function () {  // This waste
   }
   console.log(`jQuery ${$.fn.jquery} has been loaded successfully!`);
   // use jQuery below
-  await initializeTabWordHighlighter();
+  await initializeTabWordHighlighter();  // heavy handed for a tab that will not need initialization, ie all other than the one we want
   detectBodyBind();
   const t1 = performance.now();
   timingLog(t0, t1, `DOMContentLoaded for tab ${window.location.href} took`, 8.0);
@@ -169,7 +169,7 @@ async function initializeTabWordHighlighter () {
       debugFgLog('tabWordHighlighter initializeTabWordHighlighter tab.id: ' + tabId);
     });
     debugFgLog('Hack that sets debugLocal to true in place ------------------------------------');
-    window.debugLocal = true;
+    debugLocal = true;
   }
 
   // If not in our iFrame
@@ -200,8 +200,6 @@ async function initializeTabWordHighlighter () {
             sender.id === 'highlightthis@deboel.eu') {
 
           const state = await getGlobalState();
-          // const { priorHighlighterEnabledThisTab, highlighterEnabledThisTab, highlighterEditorEnabled, showHighlights,
-          //   showEditor, tabId, orgName, organizationWeVoteId, organizationTwitterHandle } = request;
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
             if (window.location.href.toLowerCase().endsWith('.pdf')) {
@@ -221,12 +219,7 @@ async function initializeTabWordHighlighter () {
             debugFgLog('------------------------------- ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes');
             debugFgLog('ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes request.showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', href: ', window.location.href);
             if (!showHighlights) {
-              // if we were enabled (master switch), and now we are not, reload the page -- if this proves to be a problem, we could remove the highlighting in the DOM.
               debugFgLog('displayHighlightsForTabAndPossiblyEditPanes (before reload)');
-              // weContentState.priorData = [];
-              // weContentState.priorHighlighterEnabledThisTab = false;
-              // weContentState.priorData = [];
-              // weContentState.priorHighlighterEnabledThisTab = false;
               await updateGlobalState({
                 priorData: [],
                 priorHighlighterEnabledThisTab: false,
@@ -235,6 +228,16 @@ async function initializeTabWordHighlighter () {
             }
             const { highlighterEnabledThisTab, highlighterEditorEnabled } = state;
             if (window.location.href !== 'about:blank' && highlighterEnabledThisTab) {  // Avoid worthless queries
+              const {href} = window.location;
+
+              if (href !== state.url && href !== state.pdfURL && state.url !== '') {
+                // debugSwLog('XXXXWW tabWordHighlighter request ', request);
+                // debugSwLog('XXXXWW tabWordHighlighter getGlobalState', state);
+                // debugSwLog('XXXXWW tabWordHighlighter window.location.href',  window.location.href);
+                console.log('XXXXWW Skipping non-selected tab href: ', href);
+                return false;
+              }
+              console.log('XXXXWW Processing selected tab href: ', href);
               displayHighlightingAndPossiblyEditor(highlighterEnabledThisTab, highlighterEditorEnabled, tabId);
             }
             const t2 = performance.now();
@@ -245,6 +248,7 @@ async function initializeTabWordHighlighter () {
             showMarkers();
             return false;
           } else if (request.command === 'hardResetActiveTab') {
+            console.log('XXXXXVV hardResetActiveTab tabWordHighlighter location: ', location);
             location.reload();
             return false;
           } else if (request.command === 'getMarkers') {
@@ -294,6 +298,10 @@ async function initializeTabWordHighlighter () {
             const { showHighlights, openEditPanel, pdfURL, tabId, tabUrl } = request.payload;
             console.log('updateForegroundForButtonChange: ', request.payload);
 
+            // March 30, 2023, we know the tabId and tabURL for sure here, so save them.  In the case of PDF, these will change later.
+            console.log('updateForegroundForButtonChange March 30thh, saving tabId and tabURL to global state');
+            await updateGlobalState({ tabId: tabId, url: tabUrl });
+
             sendMessage({
               command: 'updateBackgroundForButtonChange',
               showHighlights,
@@ -332,7 +340,7 @@ function jumpNext () {
 }
 
 function showMarkers () {
-  debugFgLog('STEVE, background showMarkers');
+  debugFgLog('background showMarkers');
   let element = document.getElementById('HighlightThisMarkers');
   if (element) {
     element.parentNode.removeChild(element);
@@ -394,7 +402,7 @@ async function getVoterDeviceIdFromWeVoteDomainPage () {
     let id = b ? b.pop() : '';
     if (id && id.length > 5) {
       debugFgLog('=======  voter_device_id captured from a wevote page, id: ' + id);
-      await mergeToGlobalState({'voterDeviceId': id});
+      await mergeToGlobalState({ 'voterDeviceId': id });
       debugFgLog('======= voterDeviceId was merged mergeToGlobalState from a wevote page, id: ' + id);
     } else {
       debugFgLog('======= voterDeviceId WAS NOT MERGED mergeToGlobalState from a wevote page since no id');
@@ -756,7 +764,7 @@ function findWords () {
         }
 
         try {
-          debugFgLog('showHighlightsCount in tabWordHigligher, count = ' + uniqueNameMatches.length.toString());
+          console.log('showHighlightsCount in tabWordHigligher, count = ' + uniqueNameMatches.length.toString()); // always log this
           sendMessage({
             command: 'showHighlightsCount',
             label: uniqueNameMatches.length.toString(),
@@ -817,12 +825,14 @@ function convertV2onClickToV3 () {
           el.attr('id', id);
         }
         convertedOnClicks.push(id);
-        const { url } = onClickText.split('\'');
+        const bits = onClickText.split('\'');
+        const url = bits[1];
         el.removeAttr('onClick');  // Remove the V2 onClick
         el.click(() => {
           console.log('converted onClick for ' + id + ', at url ' + url);
           setModal(true, url, id);
         });
+        // console.log('after new v3 click sb added');
       }
     }
   });

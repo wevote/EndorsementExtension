@@ -1,10 +1,11 @@
 /* eslint-disable no-unused-vars */
 
-const debugServiceWorker = false;
+const debugServiceWorker = true;
 const debugStorageEvents = false;
 const debugTimingServiceWorker = true;
-const debugTimingForegroundContent = false;
-const debugHilitorEnabled = false;
+const debugTimingForegroundContent = true;
+const debugHilitorEnabled = false;              // This can tremendously slow down page processing
+
 
 const groupNames = {
   POSSIBILITY_SUPPORT: 'POSSIBILITY_SUPPORT',
@@ -38,6 +39,7 @@ const webAppChoice = 'quality';           // should be 'production' in git repos
 const apiServerChoice = 'production';     // should be 'production' in git repository
 const overrideStartingYear = true;  // Should be 'false' in git repository
 const startingYearOverride = 2022;
+const allowAnyYearForVoterGuides = true;
 let webAppRoot = '';
 let apiRoot = '';
 let cdnRoot = '';

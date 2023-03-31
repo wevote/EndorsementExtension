@@ -1,10 +1,23 @@
 **3/24/23
+* https://wevote-temporary.s3.amazonaws.com/2022-CADEM-General-Endorsements.html
+  * Multiple issues with clicking on highlights
+    * setModal is not defined
+  * Medium issue: shows the need for an automatically scalable thumbIconSVGContent, or a collection of fixed sizes, here we need 10pt
+* https://www.californiaprolife.org/wp-content/uploads/2014/10/CPLC-PAC-Ballot-Endorsements.pdf
+  * Get an extra last letter outside of the highlights -- District 23 –Kevin McCarthyy (R)
+  * ~~Yellow highlight click takes you to the broken edit window (Max 2)~~
+    * https://wevotedeveloper.com:3000/candidate-for-extension?candidate_name=Kristen%20McDonald%20Rivet&amp;candidate_we_vote_id=wvehcand2292542&endorsement_page_url=https%3A%2F%2Feverydistrict.us%2Fcandidates%2F2022-candidates%2F 
+    * Select with right click only prefills (Max 1) with first or last name.
+* ~~Sign out no longer implemented, mostly needed for testing.  Show editor with sign in avatar, then go to webapp and sign-out, when you return you get an all blue tab for about 30 seconds, and it still shows you as signed in via avatar.~~
+* ~~URGENT: Subsequent tabs open in editor, if editor is already open, and create a garbage voter guide possibility on the production server~~
+* ~~Must debounce sign in button~~
+* ~~Sign in works, but sometimes has 30 to 90 second blue window, with no logging after returning from WebApp.~~
+
 
 **3/20/23**
 * Speed Final checks, and without so much logging
 * Minor issue: Handle close error in popup.js: Unchecked runtime.lastError: The message port closed before a response was received.
 * Minor issue: More efficient replacement for tabWordHighligher L 449, where we don't even ask status from "other" tabs.
-* Minor issue: Sign out.  Show editor with sign in avatar, then go to webapp and sign-out, when you return you get an all blue tab for about 30 seconds, and it still shows you as signed in via avatar.
 * Minor issue: Integrate Max's edit dialog (create is hard coded)
 * Someday: Maybe recover multi-tab processing, with a list at the bottom of pop-up to show which are enable.  Might need to check if "enabled" tab has been refreshed.
 
@@ -21,7 +34,6 @@
 * Speed Final checks, and without so much logging
 * Test PDF processing
 * ~~Still have a small bit of (lower priority) multi-tab selection code to clean out.~~
-* Sign in works, but sometimes has 30ish second blue window, with no logging after returning from WebApp 
 * Integrate Max's edit dialog (create is hard coded)
 * ~~Newly created/edited in main pane, should cause side pane to reload~~
 * ~~Completely eliminate weContentState, just causes stale date and confusion~~

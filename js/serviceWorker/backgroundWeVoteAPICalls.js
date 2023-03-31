@@ -5,14 +5,24 @@ let voterGuidePossibilityPositionsRetrieveT0 = 0;
 /* eslint-disable no-unused-vars */
 /* eslint no-undef: 0 */
 
-function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tabId, doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights) {
+async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tabId, doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights) {
   const getHighlightsListsFromApiServerDebug = true;
   debugSwLog('ENTERING backgroundWeVoteAPICalls > getHighlightsListsFromApiServer, showVoterGuideHighlights:', showVoterGuideHighlights, ', showCandidateOptionsHighlights:', showCandidateOptionsHighlights);
   if (!showVoterGuideHighlights && !showCandidateOptionsHighlights) {
     debugSwLog('EXITING getHighlightsListsFromApiServer without highlighting');
   }
 
-  const hrefEncoded = encodeURIComponent(locationHref); //'https://www.emilyslist.org/pages/entry/state-and-local-candidates');
+  const state = await getGlobalState();
+  const { pdfURL } = state;
+  let urlToEncode = locationHref;
+  if (urlToEncode.includes('wevote-temporary.s3.amazonaws.com')) {
+    if (pdfURL && pdfURL.length) {
+      urlToEncode = pdfURL;
+    }
+  }
+
+
+  const hrefEncoded = encodeURIComponent(urlToEncode); //'https://www.emilyslist.org/pages/entry/state-and-local-candidates');
   let ballotItemHighlightsRetrieve = `${rootCdnURL}/ballotItemHighlightsRetrieve/`; // Use CDN
   if (overrideStartingYear) {  // This is for testing old endorsement pages that need candidate data that is a few years old
     ballotItemHighlightsRetrieve += '?starting_year=' + startingYearOverride;
@@ -158,8 +168,9 @@ function getOrganizationFound (locationHref, sendResponse) {
     console.log('getOrganizationFound voterDeviceId Value currently is ', voterDeviceId);
 
     const voterDeviceUrlVariable = voterDeviceId ? `voter_device_id=${voterDeviceId}&` : '';
-    const apiURL = `${rootApiURL}/voterGuidePossibilityRetrieve/?${voterDeviceUrlVariable}url_to_scan=${hrefEncoded}`;
+    const apiURL = `${rootApiURL}/voterGuidePossibilityRetrieve/?${voterDeviceUrlVariable}url_to_scan=${hrefEncoded}${allowAnyYearForVoterGuides ? '&limit_to_this_year=false' : ''}`;
     debugSwLog('ENTERING backgroundWeVoteAPICalls > getOrganizationFound, voterGuidePossibilityRetrieve apiURL: ' + apiURL);
+    // debugSwLog('ENTERING backgroundWeVoteAPICalls > getOrganizationFound, voterGuidePossibilityRetrieve url_to_scan: ' + hrefEncoded);
     console.log('background apiURL', apiURL);
     fetch(apiURL).then((resp) => resp.json()).then((results) => {
       const t1 = performance.now();
@@ -289,7 +300,7 @@ function getPossiblePositions (voterGuidePossibilityId, hrefURL, voterDeviceId, 
         debugSwLog('No received or cached voterGuidePossibilityIdCache in getPossiblePositions for URL ', hrefURL);
       }
     }
-    const apiURL = `${rootApiURL}/voterGuidePossibilityPositionsRetrieve/?voter_device_id=${voterDeviceId}&voter_guide_possibility_id=${vGPId}`;
+    const apiURL = `${rootApiURL}/voterGuidePossibilityPositionsRetrieve/?voter_device_id=${voterDeviceId}&voter_guide_possibility_id=${vGPId}${allowAnyYearForVoterGuides ? '&limit_to_this_year=false' : ''}`;
     debugSwLog('getPossiblePositions fetch: ' + apiURL);
     // TODO: 7/1 maybe not json?
     console.log('background apiURL', apiURL);
@@ -418,8 +429,12 @@ function getCandidate (candidateWeVoteId, sendResponse) {
       // TODO: 7/1 maybe not json?
       console.log('background apiURL', apiURL);
       fetch(apiURL).then((resp) => resp.json()).then((results) => {
-        debugSwLog('get json from getCandidate API SUCCESS', results);
-        sendResponse({results});
+        if (results.length) {
+          debugSwLog('get json from getCandidate API SUCCESS', results);
+          sendResponse({results});
+        } else {
+          debugSwLog('getCandidate error, returned empty array');
+        }
       }).catch((err) => {
         debugSwLog('getCandidate error', err);
       });
@@ -437,13 +452,11 @@ function getCandidate (candidateWeVoteId, sendResponse) {
 function convertPdfToHtmlInS3 (pdfURL, sendResponse) {
   debugSwLog('ENTERING backgroundWeVoteAPICalls > convertPdfToHtmlInS3: ' + pdfURL);
   // eslint-disable-next-line prefer-destructuring
-  getVoterDeviceId().then((voterDeviceId) => {
+  getVoterDeviceId().then(async (voterDeviceId) => {
     console.log('getCandidate voterDeviceId Value currently is ', voterDeviceId);
     if (voterDeviceId && voterDeviceId.length > 0) {
       let apiURL = `${rootApiURL}/pdfToHtmlRetrieve/?voter_device_id=${voterDeviceId}&pdf_url=${pdfURL}`;
-      // let apiURL = `${rootApiURL}/pdfToHtmlRetrieve?voter_device_id=${voterDeviceId}&pdf_url=${pdfURL}`;
-      // debugSwLog('convertPdfToHtmlInS3: ' + apiURL);
-      // TODO: 7/1 maybe not json?
+      await updateGlobalState({pdfURL: pdfURL});
       console.log('background apiURL', apiURL);
       fetch(apiURL).then((resp) => resp.json()).then((results) => {
         debugSwLog('get json from convertPdfToHtmlInS3 API SUCCESS', results);
