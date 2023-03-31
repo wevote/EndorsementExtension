@@ -26,6 +26,7 @@ const initialState = {
   organizationTwitterHandle: '',
   organizationWeVoteId: 0,
   pdfURL: '',
+  photoURL: '',
   positions: [],
   positionsCount: 0,
   possibilityUrl: '',

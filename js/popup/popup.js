@@ -50,7 +50,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (state.tabId !== tabId || state.windowId !== windowId || state.url !== url || lastPlus12 < Date.now()) {
       console.log('RESETTING STORAGE DUE TO TAB CHANGE OR OUTDATED STORAGE');
       await reInitializeGlobalState();
-      const isFromPDF = url.toLowerCase().endsWith('.pdf');
+      let isFromPDF = false;
+      if (url && url.length > 5) {
+        isFromPDF = url.toLowerCase().endsWith('.pdf');
+      }
       await updateGlobalState({
         tabId: tabId,
         windowId: windowId,
@@ -135,6 +138,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Reset the highlighted tab
     $('#resetThisTabButton').click(() => {
       console.log('addButtonListeners resetThisTabButton hardResetActiveTab click tabId', tabId);
+      console.log('XXXXXVV hardResetActiveTab popup.js location: ', location);
       sendMessage(tabId, {
         command: 'hardResetActiveTab',
         payload: {

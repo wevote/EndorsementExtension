@@ -381,4 +381,5 @@
   border: none;
   padding: unset;
   margin: 0;
+  font-size: inherit;
 }

@@ -1,4 +1,4 @@
-/* global $, markupForThumbSvg, extensionSignInPage, extensionSignInPage, addCandidateExtensionWebAppURL, colors,
+/* global $, markupForThumbSvg, extensionSignInPage, addCandidateExtensionWebAppURL, colors,
    chrome, updateGlobalState, getGlobalState, getVoterDeviceId, sendGetStatus, debugServiceWorker, debugTimingForegroundContent
 */
 
@@ -23,12 +23,14 @@ async function displayHighlightingAndPossiblyEditor (highlighterEnabledThisTab, 
   const displayHighlightingAndPossiblyEditorDebug = true;
   displayHighlightingAndPossiblyEditorDebug && debugFgLog('ENTERING contentWeVoteUI > displayHighlightingAndPossiblyEditor highlighterEnabledThisTab: ', highlighterEnabledThisTab, ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', tabId: ', tabId);
   // if (tabId && !isNaN(tabId)) {
-  //   weContentState.tabId = tabId; // 2/17/23 Needed anymore?
+  //   weContentState.tabId = tabId; // 2/17/23 Needed anymore?  3/30, used to reset tab id for pdfs
   // }
 
   const urlToQuery = $('input[name="pdfFileName"]').val();
-  const isFromPDF = urlToQuery && urlToQuery.length > 0;   // This is for PDFs that have been converted to HTML by PDFMinerSix
-  await updateGlobalState({ isFromPDF: isFromPDF });
+  const isFromPDF = urlToQuery && urlToQuery.length > 0;   // This is for PDFs that have been converted to HTML by pdf2htmlEX
+  // console.log('XXXXXXZZ isFromPDF, tabId, urlToQuery, window.location.href', isFromPDF, tabId, urlToQuery, window.location.href);
+  // console.log('XXXXXXZZ window.location', window.location);
+  await updateGlobalState({ isFromPDF: isFromPDF, tabId: tabId, url: window.location.href });
 
   try {
     if (highlighterEnabledThisTab) {
@@ -75,21 +77,21 @@ function displayEditPanes () {
 function initializeOrgChoiceList () {
   setTimeout(async () => {
     const state = await getGlobalState();
-    const { voterWeVoteId, possibleOrgsList, positionsCount } = state;
+    const { voterWeVoteId, possibleOrgsList, positionsCount, voterIsSignedIn } = state;
     // if (weContentState.voterWeVoteId && weContentState.voterWeVoteId.length) {
     //   if (weContentState.possibleOrgsList && weContentState.possibleOrgsList.length) {
     if (voterWeVoteId && voterWeVoteId.length) {
       if (possibleOrgsList && possibleOrgsList.length) {
         orgChoiceDialog(possibleOrgsList);
       } else if (positionsCount === 0) {
-        setSideAreaStatus('No Candidate endorsements have been captured yet for this endorsement page.');
+        setSideAreaStatus('No Candidate endorsements have been captured yet for this endorsement page (must be an upcoming election).');
         setTimeout(() => {
           debugFgLog('Second attempt to get a globalState position value, 6 secs later.');
           retryLoadPositionPanel();
         }, 6000);
       }
     } else {
-      setSideAreaStatus('You must be signed in to display Candidate information.');
+      setSideAreaStatus(voterIsSignedIn ? 'No candidates found' : 'You must be signed in to display Candidate information.');
     }
   }, 2000);  // Yuck! Time delays are always a last resort
 }
@@ -122,8 +124,11 @@ function signIn (attemptLogin) {
       }
       debugFgLog('chrome.runtime.sendMessage("getVoterInfo") raw response ', response);
       const {success, error, err, voterName, photoURL, weVoteId, voterEmail, voterIsSignedIn} = response.data;
-      debugFgLog(' chrome.runtime.sendMessage("getVoterInfo") success', response.data);
-      await updateGlobalState({ voterWeVoteId: weVoteId || '' });
+      debugFgLog('chrome.runtime.sendMessage("getVoterInfo") success', response.data);
+      let photo = (!photoURL || photoURL.length < 10)
+        ? 'https://wevote.us/img/global/icons/avatar-generic.png'
+        : photoURL;
+      await updateGlobalState({ voterWeVoteId: weVoteId || '', photoURL: photo });
       let voterInfo = {
         success: success,
         error: error,
@@ -140,7 +145,7 @@ function signIn (attemptLogin) {
 
       if (voterInfo.success && voterInfo.voterIsSignedIn && voterInfo.voterIsSignedIn !== undefined) {
         await updateGlobalState({ voterIsSignedIn: voterIsSignedIn });
-        setSignInOutMarkup (voterInfo);
+        setSignInOutMarkup();
 
         // everytime the dom changes, reset domHasChanged to true
         let domHasChanged = true;
@@ -199,41 +204,71 @@ function signIn (attemptLogin) {
   }
 }
 
-function setSignInOutMarkup (voterInfo) {
-  const { voterIsSignedIn, photo } = voterInfo;
+async function updateSignInMarkup () {
+  debugFgLog('signIn updateSignInMarkup called ---------------------------------- 2');
   const signInSelector = $('#signIn');
+  const state = await getGlobalState();
+  const {
+    voterIsSignedIn,
+    photo
+  } = state;
   if (voterIsSignedIn) {
     signInSelector.replaceWith(
       '<img id="signIn" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" src="' + photo + '" ' +
       'style="margin: 12px; width: 50px; height: 50px;" />');
-    // Feb 15, 2023 -- disable the ability to sign out, plus this does it using the old storage scheme
-    // signInSelector.click(() => {
-    //   // We are currently signed in, so this click signs us out
-    //   debugFgLog('Sign out pressed');
-    //   // Removing the stored voterDeviceId deauthenticates us, signs us out, within the chrome extension
-    //   chrome.storage.sync.remove('voterDeviceId', () => {
-    //     if (chrome.runtime.lastError) {
-    //       console.error('chrome.storage.sync.remove(voterDeviceId) failed with', chrome.runtime.lastError.message);
-    //     }
-    //     let voterInfo = {
-    //       voterIsSignedIn: false,
-    //     };
-    //     setSignInOutMarkup(voterInfo);
-    //   });
-    // });
   } else {
-    const html = signInSelector[0].outerHTML;
-    if (html.includes('voterPhoto')) {
-      signInSelector.replaceWith(
-        '<button type="button" id="signIn" class="gridSignInTop signInV3 weButton removeContentStyles">SIGN IN</button>'
-      );
-    }
-    signInSelector.click(() => {
-      // We are currently signed out, so this click signs us in
-      debugFgLog('Sign in pressed');
-      signIn(true);
-    });
+    signInSelector.replaceWith(
+      '<button type="button" id="signIn" class="gridSignInTop signInV3 weButton removeContentStyles">SIGN IN</button>');
   }
+  setSignInOutOnClick();
+}
+function setSignInOutMarkup () {
+  debugFgLog('signIn setSignInOutMarkup called ---------------------------------- 1');
+  updateSignInMarkup();
+
+}
+
+function setSignInOutOnClick () {
+  debugFgLog('signIn setSignInOutOnClick called ---------------------------------- 3');
+  const signInSelector = $('#signIn');
+
+  signInSelector.click(async () => {
+    const state = await getGlobalState();
+    const { voterIsSignedIn } = state;
+    // eslint-disable-next-line init-declarations
+    let timer;  // for debouncing SIGN IN button
+    if (voterIsSignedIn) {
+      // We are currently signed in, so this click signs us out
+      debugFgLog('signIn setSignInOutOnClick called ---------------------------------- 3a signing out');
+      debugFgLog('Sign out pressed (Sign In function)');
+      // Removing the stored voterDeviceId deauthenticates us, signs us out, within the chrome extension
+      await updateGlobalState({
+        voterIsSignedIn: false,
+        voterDeviceId: ''
+      });
+    } else {
+      if (!timer) {
+        // We are currently signed out, so this click signs us in
+        debugFgLog('signIn setSignInOutOnClick called ---------------------------------- 3b signing in');
+        debugFgLog('Sign in pressed');
+        signIn(true);
+        // This is a bit hacky, and ideally would not be needed, but without it you wait for an entire
+        // refresh/re-highlight of the screen sometimes a full minutes, before anything renders
+        window.location.reload();
+        displayHighlightingAndPossiblyEditor(state.highlighterEnabled, state.highlighterEditorEnabled, state.tabId);
+      } else {
+        debugFgLog('DEBOUNCED: Sign in pressed during the debounce period');  // Multiple button presses open multiple WebApp tabs, which cause trouble
+      }
+      timer = setTimeout(() => {
+        timer = undefined;
+      }, 3000);
+    }
+    updateSignInMarkup();
+  });
+}
+
+function sleep (ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function getVoterInfo () {
@@ -243,29 +278,46 @@ function getVoterInfo () {
       if (lastError) {
         debugFgLog(' chrome.runtime.sendMessage("getVoterInfo")', lastError.message);
       }
-      const { success, error, err, voterName, photoURL, weVoteId, voterEmail, isSignedIn: voterIsSignedIn } = response.data;
-      // weContentState.voterWeVoteId = weVoteId || '';
-      debugFgLog('SIGNIN:  response: ', response.data || response);
-      let voterInfo = {
-        success: success,
-        error: error,
-        err: err,
-        name: voterName,
-        photo: (!photoURL || photoURL.length < 10) ? 'https://wevote.us/img/global/icons/avatar-generic.png' : photoURL,
-        voterId: weVoteId,
-        email: voterEmail,
-        voterIsSignedIn
-      };
-      if (success) {
-        await updateGlobalState({ voterIsSignedIn: voterIsSignedIn });
-      }
+      // console.log('////////////////////// response ', response);
+      if (!response) {
+        // console.log('////////////////////// sleeping 1 sec ');
+        await sleep(1000);
+      } else {
+        const {
+          success,
+          error,
+          err,
+          voterName,
+          photoURL,
+          weVoteId,
+          voterEmail,
+          voterIsSignedIn
+        } = response.data;
+        // weContentState.voterWeVoteId = weVoteId || '';
+        debugFgLog('SIGNIN:  response: ', response.data || response);
+        let voterInfo = {
+          success: success,
+          error: error,
+          err: err,
+          name: voterName,
+          photo: (!photoURL || photoURL.length < 10) ?
+            'https://wevote.us/img/global/icons/avatar-generic.png' :
+            photoURL,
+          voterId: weVoteId,
+          email: voterEmail,
+          voterIsSignedIn
+        };
+        if (success) {
+          await updateGlobalState({voterIsSignedIn: voterIsSignedIn});
+        }
 
-      if (success && voterIsSignedIn) {
-        setSignInOutMarkup (voterInfo);
-        updatePositionPanelUnconditionally ();
-        return true;
+        if (success && voterIsSignedIn) {
+          setSignInOutMarkup(voterInfo);
+          updatePositionPanelUnconditionally();
+          return true;
+        }
+        return false;
       }
-      return false;
     }
   );
 }
@@ -283,17 +335,13 @@ function topMenu () {
     '      <button type="button" id="sendTopComment" class="sendTopComment weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">Send</button>' +
     '    </span>' +
     '  </span>' +
-    '  <button type="button" id="signIn" class="gridSignInTop signInV3 weButton removeContentStyles">SIGN IN</button>' +
+    '  <span id="signIn" class="gridSignInTop  removeContentStyles">wait</span>' +
     '  <span id="loginPopUp"></span>' +
     '  <div id="dlgAnchor"></div>' +
   '</div>';
   $('#topMenu').append(topMarkup);
 
-  let voterInfo = {
-    voterIsSignedIn: false,     // Start off as not signed in, call setSignInOutMarkup to set the click listener
-  };
-
-  setSignInOutMarkup (voterInfo);
+  setSignInOutMarkup ();
 }
 
 // Get the href into the extension
@@ -422,10 +470,24 @@ async function getRefreshedHighlights (dialogClosed) {
 }
 
 // Call into the background script to do a voterGuidePossibilityRetrieve() api call, and return the data, then update the top menu
-function updateTopMenu (update) {
+async function updateTopMenu (update) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugFgLog('updateTopMenu()');
-  sendMessage({ command: 'getTopMenuData', url: window.location.href },
+  const state = await getGlobalState();
+  const { pdfURL } = state;
+  let topMenuURL = window.location.href;
+  // console.log('--|--------- topMenuURL for voterGuidePossibilityRetrieve: ', topMenuURL);
+
+  if (topMenuURL.includes('wevote-temporary.s3.amazonaws.com')) {
+    if (pdfURL && pdfURL.length) {
+      // console.log('--|--------- topMenuURL from pdfURL for voterGuidePossibilityRetrieve: ', topMenuURL);
+
+      topMenuURL = pdfURL;
+    }
+  }
+
+  // console.log('--|--------- url for voterGuidePossibilityRetrieve: ', topMenuURL);
+  sendMessage({ command: 'getTopMenuData', url: topMenuURL },
     async function (response) {
       if (lastError) {
         debugFgLog(' chrome.runtime.sendMessage("getTopMenuData")', lastError.message);
@@ -434,11 +496,6 @@ function updateTopMenu (update) {
 
       if (response && Object.entries(response).length > 0) {
         const { orgName, orgLogo, voterGuidePossibilityId, noExactMatchOrgList, twitterHandle, weVoteId, tabId } = response.data;
-        // weContentState.organizationWeVoteId = weVoteId;
-        // weContentState.organizationTwitterHandle = twitterHandle;
-        // weContentState.orgName = orgName;
-        // weContentState.voterGuidePossibilityId = voterGuidePossibilityId;
-        // weContentState.possibleOrgsList = noExactMatchOrgList;
         await updateGlobalState({
           organizationWeVoteId: weVoteId,
           organizationTwitterHandle: twitterHandle,
@@ -613,7 +670,6 @@ async function coreUpdatePositions (data, update) {
         continue;
       }
       names.push(name.toLowerCase());
-      // weContentState.organizationWeVoteId = organizationWeVoteId;  // Feb 17, 2023  deprecating
       organizationWeVoteIdOuter = organizationWeVoteId;
 
       let position = {
