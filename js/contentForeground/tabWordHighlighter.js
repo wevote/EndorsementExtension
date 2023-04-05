@@ -466,8 +466,12 @@ async function sendGetStatus () {
     const { highlighterEnabledThisTab, url: urlFromState, tabId: tabIdFromState } = state;
 
     // console.log('STORAGE ***************************** state ', state);
-    debugFgLog('sendGetStatus -- Testing for correct tab -- correct: ', (tabId === tabIdFromState), ', this tabID: ', tabId, ', tabIdFromState:', tabIdFromState, window.location.href, urlFromState);
-    if (highlighterEnabledThisTab && tabId === tabIdFromState) {
+    if (tabId === -1) {
+      await updateGlobalState({ tabId: tabId, url: url });
+    }
+    const highlightThisTab = tabId === tabIdFromState;
+    debugFgLog('sendGetStatus -- Testing for correct tab -- correct: ', highlightThisTab, ', this tabID: ', tabId, ', tabIdFromState:', tabIdFromState, window.location.href, urlFromState);
+    if (highlightThisTab) {
       await getWordsThenStartHighlighting();
     }
   });
@@ -530,6 +534,44 @@ async function closeIFrameDialog () {
     updateHighlightsIfNeeded(dialogClosed);
   }
   $('#weVoteModal').remove();
+}
+
+function createWediv () {
+  debugFgLog('---------------------------------------- inserting wediv for the dialog into the top of the body');
+  const head = document.head || document.getElementsByTagName('head')[0];
+
+  const style = document.createElement('style');
+  head.append(style);
+  // style.type = 'text/css';
+  // Note that the source code for this css is in popupIFrame.html, where it can be tested in a browser, then minified with https://cssminifier.com/
+  const css = '#wediv{position:absolute;z-index:10000;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4);height:640px;}#wedivheader{cursor:move;z-index:10;background-color:#2e3c5d;color:#fff;height:30px}#weIFrame{width:450px;height:568px;border-width:0;border:none}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;float:right;margin-right:16px;background-color:#2e3c5d;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}.highlight{padding:1px;box-shadow:#e5e5e5 1px 1px;border-radius:3px;-webkit-print-color-adjust:exact;background-color:#ff6;color:#000;font-style:inherit}';
+  style.appendChild(document.createTextNode(css));
+
+  const markup = document.createElement('div');
+  markup.id = 'wediv';
+  markup.hidden = true;
+  markup.innerHTML =
+    '<div id="wedivheader">\n' +
+    '  <span id="wetitle"></span>\n' +
+    '  <span id="closeButton">\n' +
+    '    <button type="button" class="weclose" onclick="const l = document.getElementById(\'wediv\'); l.hidden = true;">X</button>\n' +
+    '  </span>\n' +
+    '</div>\n' +
+    '<iframe id="weIFrame" src="' + extensionWarmUpPage + '" name="tabId="></iframe>\n';
+  $('body').first().prepend(markup);
+  if (isInOurIFrame()) {
+    preloadPositionsForAnotherVM();  // preLoad positions for this VM, if it is a VM within an iFrame
+  }
+  $('.weclose').click(() => {
+    closeIFrameDialog();
+  });
+  window.addEventListener('message', function (e) {
+    debugFgLog('tabWordHighlighter receiving close message from iFrame: ', e.data);
+    if (e.data === 'closeIFrameDialog') {
+      debugFgLog('closing iFrame dialog');
+      closeIFrameDialog();
+    }
+  }, false);
 }
 
 async function getWordsThenStartHighlighting () {
@@ -597,41 +639,7 @@ async function getWordsThenStartHighlighting () {
     highlightLoop();
 
     if (!document.getElementById('wediv')) {
-      // debugFgLog('inserting wediv for the dialog into the top of the body');
-      const head = document.head || document.getElementsByTagName('head')[0];
-
-      const style = document.createElement('style');
-      head.append(style);
-      // style.type = 'text/css';
-      // Note that the source code for this css is in popupIFrame.html, where it can be tested in a browser, then minified with https://cssminifier.com/
-      const css = '#wediv{position:absolute;z-index:10000;background-color:#000;text-align:center;border:1px solid #d3d3d3;box-shadow:10px 10px 5px 0 rgba(0,0,0,.4);height:640px;}#wedivheader{cursor:move;z-index:10;background-color:#2e3c5d;color:#fff;height:30px}#weIFrame{width:450px;height:568px;border-width:0;border:none}#wetitle{float:left;margin-left:8px;margin-top:2px}.weclose{height:10px;width:10px;float:right;margin-right:16px;background-color:#2e3c5d;color:#fff;border:none;font-weight:bolder;font-stretch:extra-expanded;font-size:12pt}.highlight{padding:1px;box-shadow:#e5e5e5 1px 1px;border-radius:3px;-webkit-print-color-adjust:exact;background-color:#ff6;color:#000;font-style:inherit}';
-      style.appendChild(document.createTextNode(css));
-
-      const markup = document.createElement('div');
-      markup.id = 'wediv';
-      markup.hidden = true;
-      markup.innerHTML =
-        '<div id="wedivheader">\n' +
-        '  <span id="wetitle"></span>\n' +
-        '  <span id="closeButton">\n' +
-        '    <button type="button" class="weclose" onclick="setModal(false,\'\' ,\'\')">X</button>\n' +
-        '  </span>\n' +
-        '</div>\n' +
-        '<iframe id="weIFrame" src="' + extensionWarmUpPage + '" name="tabId="></iframe>\n';
-      $('body').first().prepend(markup);
-      if (isInOurIFrame()) {
-        preloadPositionsForAnotherVM();  // preLoad positions for this VM, if it is a VM within an iFrame
-      }
-      $('.weclose').click(() => {
-        closeIFrameDialog();
-      });
-      window.addEventListener('message', function (e) {
-        debugFgLog('tabWordHighlighter receiving close message from iFrame: ', e.data);
-        if (e.data === 'closeIFrameDialog') {
-          debugFgLog('closing iFrame dialog');
-          closeIFrameDialog();
-        }
-      }, false);
+      createWediv();
     }
   });
 }
@@ -653,8 +661,16 @@ function highlightLoop (){
 
   ReadyToFindWords = true;
 
+  let i = 0;
   HighlightLoop = setInterval(function () {
-    Highlight&&ReadyToFindWords&&findWords();
+    // if (i % 10 === 0) {
+    //   console.log('-------- calling findWords in highlightLoop -----------');  // uses a lot of CPU, but useful sometimes
+    // }
+    const modalDisplayed = isModalDisplayed();
+    !modalDisplayed && Highlight && ReadyToFindWords && findWords();
+    if(!ReadyToFindWords) {
+      sleep(500);
+    }
   }, HighlightLoopFrequency);
 
 }
@@ -807,35 +823,17 @@ function findWords () {
   // debug && debugFgLog('finished finding words');
 }
 
-
 let convertedOnClicks = ['JoeShmoe'];
-function convertV2onClickToV3 () {
-  $('.endorsementHighlights').each(function () {
-    // <button type="button" id="JeanneCasteen" className="endorsementHighlights"
-    //         onClick="setModal(true,
-    //         'https://quality.wevote.us/candidate-for-extension?candidate_name=Jeanne%20Casteen&amp;candidate_we_vote_id=wvehcand2292126&amp;endorsement_page_url=https%3A%2F%2Feverydistrict.us%2Fcandidates%2F2022-candidates%2Fjeanne-casteen%2F&amp;candidate_specific_endorsement_url=&amp;voter_guide_possibility_id=6285', 'JeanneCasteen', event)">
-    // eslint-disable-next-line no-invalid-this
-    const el = $(this);
-    if (el.attr('onClick') !== undefined) {
-      let id = el.attr('id');
-      let onClickText = el.attr('onClick');
-      if (onClickText.length > 0) {
-        while(convertedOnClicks.includes(id)) {
-          id += 'x';
-          el.attr('id', id);
-        }
-        convertedOnClicks.push(id);
-        const bits = onClickText.split('\'');
-        const url = bits[1];
-        el.removeAttr('onClick');  // Remove the V2 onClick
-        el.click(() => {
-          console.log('converted onClick for ' + id + ', at url ' + url);
-          setModal(true, url, id);
-        });
-        // console.log('after new v3 click sb added');
-      }
-    }
+
+function addHighlightOnClick (id, url, element) {
+  convertedOnClicks.push(id);
+  element.click(() => {
+    console.log('Detected onClick for ' + id + ', at url ' + url);
+    setModal(true, url, id);
   });
+}
+
+function convertV2onClickToV3 () {  // 4/5/23: Removed the .each replacement of setModal that had been prewritten into every wrapped highlight markup, and replace it with a on click made on the fly.
   $('.weclose').each(function () {
     // <button type="button" className="weclose" onClick="setModal(false,'' ,'')">X</button>
     // eslint-disable-next-line no-invalid-this

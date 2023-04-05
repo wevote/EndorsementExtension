@@ -9,7 +9,7 @@
 //  - stop the recursive search for words at the id weContainer (our menus)
 //  - stop at the id noDisplayPageBeforeFraming (the original dom, that becomes dormant and invisible, with a fresh copy in the new iframe)
 
-/* global $ */
+/* global $, addHighlightOnClick */
 
 function Hilitor (id, tag) {
   // var colorIdx = 0;
@@ -313,14 +313,13 @@ function Hilitor (id, tag) {
         '&endorsement_page_url=' + encodeURIComponent(location.href) +
         '&candidate_specific_endorsement_url=' + candidateHomePage +
         '&voter_guide_possibility_id=' + voterGuidePossibilityId;
-      // debugHilitor('frameUrl ==================== ' + frameUrl);
-      const clickIFrame = 'setModal(true, \'' + frameUrl + '\', \'' + id + '\', event)';
 
-      $(emNode).wrap('<button type="button" id="' + id + '" class="endorsementHighlights" onclick="' + clickIFrame + '"></button>');
-      // Icon within highlights in the DOM of the endorsement page
+      const jQueryEmNode = $(emNode);
+      jQueryEmNode.wrap('<button type="button" id="' + id + '" class="endorsementHighlights"></button>');
       if (wordColor[wordfound].Icon.length) {
         $(match).prepend(wordColor[wordfound].Icon);
       }
+      addHighlightOnClick (id, frameUrl, jQueryEmNode);
     }
     return urlHref;
   };

@@ -1,3 +1,5 @@
+/* global createWediv */
+
 function dragElement (e) {
   let l = 0,
     n = 0,
@@ -13,19 +15,39 @@ function dragElement (e) {
   }
 
   function s () {
-    document.onmouseup = null, document.onmousemove = null;
+    document.onmouseup = null;
+    document.onmousemove = null;
   }
   document.getElementById(e.id + 'header') ? document.getElementById(e.id + 'header').onmousedown = d : e.onmousedown = d;
 }
 
+// eslint-disable-next-line no-unused-vars
 function setModal (e, t, n) {
+  // console.log('------- setModal setModal setModal --------- t', t,n);
   let o = document.getElementById(n);
   o || (o = {
     offsetLeft: 0,
     offsetTop: 0
   });
-  const l = document.getElementById('wediv'),
-    d = document.getElementById('weIFrame'),
-    f = window.pageYOffset || document.documentElement.scrollTop;
-  l.hidden = !e, l.style.left = o.offsetLeft + 300 + 'px', l.style.top = o.offsetTop + f + 'px', t && t.length && (d.src = t), dragElement(l);
+  const f = window.scrollY || document.documentElement.scrollTop;
+  let d = document.getElementById('weIFrame');
+  let l = document.getElementById('wediv');
+  if (!l) {
+    // console.log('------- setModal setModal setModal     no wediv, so creating one --------- ');
+    createWediv();
+    l = document.getElementById('wediv');
+    d = document.getElementById('weIFrame');
+    // console.log('------- setModal setModal setModal     created wediv: ', l);
+  }
+  l.hidden = !e;
+  l.style.left = o.offsetLeft + 300 + 'px';
+  l.style.top = o.offsetTop + f + 'px';
+  t && t.length && (d.src = t);
+  dragElement(l);
+}
+
+// eslint-disable-next-line no-unused-vars
+function isModalDisplayed () {
+  const l = document.getElementById('wediv');
+  return !l.hidden;
 }

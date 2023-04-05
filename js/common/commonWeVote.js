@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 
-const debugServiceWorker = true;
+const debugServiceWorker = false;
 const debugStorageEvents = false;
-const debugTimingServiceWorker = true;
-const debugTimingForegroundContent = true;
+const debugTimingServiceWorker = false;
+const debugTimingForegroundContent = false;
 const debugHilitorEnabled = false;              // This can tremendously slow down page processing
 
 
@@ -177,4 +177,12 @@ function getCookie (name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+function sleep (ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getPhotoURL (photoURL) {
+  return (!photoURL || photoURL.length < 10) ? 'https://wevote.us/img/global/icons/avatar-generic.png' : photoURL;
 }
