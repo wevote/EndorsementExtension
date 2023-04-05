@@ -254,13 +254,12 @@ function getIcon (typeStance) {
 }
 
 function createSearchMenu () {
-  debugSwLog('createSearchMenu has been called');
   chrome.runtime.getPlatformInfo(
     function () {
       chrome.contextMenus.create({
         'title': 'Select a Candidate\'s full name, then try again!',
         'id': 'Highlight'
-      }, () => chrome.runtime.lastError);  // March 2023, suppresses...   Unchecked runtime.lastError: Cannot create item with duplicate id Highlight
+      }); //, () => chrome.runtime.lastError);  // March 2023, suppresses...   Unchecked runtime.lastError: Cannot create item with duplicate id Highlight, but hangs the dialog!
     }
   );
 }
@@ -488,6 +487,7 @@ chrome.tabs.onCreated.addListener(
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
   const { tabs: { sendMessage, lastError, query } } = chrome;
   debugSwLog('chrome.contextMenus.onClicked: ' + info.selectionText);
+  console.log('================================ chrome.contextMenus.onClicked: ' + info.selectionText);
 
   if (info.menuItemId.indexOf('idContextMenuCreateNew') > -1) {
     sendMessage(tab.id, {
@@ -520,61 +520,17 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
     if (HighlightsData.Groups[groupName].Words.indexOf(info.selectionText) > -1) {
       wordAlreadyAdded = true;
     }
-    // Removed May 2020, so that we do not have to request the notifications permission
-    // if (wordAlreadyAdded) {
-    //   chrome.notifications.create('1', {
-    //     'type': 'basic',
-    //     'iconUrl': 'Plugin96.png',
-    //     //"requireInteraction": false,
-    //     'title': 'Highlight This',
-    //     'message': info.selectionText + ' was already assigned to the word list'
-    //   });
-    //   //window.alert(info.selectionText + " was already assigned to the word list");  July 2022 no window in service workers!
-    // } else {
-    //   HighlightsData.Groups[groupName].Words.push(info.selectionText);
-    //   HighlightsData.Groups[groupName].Modified = Date.now();
-    //   chrome.notifications.create('1', {
-    //     'type': 'basic',
-    //     'iconUrl': 'Plugin96.png',
-    //     // "requireInteraction": false,
-    //     'title': 'Added new word',
-    //     'message': info.selectionText + ' has been added to ' + groupName + '.\nRefresh the page to see new highlights.'
-    //   });
-    //
-    //   updateContextMenu(tab.url);
-    // }
   } else if (info.menuItemId === 'Highlight') {
     // TODO: I don't think this can work!
     query({active: true, currentWindow: true}, function (tabs) {
       sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
     });
-  //     }
-  //     requestReHighlight();
-  //   }
   }
 });
 
-
-
-// chrome.runtime.onInstalled.addListener(function() {
-//   debugSwLog("Highlights plugin installed");
-//   chrome.alarms.create("Data sync", {"periodInMinutes":30});
-// });
-//
-// chrome.alarms.onAlarm.addListener(function(alarm){
-//   if (alarm.name === "Data sync") {
-//     syncData();
-//   }
-// });
-
-// chrome.storage.onChanged.addListener((storage) => {
-//   console.log('storage >>>>>>>>>>>>>>>>>>>> ', storage);
-// });
 chrome.notifications.onButtonClicked.addListener((ob) => {
   console.log('chrome.notifications.onButtonClicked chrome.notifications.onButtonClicked.addListener >>>>>>>>>>>>>>>>>>>> ', ob);
 });
-
-
 
 chrome.commands.onCommand.addListener(function (command) {
   console.log('onCommand');
@@ -694,13 +650,6 @@ chrome.runtime.onMessage.addListener(
       console.log('getThisTabsId request', request);
       const status = getThisTabsId();
       sendResponse({ from: 'tabs', status });
-    // } else if (request.command === 'storeDeviceId') {
-    //   const tabId = sender.tab.id;
-    //   if (request.voterDeviceId.length) {
-    //     // 7/2/22 is this needed, can't do it this way:  localStorage['voterDeviceId'] = request.voterDeviceId;
-    //     debugSwLog('extWordHighlighter "storeDeviceId" received from tab: ' + tabId + ', voterDeviceId: ' + request.voterDevicedId);
-    //   }
-    //   sendResponse({command: request.command, from: 'event', tabId });
     } else if (request.command === 'closeDialogAndUpdatePositionsPanel') {
       const tabId = sender.tab.id;
       debugSwLog('extWordHighlighter "closeDialogAndUpdatePositionsPanel" received from tab: ' + tabId);
@@ -734,6 +683,7 @@ function getStatusForActiveTab (tabId, url) {
 }
 
 /**
+ * April 2023: This is now really just for the single active tab
  * Key data for each tab is stored in the tabsHighlighted object, including whether the tab is enabled, shows highlighting,
  * should display the editor panes, etc.
  * @param {string} tabURL - the href of the tab, as a backup
@@ -979,56 +929,6 @@ function globStringToRegex (str) {
   return preg_quote(str).replace(/\*/g, '\\S*').replace(/\?/g, '.');
 }
 
-// function syncData() {
-//   debugSwLog(Date().toString() + " - start sync");
-//
-//   for (let highlightData in HighlightsData.Groups) {
-//
-//     if (HighlightsData.Groups[highlightData].Type === 'remote'){
-//       syncWordList(HighlightsData.Groups[highlightData], false,'');
-//     }
-//   }
-// }
-
-// function syncWordList (list, notify, listname){
-//   debugSwLog('syncing ' + list);
-//   let xhr = new XMLHttpRequest();
-//   switch(list.RemoteConfig.type) {
-//     case 'pastebin':
-//       getSitesUrl='https://pastebin.com/raw/'+list.RemoteConfig.id;
-//       break;
-//     case 'web':
-//       getSitesUrl=list.RemoteConfig.url;
-//       break;
-//   }
-//   xhr.open('GET', getSitesUrl, true);
-//   xhr.onreadystatechange = function () {
-//     if (xhr.readyState === 4 && xhr.status === 200) {
-//       let resp = sanitizeHtml(xhr.responseText,{allowedTags: [], allowedAttributes: []});
-//       wordsToAdd = resp.split('\n').filter(function (e) {
-//         return e;
-//       });
-//       for(word in wordsToAdd){
-//         wordsToAdd[word]=wordsToAdd[word].replace(/(\r\n|\n|\r)/gm,'');
-//       }
-//       list.Words=wordsToAdd;
-//       list.RemoteConfig.lastUpdated=Date.now();
-//       if(notify){
-//         chrome.notifications.create('1', {
-//           'type': 'basic',
-//           'iconUrl': 'Plugin96.png',
-//           //"requireInteraction": false,
-//           'title': 'List sync-ed',
-//           'message': "'"+listname+"' has been updated"
-//         });
-//
-//
-//       }
-//     }
-//   };
-//   xhr.send();
-// }
-
 function getWeVoteTabs () {
   const {getAllInWindow} = chrome;
   getAllInWindow(null, function (tabs) {
@@ -1082,36 +982,7 @@ function handleButtonStateChange (showHighlights, showEditor, pdfURL, tabId, tab
   }
 }
 
-// // This works on all devices/browsers, and uses IndexedDBShim as a final fallback
-// var indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB || window.shimIndexedDB;
-//
-// // Open (or create) the database
-// var openStatsDB = indexedDB.open("Stats", 1);
-//
-// // Create the schema
-// openStatsDB.onupgradeneeded = function(e) {
-//   var db = e.target.result;
-//   var store = db.createObjectStore("MyStats", {keyPath: "word"});
-//   var index = store.createIndex("NameIndex", ["lastseen", "count"]);
-// };
-//
-// openStatsDB.onsuccess = function() {
-//   debugSwLog("steve in openStatsDB.onsuccess");
-//   // Start a new transaction
-//   var db = openStatsDB.result;
-//   var tx = db.transaction("MyStats", "readwrite");
-//   var store = tx.objectStore("MyStats");
-//   var index = store.index("NameIndex");
-//
-//   // Add some data
-//   store.put({ word:'test' , count: 1});
-//
-//   // Close the db when the transaction is done
-//   tx.oncomplete = function() {
-//     db.close();
-//   };
-// };
-
+//* preg_quote() takes str and puts a backslash in front of every character that is part of the regular expression syntax. */
 // eslint-disable-next-line camelcase
 function preg_quote (str,delimiter) {
   // http://kevin.vanzonneveld.net

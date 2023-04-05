@@ -201,6 +201,7 @@ function getOrganizationFound (locationHref, sendResponse) {
           'organizationName': orgName,
           'organizationWeVoteId': weVoteId,
           'organizationTwitterHandle': twitterHandle,
+          'voterGuidePossibilityId': voterGuidePossibilityId,
         }).then(() => {
           console.log('Updated state with organization info for ', orgName);
         });

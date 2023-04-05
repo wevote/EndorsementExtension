@@ -1,13 +1,25 @@
-**3/24/23
+**4/4/23**
+* For PDFS, Tabs usually only open on second load of pdf -> html
+* On opening a tabbed pdf, it sometimes takes a minute or two for the green highlights to appear,  This is on (CADEM)[https://cadem.org/wp-content/uploads/2022/09/2022-CADEM-General-Endorsements.pdf] which is a very dense page with 140 highlights.
+Works decently on (Everydistrict)[https://everydistrict.us/candidates/2022-candidates/]. 
+* Performance is still inconsistent, with multiple opportunities for reworking sections of code.  First load of a medium complex page like every district is now very good.
+  * I have the new options on APIs to load more than one year, turned on to work with old endorsement pages, this is a performance degradation that can be easily adjusted. (allowAnyYearForVoterGuides etc.)
+* On tabbed, changes the refresh of the right side panel is so slow, and requires a full page refresh, which is slow on a dense or slow to load page -- must be a better way.
+* Lower priority: The edit pop up (Max's second dialog EditCandidateForExtension.js), is not yet used, and it would be useful
+* Lower priority: Can't edit names in the right pane.
+* Medium issue: The CADEM pdf, shows the need for an automatically scalable thumbIconSVGContent, or a collection of fixed sizes, here we need 10pt
+* Minor issue: Handle close error in popup.js: Unchecked runtime.lastError: The message port closed before a response was received.
+* Minor issue: More efficient replacement for tabWordHighligher L 449, where we don't even ask status from "other" tabs.
+
+**3/24/23**
 * https://wevote-temporary.s3.amazonaws.com/2022-CADEM-General-Endorsements.html
   * Multiple issues with clicking on highlights
-    * setModal is not defined
-  * Medium issue: shows the need for an automatically scalable thumbIconSVGContent, or a collection of fixed sizes, here we need 10pt
-* https://www.californiaprolife.org/wp-content/uploads/2014/10/CPLC-PAC-Ballot-Endorsements.pdf
+    * ~~setModal is not defined~~
+* Minor issue (one site's html): https://www.californiaprolife.org/wp-content/uploads/2014/10/CPLC-PAC-Ballot-Endorsements.pdf
   * Get an extra last letter outside of the highlights -- District 23 –Kevin McCarthyy (R)
   * ~~Yellow highlight click takes you to the broken edit window (Max 2)~~
-    * https://wevotedeveloper.com:3000/candidate-for-extension?candidate_name=Kristen%20McDonald%20Rivet&amp;candidate_we_vote_id=wvehcand2292542&endorsement_page_url=https%3A%2F%2Feverydistrict.us%2Fcandidates%2F2022-candidates%2F 
-    * Select with right click only prefills (Max 1) with first or last name.
+    * ~~https://wevotedeveloper.com:3000/candidate-for-extension?candidate_name=Kristen%20McDonald%20Rivet&amp;candidate_we_vote_id=wvehcand2292542&endorsement_page_url=https%3A%2F%2Feverydistrict.us%2Fcandidates%2F2022-candidates%2F~~ 
+    * Select with right click only prefills (AddCandidateForExtension) with first or last name.
 * ~~Sign out no longer implemented, mostly needed for testing.  Show editor with sign in avatar, then go to webapp and sign-out, when you return you get an all blue tab for about 30 seconds, and it still shows you as signed in via avatar.~~
 * ~~URGENT: Subsequent tabs open in editor, if editor is already open, and create a garbage voter guide possibility on the production server~~
 * ~~Must debounce sign in button~~
@@ -16,9 +28,6 @@
 
 **3/20/23**
 * Speed Final checks, and without so much logging
-* Minor issue: Handle close error in popup.js: Unchecked runtime.lastError: The message port closed before a response was received.
-* Minor issue: More efficient replacement for tabWordHighligher L 449, where we don't even ask status from "other" tabs.
-* Minor issue: Integrate Max's edit dialog (create is hard coded)
 * Someday: Maybe recover multi-tab processing, with a list at the bottom of pop-up to show which are enable.  Might need to check if "enabled" tab has been refreshed.
 
 **3/8/23**
@@ -29,24 +38,18 @@
 * ~~Highlight tab button, opens edit panel~~
 
 **2/17/23**
-* Handle close error in popup.js: Unchecked runtime.lastError: The message port closed before a response was received.
-* More efficient replacement for tabWordHighligher L 449, where we dont even ask status from "other" tabs.
-* Speed Final checks, and without so much logging
-* Test PDF processing
+* ~~Test PDF processing~~
 * ~~Still have a small bit of (lower priority) multi-tab selection code to clean out.~~
-* Integrate Max's edit dialog (create is hard coded)
 * ~~Newly created/edited in main pane, should cause side pane to reload~~
 * ~~Completely eliminate weContentState, just causes stale date and confusion~~
 * ~~More main pane/side pane testing~~
 * ~~Delete in right pane, does deletion in right pane, then causes entire page to reload instead of just the left pane.~~
 
 **2/13/23**
-* Newly created/edited in main pane, should cause side pane to reload
-* Integrate Max's edit dialog (create is hard coded)
+* ~~Newly created/edited in main pane, should cause side pane to reload~~
 * Speed Final checks, and without so much logging
-* Test PDF processing
-* More main pane/side pane testing 
-* Still have (lower priority) multi-tab selection code to clean out.
+* ~~More main pane/side pane testing~~ 
+* ~~Still have (lower priority) multi-tab selection code to clean out.~~
 * ~~Sign in is erratic, unsure~~
 
 **2/7/23**
@@ -64,7 +67,7 @@ but clicking it does nothing~~
 
 **7/30/22:**
 * ~~Still not there in terms of reliably starting up on a non-hard-reloaded every-district.us test case~~
-* ~~Waiting for Max to finish candidate-for-extension: ~~`<button type="button" id="KristenMcDonaldRivet" class="endorsementHighlights" onclick="setModal(true, 'https://wevote.us/candidate-for-extension?candidate_name=Kristen%20McDonald%20Rivet&amp;candidate_we_vote_id=wvehcand2292542&amp;endorsement_page_url=https%3A%2F%2Feverydistrict.us%2Fcandidates%2F2022-candidates%2F&amp;candidate_specific_endorsement_url=&amp;voter_guide_possibility_id=6284', 'KristenMcDonaldRivet', event)"><em class="Highlight" style="padding: 1px; box-shadow: rgb(229, 229, 229) 1px 1px; border-radius: 3px; -webkit-print-color-adjust: exact; background-color: rgb(180, 231, 205); color: rgb(40, 176, 116); font-style: inherit;"><svg class="thumbIconSVGContent" style="margin-top:3px"><path fill="#28b074" d="M6,16.8181818 L8.36363636,16.8181818 L8.36363636,9.72727273 L6,9.72727273 L6,16.8181818 L6,16.8181818 Z M19,10.3181818 C19,9.66818182 18.4681818,9.13636364 17.8181818,9.13636364 L14.0895455,9.13636364 L14.6509091,6.43590909 L14.6686364,6.24681818 C14.6686364,6.00454545 14.5681818,5.78 14.4086364,5.62045455 L13.7822727,5 L9.89409091,8.89409091 C9.67545455,9.10681818 9.54545455,9.40227273 9.54545455,9.72727273 L9.54545455,15.6363636 C9.54545455,16.2863636 10.0772727,16.8181818 10.7272727,16.8181818 L16.0454545,16.8181818 C16.5359091,16.8181818 16.9554545,16.5227273 17.1327273,16.0972727 L18.9172727,11.9313636 C18.9704545,11.7954545 19,11.6536364 19,11.5 L19,10.3713636 L18.9940909,10.3654545 L19,10.3181818 L19,10.3181818 Z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg>Kristen McDonald Rivet</em></button>`
+* ~~Waiting for Max to finish candidate-for-extension:~~
 
 **7/29/22:**
 * ~~On 'https://everydistrict.us/candidates/2022-candidates/' the 19 green highlights appear in 4 seconds, the yellows take 35 seconds to appear.~~ 
@@ -75,9 +78,9 @@ and the right pane does not find matches on subsequent opening of edit panel.~~
 
 
 **7/15/22:**
-* https://cdn.wevoteusa.org/apis/v1/ballotItemHighlightsRetrieve/ takes 22.14 seconds and 21 of them is waiting for server to respond (processing)
-* ballotItemHighlightsRetrieve takes 1/4 second locally (257kb gzipped) 
-* and 'https://api.wevoteusa.org/apis/v1/voterGuidePossibilityPositionsRetrieve/?voter_device_id=7PEDIgXesYCkENRKCgmsKp5gTENRUsHvsqRgG6OZOLXEBSjkg3KDe9ZNCoYCRsTBC05JqcUdEAIXPcnKnUyrw3tZ&voter_guide_possibility_id=undefined' takes 14 seconds and returns 257kb gzipped
+* ~~https://cdn.wevoteusa.org/apis/v1/ballotItemHighlightsRetrieve/ takes 22.14 seconds and 21 of them is waiting for server to respond (processing)~~
+* ~~ballotItemHighlightsRetrieve takes 1/4 second locally (257kb gzipped)~~ 
+* ~~and 'https://api.wevoteusa.org/apis/v1/voterGuidePossibilityPositionsRetrieve/?voter_device_id=7PEDIgXesYCkENRKCgmsKp5gTENRUsHvsqRgG6OZOLXEBSjkg3KDe9ZNCoYCRsTBC05JqcUdEAIXPcnKnUyrw3tZ&voter_guide_possibility_id=undefined' takes 14 seconds and returns 257kb gzipped~~
 
 
 

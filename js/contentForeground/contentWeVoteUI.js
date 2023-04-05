@@ -1,4 +1,4 @@
-/* global $, markupForThumbSvg, extensionSignInPage, addCandidateExtensionWebAppURL, colors,
+/* global $, markupForThumbSvg, extensionSignInPage, addCandidateExtensionWebAppURL, colors, getPhotoURL,
    chrome, updateGlobalState, getGlobalState, getVoterDeviceId, sendGetStatus, debugServiceWorker, debugTimingForegroundContent
 */
 
@@ -125,18 +125,14 @@ function signIn (attemptLogin) {
       debugFgLog('chrome.runtime.sendMessage("getVoterInfo") raw response ', response);
       const {success, error, err, voterName, photoURL, weVoteId, voterEmail, voterIsSignedIn} = response.data;
       debugFgLog('chrome.runtime.sendMessage("getVoterInfo") success', response.data);
-      let photo = (!photoURL || photoURL.length < 10)
-        ? 'https://wevote.us/img/global/icons/avatar-generic.png'
-        : photoURL;
+      let photo = getPhotoURL (photoURL);
       await updateGlobalState({ voterWeVoteId: weVoteId || '', photoURL: photo });
       let voterInfo = {
         success: success,
         error: error,
         err: err,
         name: voterName,
-        photo: (!photoURL || photoURL.length < 10)
-          ? 'https://wevote.us/img/global/icons/avatar-generic.png'
-          : photoURL,
+        photoURL: photo,
         voterId: weVoteId,
         email: voterEmail,
         voterIsSignedIn: voterIsSignedIn,
@@ -210,11 +206,11 @@ async function updateSignInMarkup () {
   const state = await getGlobalState();
   const {
     voterIsSignedIn,
-    photo
+    photoURL,
   } = state;
   if (voterIsSignedIn) {
     signInSelector.replaceWith(
-      '<img id="signIn" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" src="' + photo + '" ' +
+      '<img id="signIn" class="gridSignInTop voterPhoto removeContentStyles" alt="candidateWe" src="' + photoURL + '" ' +
       'style="margin: 12px; width: 50px; height: 50px;" />');
   } else {
     signInSelector.replaceWith(
@@ -267,10 +263,6 @@ function setSignInOutOnClick () {
   });
 }
 
-function sleep (ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 function getVoterInfo () {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   sendMessage({ command: 'getVoterInfo',},
@@ -300,9 +292,7 @@ function getVoterInfo () {
           error: error,
           err: err,
           name: voterName,
-          photo: (!photoURL || photoURL.length < 10) ?
-            'https://wevote.us/img/global/icons/avatar-generic.png' :
-            photoURL,
+          photoURL: getPhotoURL (photoURL),
           voterId: weVoteId,
           email: voterEmail,
           voterIsSignedIn
@@ -335,7 +325,7 @@ function topMenu () {
     '      <button type="button" id="sendTopComment" class="sendTopComment weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">Send</button>' +
     '    </span>' +
     '  </span>' +
-    '  <span id="signIn" class="gridSignInTop  removeContentStyles">wait</span>' +
+    '  <span id="signIn" class="gridSignInTop  removeContentStyles">&#129300</span>' +
     '  <span id="loginPopUp"></span>' +
     '  <div id="dlgAnchor"></div>' +
   '</div>';
@@ -351,11 +341,11 @@ async function getHighlights (highlighterEnabledThisTab, highlighterEditorEnable
   const t0 = performance.now();
   debugFgLog('ENTERING contentWeVoteUI > getHighlights() called ========================== highlighterEnabledThisTab: ', highlighterEnabledThisTab,
     ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', tabId: ', tabId);
-  let urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML
+  let urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML, and inserted into the markup on the server
   if (!urlToQuery || urlToQuery.length < 1) {
     urlToQuery = window.location.href;
   }
-  // TODO: We need to send both urls, html and pdf to the server
+  // TODO: We need to send both urls, html and pdf to the server.   4/4/23: Not sure what this means?
 
   // Start by just retrieving the endorsements already captured
   await getVoterDeviceId().then((voterDeviceId) => {
@@ -1037,6 +1027,8 @@ async function saveUpdatedCandidatePossiblePosition (event, removePosition, deta
 }
 
 async function unfurlOnePositionPane (event, forceNumber) {
+  console.log('CLICKED: candidateWe then unfurlOnePositionPane: ', event);
+
   // eslint-disable-next-line init-declarations
   let targetFurl;
   // eslint-disable-next-line init-declarations
@@ -1132,6 +1124,8 @@ function addHandlersForCandidatePaneButtons (targetDiv, number, detachedDialog) 
 function deactivateActivePositionPane () {
   const visibleElements = $('.furlable:visible');
   if (visibleElements.length > 0) {
+    console.log('CLICKED: candidateWe then deactivateActivePositionPane: ');
+
     // debugFgLog('deactivateActivePositionPane() visibleElements: ',visibleElements);
     // eslint-disable-next-line prefer-destructuring
     let visibleElement = visibleElements[0];
@@ -1153,6 +1147,7 @@ function openSuggestionPopUp (selection) {
     '&candidate_we_vote_id=&endorsement_page_url=' + encodeURIComponent(location.href) +
     '&candidate_specific_endorsement_url=';
   debugFgLog('openSuggestionPopUp addCandidateForExtension frameUrl', frameUrl);
+  console.log('============================= openSuggestionPopUp addCandidateForExtension frameUrl', frameUrl);
 
   $('<iframe id="weIFrame" src="' + frameUrl + '" style="width: 448px" name="weIframeByName"></div>').dialog({
     title: 'Add a candidate endorsement',
@@ -1294,10 +1289,12 @@ function attachClickHandlers () {
   //debugFgLog("attachClickHandlers", $('div.candidateWe').length);
 
   $('div.candidateWe').click((event) => {
+    // console.log('CLICKED: div.candidateWe clicked, target: ', event.target);
     if (!isParentFurlable(event.target)) {
       deactivateActivePositionPane();
       unfurlOnePositionPane(event, -1);
     } else {
+      // console.log('CLICKED: candidateWe click IGNORED since target is in furlable area: ', event.target);
       debugWarn('candidateWe click IGNORED since target is in furlable area', event);
     }
   });

@@ -90,6 +90,7 @@ async function reInitializeGlobalState () {
     ...initialState,
     voterDeviceId: oldState.voterDeviceId || '',
     voterIsSignedIn: oldState.voterIsSignedIn,
+    photoURL: oldState.photoURL,
   };                   // Make a copy of the simple object
   await lowLevelSetStorage(newState);
   const newStateFromStorage = (await lowLevelGetStorage());
