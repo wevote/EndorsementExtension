@@ -4,7 +4,7 @@
 // These log to the console of the endorsement page (like sierraclub.org) in the browser, And communicate with the background script via chrome extension messages that are sent.
 // When the endorsement page is re-opened in an iframe, access to that DOM is greatly limited.
 
-/* global chrome, preloadPositionsForAnotherVM, updatePositionPanelFromTheIFrame, updateHighlightsIfNeeded */
+/* global chrome, preloadPositionsForAnotherVM, updatePositionPanelFromTheIFrame, updateHighlightsIfNeeded, isModalDisplayed */
 
 /* eslint no-unused-vars: 0 */
 /* eslint init-declarations: 0 */
@@ -268,7 +268,8 @@ async function initializeTabWordHighlighter () {
             reHighlight(request.words);
             return false;
           } else if (request.command === 'createEndorsement') {
-            openSuggestionPopUp(request.selection);
+            console.log('================================  received createEndorsement');
+            await openSuggestionPopUp(request.selection);
             return false;
           } else if (request.command === 'revealRight') {
             revealRightAction(request.selection);
@@ -309,11 +310,14 @@ async function initializeTabWordHighlighter () {
               pdfURL,
               tabId,
               tabUrl
-            }, function () {
-              if (lastError) {
-                debugFgLog('chrome.runtime.sendMessage("updateBackgroundForButtonChange")', lastError.message);
-              }
+            // }, function (response) {
+            //   console.log('chrome.runtime.sendMessage("updateBackgroundForButtonChange") response: ', response);
+            //   // console.log('chrome.runtime.sendMessage("updateBackgroundForButtonChange") lstError', lastError);
+            //   // if (!response.success) {
+            //   //   debugFgLog('chrome.runtime.sendMessage("updateBackgroundForButtonChange")', lastError.message);
+            //   // }
             });
+            return false;  // Does not return a response, so return false
           } else {
             console.error('tabWordHighlighter in chrome.runtime.onMessage.addListener received unknown command: ' + request.command);
             return false;
@@ -463,7 +467,7 @@ async function sendGetStatus () {
     // weContentState.neverHighlightOn = neverHighlightOn && neverHighlightOn.length ? neverHighlightOn : weContentState.neverHighlightOn;
     // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary --  April 26, 2020, do we even need 'myTabId' msg chain?
     const state = await getGlobalState();
-    const { highlighterEnabledThisTab, url: urlFromState, tabId: tabIdFromState } = state;
+    const { url: urlFromState, tabId: tabIdFromState } = state;
 
     // console.log('STORAGE ***************************** state ', state);
     if (tabId === -1) {
@@ -520,17 +524,16 @@ async function clearPriorDataOnModeChange (showHighlights, showEditor) {
   }
 }
 
-async function closeIFrameDialog () {
+function closeIFrameDialog () {
+  console.log('------------------------------------ closeIFrameDialog 528 entry');
   const dialogClosed = true;
   if (isInOurIFrame()) { // if in an iframe
     debugFgLog('With editors displayed, and the endorsement page in an iFrame, the modal containing an iFrame to the webapp has closed.  Evaluating the need to update the PositionsPanel,state ');
-    // replaced 2/17/23: updatePositionPanelFromTheIFrame(dialogClosed);  // which calls getRefreshedHighlights() if the positions data has changed
-    const state = await getGlobalState();
-    const { highlighterEditorEnabled, highlighterEnabledThisTab, tabId } = state;
-    debugFgLog('calling displayHighlightingAndPossiblyEditor highlighterEnabledThisTab:', highlighterEnabledThisTab, highlighterEditorEnabled, tabId);
-    displayHighlightingAndPossiblyEditor(highlighterEnabledThisTab, highlighterEditorEnabled, tabId);
+    console.log('------------------------------------ closeIFrameDialog 531');
+    retryLoadPositionPanel();         // Refresh the Position Panel with the potentially updated data (very fast)
   } else {
     debugFgLog('dialog containing iFrame has closed, either without the editor displayed, or for newly discovered positions, ie right click on highlighed position');
+    console.log('------------------------------------ closeIFrameDialog 546 no iframe');
     updateHighlightsIfNeeded(dialogClosed);
   }
   $('#weVoteModal').remove();
@@ -562,11 +565,21 @@ function createWediv () {
   if (isInOurIFrame()) {
     preloadPositionsForAnotherVM();  // preLoad positions for this VM, if it is a VM within an iFrame
   }
+
+  let dialog = $('[role=dialog]');
+  console.log('------------------------------ role=dialog at 0 seconds');
+  const timer = setTimeout(() => {
+    let dialog = $('[role=dialog]');
+    console.log('------------------------------ role=dialog at 5 seconds, 5/11/23 TODO: Put pane refresh logic here');
+  }, 5000);
+
   $('.weclose').click(() => {
+    console.log('-------------------------------------- closeIFrameDialog() called -----------');
     closeIFrameDialog();
   });
   window.addEventListener('message', function (e) {
     debugFgLog('tabWordHighlighter receiving close message from iFrame: ', e.data);
+    console.log('tabWordHighlighter receiving close message from iFrame: ', e.data);
     if (e.data === 'closeIFrameDialog') {
       debugFgLog('closing iFrame dialog');
       closeIFrameDialog();
@@ -661,7 +674,7 @@ function highlightLoop (){
 
   ReadyToFindWords = true;
 
-  let i = 0;
+  // let i = 0;
   HighlightLoop = setInterval(function () {
     // if (i % 10 === 0) {
     //   console.log('-------- calling findWords in highlightLoop -----------');  // uses a lot of CPU, but useful sometimes
@@ -780,7 +793,7 @@ function findWords () {
         }
 
         try {
-          console.log('showHighlightsCount in tabWordHigligher, count = ' + uniqueNameMatches.length.toString()); // always log this
+          console.log('showHighlightsCount in tabWordHighligher, count = ' + uniqueNameMatches.length.toString()); // always log this
           sendMessage({
             command: 'showHighlightsCount',
             label: uniqueNameMatches.length.toString(),
@@ -833,7 +846,7 @@ function addHighlightOnClick (id, url, element) {
   });
 }
 
-function convertV2onClickToV3 () {  // 4/5/23: Removed the .each replacement of setModal that had been prewritten into every wrapped highlight markup, and replace it with a on click made on the fly.
+function convertV2onClickToV3 () {  // 4/5/23: Removed the ".each" replacement of setModal that had been pre-written into every wrapped highlight markup, and replace it with a on click made on the fly.
   $('.weclose').each(function () {
     // <button type="button" className="weclose" onClick="setModal(false,'' ,'')">X</button>
     // eslint-disable-next-line no-invalid-this
@@ -846,7 +859,6 @@ function convertV2onClickToV3 () {  // 4/5/23: Removed the .each replacement of 
           id += 'x';
         }
         convertedOnClicks.push(id);
-        el.removeAttr('onClick');  // Remove the V2 onClick
         el.click(() => {
           console.log('converted onClick for (weclose) ' + id);
           setModal(false, '', '');

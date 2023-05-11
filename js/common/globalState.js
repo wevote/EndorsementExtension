@@ -9,6 +9,7 @@
 const initialState = {
   allNames: '',
   candidateName: '',
+  rightPanePositions: {},
   email: '',
   encodedHref: '',
   highlighterEditorEnabled: false,
@@ -33,6 +34,7 @@ const initialState = {
   possibleOrgsList: [],
   priorData: [],
   priorHighlighterEnabledThisTab: false,
+  refreshSideAreaNeeded: false,
   showEditor: false,
   showHighlights: false,
   showPanel: false,
@@ -64,7 +66,7 @@ async function getGlobalState () {
 }
 
 async function updateGlobalState (dict) {
-  debugStorage('saveGlobalState entry');
+  debugStorage('updateGlobalState entry');
   const oldState = (await lowLevelGetStorage());
   debugStorage('oldState updateGlobalState from updateGlobalState:', oldState);
 

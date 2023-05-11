@@ -92,7 +92,7 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
 
       const t32 = performance.now();
       // UPDATE THIS
-      // processHighlightsRetrieve(tabId, locationURL, ballotItemHighlightsRetrieveResponse, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse);
+      processHighlightsRetrieve(tabId, locationURL, ballotItemHighlightsRetrieveResponse, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse);
       const t33 = performance.now();
       timingSwLog(t32, t33, 'processHighlightsRetrieve end-to-end took', 8.0);
     }).catch((err) => {

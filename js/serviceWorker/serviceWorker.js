@@ -4,6 +4,7 @@ self.oninstall = () => {
     console.log('serviceWorker.js install 2');
     // import the singleton "background" scripts to start the extension
     importScripts(
+      '../common/config.js',
       '../common/commonWeVote.js',
       '../common/globalState.js',
       'backgroundWeVoteAPICalls.js',
