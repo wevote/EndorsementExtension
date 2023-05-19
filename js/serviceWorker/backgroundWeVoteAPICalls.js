@@ -1,3 +1,4 @@
+/* global overrideStartingYear, startingYearOverride */
 const voterGuidePossibilityIdCache = {};  // we lose the current value when we reload in a iFrame, so cache it here
 let voterGuidePossibilityPositionsRetrieveT0 = 0;
 
@@ -92,7 +93,7 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
 
       const t32 = performance.now();
       // UPDATE THIS
-      // processHighlightsRetrieve(tabId, locationURL, ballotItemHighlightsRetrieveResponse, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse);
+      processHighlightsRetrieve(tabId, locationURL, ballotItemHighlightsRetrieveResponse, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse);
       const t33 = performance.now();
       timingSwLog(t32, t33, 'processHighlightsRetrieve end-to-end took', 8.0);
     }).catch((err) => {
@@ -108,13 +109,6 @@ function processHighlightsRetrieve (tabId, url, ballotItemHighlightsRetrieveResp
   let neverHighLightOnLocal = ballotItemHighlightsRetrieveResponse['never_highlight_on'];
   let voterGuideHighlights = voterGuidePossibilityHighlightsRetrieveResponse['highlight_list'];
 
-  // February 2020, these are temporary and can be removed once the python server is updated
-  // neverHighLightOnLocal.push('about:blank');
-  // neverHighLightOnLocal.push('platform.twitter.com');
-  // neverHighLightOnLocal.push('s7.addthis.com');
-  // neverHighLightOnLocal.push('vars.hotjar.com');
-  // neverHighLightOnLocal.push('*.google.com');
-  // neverHighLightOnLocal.push('regex101.com');
   processHighlightsRetrieveDebug && debugSwLog('get json ballotItemHighlights: ', ballotItemHighlights);
   debugSwLog('get json ballotItemHighlights.length: ', ballotItemHighlights.length);
   const t0 = performance.now();
