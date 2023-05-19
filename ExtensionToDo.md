@@ -1,3 +1,21 @@
+**5/19/23**
+* There is a horrible performance problem on the live server with voterGuidePossibilityHighlightsRetrieve,
+this api completes in a second on the local Python server, and only completes 2/3s of the time on the live api server, and when it does complete it takes 45 to 90 seconds.
+* Tabbed using a local API server is very fast, with the green highlights appearing in less than a second, and with the yellow highlights in 15 seconds.  The code is currently configured to send 26k old candidates, instead of just this year's, so even that will speed up by a huge amount.
+* Non-tabbed is slower, and sometimes after drawing the greens, then the yellows, reload the page and only shows the greens.  Sometimes it works perfectly.
+* Sometimes the first attempt at tabbed does not respond, and needs to be rerun.
+
+**Lower Priority**
+* Medium priority: Update the endorsement page in editor view, when the status of the highlight is changed via iframe to WebApp 
+* Lower priority: On some pages the name of the candidate gets split into two adjacent clickable links, but only prefills the add dialog with the half of the name you clicked on.  Maybe cache the matches and then lookup the name and prefill the name field, if you only get one word.
+* Lower priority: The state of the buttons in the popup gets cleared and is inconsistent on pdf -> html
+* Lower priority: Can't edit names in the right pane.
+* Lower priority: Get those last 'Uncaught (in promise) Error: Could not establish connection. Receiving end does not exist.' errors
+
+* Medium issue: The CADEM pdf, shows the need for an automatically scalable thumbIconSVGContent, or a collection of fixed sizes, here we need 10pt
+* Minor issue: Handle close error in popup.js: Unchecked runtime.lastError: The message port closed before a response was received.
+* Minor issue: More efficient replacement for tabWordHighligher L 449, where we don't even ask status from "other" tabs.
+
 **4/4/23**
 * For PDFS, Tabs usually only open on second load of pdf -> html
 * On opening a tabbed pdf, it sometimes takes a minute or two for the green highlights to appear,  This is on (CADEM)[https://cadem.org/wp-content/uploads/2022/09/2022-CADEM-General-Endorsements.pdf] which is a very dense page with 140 highlights.
@@ -5,11 +23,8 @@ Works decently on (Everydistrict)[https://everydistrict.us/candidates/2022-candi
 * Performance is still inconsistent, with multiple opportunities for reworking sections of code.  First load of a medium complex page like every district is now very good.
   * I have the new options on APIs to load more than one year, turned on to work with old endorsement pages, this is a performance degradation that can be easily adjusted. (allowAnyYearForVoterGuides etc.)
 * On tabbed, changes the refresh of the right side panel is so slow, and requires a full page refresh, which is slow on a dense or slow to load page -- must be a better way.
-* Lower priority: The edit pop up (Max's second dialog EditCandidateForExtension.js), is not yet used, and it would be useful
-* Lower priority: Can't edit names in the right pane.
-* Medium issue: The CADEM pdf, shows the need for an automatically scalable thumbIconSVGContent, or a collection of fixed sizes, here we need 10pt
-* Minor issue: Handle close error in popup.js: Unchecked runtime.lastError: The message port closed before a response was received.
-* Minor issue: More efficient replacement for tabWordHighligher L 449, where we don't even ask status from "other" tabs.
+* ~~Edit pop-up does not show endorsement text~~
+* ~~The edit pop up (Max's second dialog EditCandidateForExtension.js), is not yet used, and it would be useful~~
 
 **3/24/23**
 * https://wevote-temporary.s3.amazonaws.com/2022-CADEM-General-Endorsements.html

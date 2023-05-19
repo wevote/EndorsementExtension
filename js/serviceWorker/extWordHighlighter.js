@@ -18,7 +18,6 @@ console.log('===================== extWordHighlighter ==========================
 
 console.log('-------- extWordHighlighter');
 
-const debugE = true;
 let HighlightsData = {};
 let activeUrlGlobal = '';
 let aliasNames = [];
@@ -286,12 +285,11 @@ function createNewTabsHighlightedElement (tabId, url) {
   return tabsHighlighted[tabId];
 }
 
-
 function updateContextMenu (inUrl, tabId){
   debugSwLog('updating context menu', tabId, inUrl);
   if(inUrl&&noContextMenu.indexOf(inUrl) === -1){
-    chrome.contextMenus.removeAll();
-    createSearchMenu();
+    // chrome.contextMenus.removeAll();
+    // createSearchMenu(); April 20, 2023 -- Causes:  Unchecked runtime.lastError while running contextMenus.create: Cannot create item with duplicate id Highlight
     let contexts = ['selection'];
     let filteredGroups=getWordsBackground(inUrl, tabId);  // Don't show highlights on pages that have been excluded
 
@@ -308,11 +306,29 @@ function updateContextMenu (inUrl, tabId){
       }
     );
 
-    chrome.contextMenus.create({
-      'title': 'Create We Vote Endorsement',
-      'contexts': [contexts[0]],
-      'id': 'idContextMenuCreateNew'
-    });
+
+    // clues at: https://stackoverflow.com/questions/33834785/chrome-extension-context-menu-not-working-after-update
+    setTimeout(() => {
+      const { runtime: { lastError }, contextMenus: { create, remove } } = chrome;
+      console.log('----------------------------------- contextMenuCreated, before remove');
+      remove('idContextMenuCreateNew', () => {
+        let myError = chrome.runtime.lastError;  // null or Error object, 4/29/23 Painfully discovered barely documented magic code, do not simplify
+        if (myError) {
+          console.log('----------------------------------- contextMenuCreated myError: ', myError);
+        }
+        console.log('----------------------------------- contextMenuCreated, before create');
+        create({
+          'title': 'Create (or Edit) a We Vote Endorsement',
+          'contexts': [contexts[0]],
+          'id': 'idContextMenuCreateNew'
+        }, () => {
+          let myError = chrome.runtime.lastError;  // null or Error object, 4/29/23 Painfully discovered barely documented magic code, do not simplify
+          if (myError) {
+            console.log('----------------------------------- contextMenuCreated myError during create: ', myError.message);
+          }
+        });
+      });
+    }, 222);
   }
 }
 
@@ -347,7 +363,7 @@ function hardResetActiveTab (tabId) {
 function setEnableForActiveTab (showHighlights, showEditor, tabId, tabUrl) {
   const setEnableForActiveTabDebug = true;
   const { tabs: { sendMessage, lastError } } = chrome;
-  (debugE || setEnableForActiveTabDebug) && debugSwLog('POPUP BUTTON CLICKED: enabling highlights on active tab ', tabId, ', showEditor: ', showEditor, ', showHighlights:', showHighlights);
+  (setEnableForActiveTabDebug) && debugSwLog('POPUP BUTTON CLICKED: enabling highlights on active tab ', tabId, ', showEditor: ', showEditor, ', showHighlights:', showHighlights);
 
   if (!tabId) {
     console.error('setEnableForActiveTab received invalid tab object');
@@ -440,20 +456,20 @@ function removeHighlightsForAllTabs () {
 chrome.tabs.onActivated.addListener(function (tabId){
   chrome.tabs.query({active: true, currentWindow: true}, async function (tabs) {
 
-    debugSwLog('XXXXXX set GLOBALS in tabs onactivated 2', tabId, tabs);
+    debugSwLog('XXXXXX chrome.tabs.onActivated.addListener 2', tabId, tabs);
     const state = await getGlobalState();
     debugSwLog('XXXXXX getGlobalState in tabs onactivated 2.5', state.tabId, state.url);
 
     if (tabs.length) {
       debugSwLog('XXXXXX decompose tabs onactivated raw tabs: ', JSON.stringify(tabs));
-      const { 0 : { id, url, windowId } } = tabs;
+      const { 0 : { id, url } } = tabs;
 
       if (url !== 'chrome://extensions/' && id === state.tabId ) {
         debugSwLog('XXXXXX decompose tabs onactivated 3', id, url);
         debugSwLog('MESSAGING: chrome.tabs.onActivated.addListener', url, id);
         updateContextMenu(url, id);
       } else {
-        debugSwLog('XXXXXX chrome.tabs.onActivated chrome.tabs.query triggered for "chrome://extensions/" or for a tab that is not supposed to be highlighted so it was ignored');
+        debugSwLog('XXXXXX chrome.tabs.onActivated chrome.tabs.query triggered for "chrome://extensions/" or for a tab that is not supposed to be highlighted so it was ignored: ', url, id, state.tabId);
       }
     } else {
       debugSwLog('chrome.tabs.onActivated.addListener found no currentWindow for tabId: ' + tabId);
@@ -470,6 +486,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
+// TODO: 4/20/23 should this be onUpdated?
 chrome.tabs.onCreated.addListener(
   async function (tab) {
     const state = await getGlobalState();
@@ -487,19 +504,23 @@ chrome.tabs.onCreated.addListener(
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
   const { tabs: { sendMessage, lastError, query } } = chrome;
   debugSwLog('chrome.contextMenus.onClicked: ' + info.selectionText);
-  console.log('================================ chrome.contextMenus.onClicked: ' + info.selectionText);
+  console.log('================================ chrome.contextMenus.onClicked text: ' + info.selectionText);
+  console.log('================================ chrome.contextMenus.onClicked obj: ' + JSON.stringify(info));
+  console.log('================================ chrome.contextMenus.onClicked info.menuItemId: ' + info.menuItemId + ', ' + info.menuItemId === 'idContextMenuCreateNew');
+  console.log('================================ chrome.contextMenus.onClicked info.menuItemId.indexOf(\'idContextMenuCreateNew\'): ' + info.menuItemId.indexOf('idContextMenuCreateNew'));
 
   if (info.menuItemId.indexOf('idContextMenuCreateNew') > -1) {
+    console.log('================================ chrome.contextMenus.onClicked sending createEndorsement');
     sendMessage(tab.id, {
       command: 'createEndorsement',
       selection: info.selectionText,
       pageURL: info.pageUrl,
       tabId: tab.id,
-    }, function (result) {
-      if (lastError) {
-        debugSwLog(' chrome.runtime.sendMessage("createEndorsement")', lastError.message);
-      }
-      debugSwLog('contextMenus on click, response received to createEndorsement ', result);
+    // }, function (result) {
+    //   if (lastError) {
+    //     debugSwLog(' chrome.runtime.sendMessage("createEndorsement")', lastError.message);
+    //   }
+    //   debugSwLog('contextMenus on click, response received to createEndorsement ', result);
     });
   } else if (info.menuItemId.indexOf('idContextMenuRevealRight') > -1) {
     sendMessage(tab.id, {
@@ -546,6 +567,7 @@ chrome.commands.onCommand.addListener(function (command) {
 chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {    // eslint-disable-line complexity
     debugSwLog('MESSAGING: message received -- ' + request.command + ': ', request, sender, sender.tab.id);
+    console.log('MESSAGING: message received -- ' + request.command + ': ', request, sender, sender.tab.id);
     let showVoterGuideHighlights;
     let showCandidateOptionsHighlights;
     if (request.command === 'getTopMenuData') {
@@ -587,6 +609,10 @@ chrome.runtime.onMessage.addListener(
         url: request.url,
 
       });
+    } else if (request.command === 'logFromPopup') {
+      console.log('popup: ' + request.payload);
+      sendResponse('hello from the extWordHighlighter');
+      return true;
     } else if (request.command === 'updateVoterGuide') {
       updatePossibleVoterGuide(request.voterGuidePossibilityId, request.orgName, request.orgTwitter, request.orgState,
         request.comments, request.sendResponse);
@@ -659,9 +685,8 @@ chrome.runtime.onMessage.addListener(
       hardResetActiveTab(tabId);
     } else if (request.command === 'updateBackgroundForButtonChange') {
       debugSwLog('extWordHighlighter "updateBackgroundForButtonChange" received from popup');
-
-
       handleButtonStateChange(request.showHighlights, request.openEditPanel, request.pdfURL, request.tabId, request.tabUrl);
+      return false;
     } else {
       console.error('extWordHighlighter received unknown command : ' + request.command);
     }

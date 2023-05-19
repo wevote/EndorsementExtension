@@ -1,5 +1,5 @@
 /* global $, markupForThumbSvg, extensionSignInPage, addCandidateExtensionWebAppURL, colors, getPhotoURL,
-   chrome, updateGlobalState, getGlobalState, getVoterDeviceId, sendGetStatus, debugServiceWorker, debugTimingForegroundContent
+   chrome, updateGlobalState, getGlobalState, getVoterDeviceId, sendGetStatus, debugFgLog
 */
 
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
@@ -229,6 +229,7 @@ function setSignInOutOnClick () {
   const signInSelector = $('#signIn');
 
   signInSelector.click(async () => {
+    signInSelector.prop('disabled', true);
     const state = await getGlobalState();
     const { voterIsSignedIn } = state;
     // eslint-disable-next-line init-declarations
@@ -334,6 +335,37 @@ function topMenu () {
   setSignInOutMarkup ();
 }
 
+async function doGetCombinedHighlights (highlighterEditorEnabled, tabId, urlToQuery) {
+  const t3 = performance.now();
+  if (highlighterEditorEnabled) {
+    debugFgLog('ENDING === 7 Second Delay === contentWeVoteUI > getHighlights > getCombinedHighlights');
+  } else {
+    debugFgLog('doGetCombinedHighlights without 7 Second Delay === contentWeVoteUI > getHighlights > getCombinedHighlights');
+  }
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
+  const state = await getGlobalState();
+  const { voterWeVoteId } = state;
+  sendMessage({command: 'getCombinedHighlights', voterWeVoteId: voterWeVoteId, tabId: tabId, url: urlToQuery, doReHighlight: true},
+    function (response) {
+      if (lastError) {
+        debugFgLog('ERROR: chrome.runtime.sendMessage("getCombinedHighlights")', lastError.message);
+      }
+      if (highlighterEditorEnabled) debugFgLog('AFTER === 7 Second Delay ===');
+      debugFgLog('RESPONSE in contentWeVoteUI > getCombinedHighlights() ========================== response: ', response);
+      debugFgLog('getCombinedHighlights() response', response);
+
+      if (response) {
+        const t4 = performance.now();
+        /* timingLogDebug &&*/ timingLog(t3, t4, 'getCombinedHighlights took', 8.0);
+        debugFgLog('SUCCESS: getCombinedHighlights received a response: ', response, '  highlighterEditorEnabled:', highlighterEditorEnabled, ', tabId: ', tabId);
+        namesToIds = response.nameToIdMap;  // This one only works if NOT in an iFrame
+      } else {
+        debugFgLog('ERROR: getCombinedHighlights received empty response');
+      }
+    }
+  );
+}
+
 // Get the href into the extension
 async function getHighlights (highlighterEnabledThisTab, highlighterEditorEnabled, tabId) {
   const timingLogDebug = false;
@@ -376,44 +408,17 @@ async function getHighlights (highlighterEnabledThisTab, highlighterEditorEnable
 
           // By now, the endorsements already captured should be displayed,
           // so we can move on to also showing recognized candidate names
-          const t3 = performance.now();
           debugFgLog('sendMESSAGE contentWeVoteUI > getCombinedHighlights command ========================== ');
           const timeoutDuration = 7000;  // 7 seconds so the voterGuidePossibilityHighlightsRetrieve can finish
-          debugFgLog('STARTING === 7 Second Delay === contentWeVoteUI > getHighlights > getCombinedHighlights');
-          setTimeout(async () => {
-            // We added a 7 second delay to let the page finish updating from the getHighlights command
-            const justSetUpPanels = false;
-            // if (isInOurIFrame()) { // if in an iframe
-            if (justSetUpPanels) {
-              // NOTE FROM DALE: 2020-06-08 This is an attempt to make this work when we are in the Edit panels
-              // Does not currently work
-              debugFgLog('JUST_SET_UP_PANELS: ');
-              retryLoadPositionPanel();
-            } else {
-              // NOTE FROM DALE: 2020-06-08 This works when we haven't put the organization voter guide in a panel
-              const state = await getGlobalState();
-              const { voterWeVoteId } = state;
-              sendMessage({command: 'getCombinedHighlights', voterWeVoteId: voterWeVoteId, tabId: tabId, url: urlToQuery, doReHighlight: true},
-                function (response) {
-                  if (lastError) {
-                    debugFgLog('ERROR: chrome.runtime.sendMessage("getCombinedHighlights")', lastError.message);
-                  }
-                  debugFgLog('AFTER === 7 Second Delay ===');
-                  debugFgLog('RESPONSE in contentWeVoteUI > getCombinedHighlights() ========================== response: ', response);
-                  debugFgLog('getCombinedHighlights() response', response);
-
-                  if (response) {
-                    const t4 = performance.now();
-                    timingLogDebug && timingLog(t3, t4, 'getCombinedHighlights took', 8.0);
-                    debugFgLog('SUCCESS: getCombinedHighlights received a response: ', response, '  highlighterEditorEnabled:', highlighterEditorEnabled, ', tabId: ', tabId);
-                    namesToIds = response.nameToIdMap;  // This one only works if NOT in an iFrame
-                  } else {
-                    debugFgLog('ERROR: getCombinedHighlights received empty response');
-                  }
-                }
-              );
-            }
-          }, timeoutDuration);
+          if (highlighterEditorEnabled) {
+            debugFgLog('STARTING === 7 Second Delay === contentWeVoteUI > getHighlights > getCombinedHighlights duration: ', timeoutDuration);
+            setTimeout(() => {
+              doGetCombinedHighlights(highlighterEditorEnabled, tabId, urlToQuery);
+            }, timeoutDuration);
+          } else {
+            // 5/17/23 the 7 sec delay causes problems if non-tabbed
+            doGetCombinedHighlights(highlighterEditorEnabled, tabId, urlToQuery);
+          }
         } else {
           debugFgLog('ERROR: getHighlights received empty response');
         }
@@ -517,14 +522,28 @@ async function updateTopMenu (update) {
 }
 
 /* eslint-disable no-unused-vars */
-function updateHighlightsIfNeeded (dialogClosed) {
-  debugFgLog('ENTERING contentWeVoteUI > updateHighlightsIfNeeded ========================== dialogClosed:', dialogClosed);
-  handleUpdatedOrNewPositions(false, false, false, dialogClosed);
+function updateHighlightsIfNeeded () {
+  debugFgLog('ENTERING contentWeVoteUI > updateHighlightsIfNeeded ========================== dialogClosed now always true');
+  // may 8, 2023 3:45: TODO  experiment to see if changing update to true, makes it work as "show highlights" without breaking tabbed
+  handleUpdatedOrNewPositions(true, false, false, true);
 }
 
 function updatePositionPanelUnconditionally () {
   debugFgLog('ENTERING contentWeVoteUI > updatePositionPanelUnconditionally ==========================');
   handleUpdatedOrNewPositions(true, false, false, false);
+}
+
+function updatePositionPanelLoop () {
+  const updatePositionPanelInterval = setInterval(async () => {
+    const state = await getGlobalState();
+    const { refreshSideAreaNeeded  } = state;   // TODO 5/11/23, this is never set true, so an incomplete approach
+    if (refreshSideAreaNeeded) {
+      debugFgLog('updatePositionPanelLoop fired retryLoadPositionPanel due to refreshSideAreaNeeded ==========================');
+      console.log('------------------------------------ refreshSideAreaNeeded: false 536');
+      await updateGlobalState({ refreshSideAreaNeeded: false });
+      retryLoadPositionPanel();
+    }
+  }, 1000);
 }
 
 function updatePositionPanelConditionally (update) {
@@ -550,7 +569,7 @@ function preloadPositionsForAnotherVM () {
 
 function retryLoadPositionPanel () {
   debugFgLog('ENTERING contentWeVoteUI > retryLoadPositionPanel ==========================');
-  handleUpdatedOrNewPositions(true, true, true, false);
+  handleUpdatedOrNewPositions(true, false, true, false);
 }
 /* eslint-enable no-unused-vars */
 
@@ -586,15 +605,19 @@ async function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogC
 
         if (update && !fromIFrame) {
           $('.candidateWe').remove();   // Remove all the existing candidates, and then redraw them
+          await updateGlobalState({'rightPanePositions': data});
           coreUpdatePositions(data, update);
         }
 
         await updateGlobalState({ priorData: data });
         // weContentState.priorData = data;
 
-        if (fromIFrame && !preLoad) {
-          getRefreshedHighlights(dialogClosed);
-        }
+        // TODO: 5/18/23 noon: this following getRefreshedHighlights call is experimental and may be redundant
+        getRefreshedHighlights(dialogClosed);
+        // TODO 5/18/23 4pm, removed this one, so we always call getRefreshedHighlights at this point
+        // if (fromIFrame && !preLoad) {
+        //   getRefreshedHighlights(dialogClosed);
+        // }
       } else {
         // This is not necessarily an error, it could be a brand new voter guide possibility with no position possibilities yet.
         debugFgLog('EXITING contentWeVoteUI > handleUpdatedOrNewPositions(), NOTE: getPositions returned an empty response or no data element.');
@@ -980,7 +1003,7 @@ async function saveUpdatedCandidatePossiblePosition (event, removePosition, deta
     moreInfoURL,
     removePosition,
   },
-  function (response) {
+  async function (response) {
     if (lastError) {
       debugFgLog(' chrome.runtime.sendMessage("savePosition")', lastError.message);
     }
@@ -988,8 +1011,12 @@ async function saveUpdatedCandidatePossiblePosition (event, removePosition, deta
 
     if (detachedDialog) {
       $('div.ui-dialog').remove();
+      /* TODO BEGIN HACK 4/5 noon
       setSideAreaStatus();
       updatePositionPanelUnconditionally();
+      */
+      console.log('------------------------------------ refreshSideAreaNeeded: true 1007');
+      await updateGlobalState({ refreshSideAreaNeeded: true });
     } else {
       debugFgLog(remove);
       if (remove) {
@@ -1139,30 +1166,77 @@ function deactivateActivePositionPane () {
   }
 }
 
-// The text they select, will need to be the full name that we send to the API, although they will have a chance to edit it, before sending
-// eslint-disable-next-line no-unused-vars
-function openSuggestionPopUp (selection) {
-  $('[role=dialog]').remove();  // Only one suggestion dialog at a time is allowed, so close any previous
+async function getSuggestionPopupURL (selection) {
+  const state = await getGlobalState();
+  const { rightPanePositions, voterGuidePossibilityId } = state;
+  if (!selection) {
+    console.log('create/edit position no selection: ', selection);
+    return;
+  }
+  const bits = selection.split(' ');
+  let selectionMatchPortion = bits[0];
+  if (bits.length > 1) {
+    selectionMatchPortion += ' ' + bits[1];
+  }
+
+  for (const pos in rightPanePositions) {
+    const {
+      ballot_item_name: name,
+      possibility_position_id: id,
+      position_stance: stance,
+      statement_text: statementText,
+    } = rightPanePositions[pos];
+    console.log('create/edit position name: ', name);
+    // Might be looking for "Jeanne Casteen", but are highlighting selection "Jeanne Casteen AZ State Senate District 2"
+    // So let's just go with the first two words in the highlight (not perfect)
+    if (name && name.includes(selectionMatchPortion)) {
+      const existing = ['SUPPORT', 'OPPOSE', 'INFO_ONLY'];
+      if (existing.includes(stance)) {
+        const frameUrl = editCandidateExtensionWebAppURL + '?candidate_name=' + encodeURIComponent(name) +
+          '&candidate_we_vote_id=' + id + '&endorsement_page_url=' + encodeURIComponent(location.href) +
+          '&candidate_specific_endorsement_url=' +
+          '&statement_text=' + encodeURIComponent(statementText) + '&position_stance=' + stance +
+          '&voter_guide_possibility_id=' + voterGuidePossibilityId;
+        debugFgLog('getSuggestionPopupURL EDIT: ', frameUrl);
+        return frameUrl;
+      }
+    }
+  }
+
   const frameUrl = addCandidateExtensionWebAppURL + '?candidate_name=' + encodeURIComponent(selection) +
     '&candidate_we_vote_id=&endorsement_page_url=' + encodeURIComponent(location.href) +
     '&candidate_specific_endorsement_url=';
+  debugFgLog('getSuggestionPopupURL CREATE ADD: ', frameUrl);
+  return frameUrl;
+}
+
+// The text they select, will need to be the full name that we send to the API, although they will have a chance to edit it, before sending
+// eslint-disable-next-line no-unused-vars
+async function openSuggestionPopUp (selection) {
+  console.log('============================= openSuggestionPopUp selection: ', selection);
+  let dialog = $('[role=dialog]');
+  dialog.remove();  // Only one suggestion dialog at a time is allowed, so close any previous
+  const frameUrl = await getSuggestionPopupURL (selection);
   debugFgLog('openSuggestionPopUp addCandidateForExtension frameUrl', frameUrl);
   console.log('============================= openSuggestionPopUp addCandidateForExtension frameUrl', frameUrl);
+  const title = frameUrl.includes('add-candidate-for-extension') ? 'Add a candidate endorsement' : 'Edit candidate endorsement';
 
   $('<iframe id="weIFrame" src="' + frameUrl + '" style="width: 448px" name="weIframeByName"></div>').dialog({
-    title: 'Add a candidate endorsement',
+    title: title,
     show: true,
     width: 450,
     height: 6580,
     resizable: false,
     fixedDimensions: true,
-    closeText: ''
+    closeText: '',
   });
-
-  $('[role=dialog]').css({
+  // iframe.css('z-index', 100);
+  let dialogNew = $('[role=dialog]');  // duplicated selector, because the remove breaks the connection
+  dialogNew.css({
     '-webkit-box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)',
     '-moz-box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)',
-    'box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)'
+    'box-shadow': '10px 10px 5px 0px rgba(0,0,0,0.4)',
+    'z-index': '100'
   }).attr('id', 'weVoteModal');
   $('.u2i-dialog-titlebar').css({
     backgroundColor: '#2e3c5d',
@@ -1191,12 +1265,40 @@ function openSuggestionPopUp (selection) {
   });
   $("[name='weIframeByName']").css({
     width: '450px',
-    height: '600px',
+    height: '642px',
+    'z-index': 100,
   });
   $('.u2i-resizable-handle').css('display', 'none');
 
+  let enableInterval = true;
+  const timerForDialog = setTimeout(() => {
+    enableInterval = false;
+  }, 30000);
+  let i = 0;
+  let intervalForDialog = setInterval(() => {
+    let dialog3 = $('[role=dialog]');
+    console.log('role=dialog existence detection in interval: ', i++, dialog3.length);
+    if (dialog3.length === 0 && enableInterval) {
+      console.log('role=dialog existence detection in interval, dialog not found, clearing interval and timers');
+      updateHighlightsIfNeeded(true);
+      clearInterval(intervalForDialog);
+      clearTimeout(timerForDialog);
+    }
+  }, 500);
+
+
+
   $('div.u2i-dialog').on('dialogclose', () => {
     $('div.u2i-dialog').remove();
+    // console.log('------------------------------------ dialogclose in openSuggestionPopUp() 1265');
+    retryLoadPositionPanel();
+    // TODO 5/4/23: none of these approaches work to reload the content of the iframe.  At one time I completely reloaded the outer page, which took a while but worked.
+    // document.getElementById('tabId').src = document.getElementById('tabId').src;
+    // const endorsementFrame = $('iframe.weVoteEndorsementFrame');
+    // if (endorsementFrame.length > 0) {
+    //   endorsementFrame.contentDocument.location.reload(true);  // Reload just the iframe that contains the endorsement web page
+    // }
+    // updateHighlightsIfNeeded(true);
   });
 }
 
@@ -1413,44 +1515,4 @@ function setSideAreaStatus (text) {
   } else if ($('#sideAreaStatus').length === 0) {
     $('#sideArea').append('<div id="sideAreaStatus">' + text + '</div>');
   }
-}
-
-function timingLog (time0, time1, text, warnAt) {
-  const duration = time1 - time0;
-
-  if (duration < 1000) {
-    const niceDuration = Number.parseFloat(duration).toPrecision(4);
-    console.log('ttttt TIMING: time to ' + text + ' ' + niceDuration + ' milliseconds.');
-  } else {
-    const niceDuration = Number.parseFloat(duration/1000).toPrecision(4);
-    const msg = 'ttttt TIMING: time to ' + text + '  ' + niceDuration + ' SECONDS.';
-    if ((duration)/1000 > warnAt) {
-      // console.warn(msg);  // too heavy handed for the extension log file
-      console.log('WARNING ' + msg);
-    } else {
-      console.log(msg);
-    }
-  }
-}
-
-// eslint-disable-next-line no-unused-vars
-function debugSwLog (...args) {
-  if (debugServiceWorker) {
-    stampedLog(...args);
-  }
-}
-
-function debugFgLog (...args) {
-  if (debugTimingForegroundContent) {
-    stampedLog(...args);
-  }
-}
-
-function stampedLog (...args) {
-  const t1 = performance.now();
-  if (!window.constructionT0) window.constructionT0 = t1;  // REMEMBER: that the dom in the extension is not the same as the dom in the foreground web page!
-  const timeStr = Number.parseFloat((t1 - window.constructionT0)/1000).toFixed(3);
-  args.unshift(':');
-  args.unshift(timeStr);
-  console.log(...args);
 }

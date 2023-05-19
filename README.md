@@ -29,6 +29,11 @@ fileArchitectureDrawing.png
 https://docs.google.com/drawings/d/1C32qtyMrsqAZXxN7TEG3lryZXn56owVHnZhwxoAAOLo/edit?usp=sharing 
 -->
 
+### Black Magic
+1) If making changes to popup.js or popup.html, you need to "Remove" the extension from chrome://extensions/ in order for
+the changes to take effect.
+2) Everytime you reload the extension with the circular reload arrow button, you need to do a hard reload of the test endorsement page you are working with.  Otherwise it will not see the changes.
+
 ### Debugging notes
 * The (otherwise excellent) Chrome Dev Tools debugger, gets confused with extensions.  
 * Usually you will have to press the refresh (circular arrow icon) on the extension tab, to load the

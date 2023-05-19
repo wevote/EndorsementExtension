@@ -23,7 +23,7 @@ function dragElement (e) {
 
 // eslint-disable-next-line no-unused-vars
 function setModal (e, t, n) {
-  // console.log('------- setModal setModal setModal --------- t', t,n);
+  console.log('------- setModal setModal setModal --------- t', t,n);
   let o = document.getElementById(n);
   o || (o = {
     offsetLeft: 0,
@@ -33,12 +33,13 @@ function setModal (e, t, n) {
   let d = document.getElementById('weIFrame');
   let l = document.getElementById('wediv');
   if (!l) {
-    // console.log('------- setModal setModal setModal     no wediv, so creating one --------- ');
+    console.log('------- setModal setModal setModal     no wediv, so creating one --------- ');
     createWediv();
     l = document.getElementById('wediv');
     d = document.getElementById('weIFrame');
-    // console.log('------- setModal setModal setModal     created wediv: ', l);
+    console.log('------- setModal setModal setModal     created wediv: ', l);
   }
+  console.log('------- setModal setModal setModal   l  : ', l);
   l.hidden = !e;
   l.style.left = o.offsetLeft + 300 + 'px';
   l.style.top = o.offsetTop + f + 'px';

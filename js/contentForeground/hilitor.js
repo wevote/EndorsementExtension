@@ -9,8 +9,9 @@
 //  - stop the recursive search for words at the id weContainer (our menus)
 //  - stop at the id noDisplayPageBeforeFraming (the original dom, that becomes dormant and invisible, with a fresh copy in the new iframe)
 
-/* global $, addHighlightOnClick */
+/* global $, addHighlightOnClick, addCandidateExtensionWebAppURL, candidateExtensionWebAppURL */
 
+// eslint-disable-next-line no-unused-vars
 function Hilitor (id, tag) {
   // var colorIdx = 0;
   // var colors = ['#ff6', '#a0ffff', '#9f9', '#f99', '#f6f'];
@@ -49,8 +50,6 @@ function Hilitor (id, tag) {
   };
 
   this.setRegex = function (input) {
-    var words = '';
-    // var wordparts = '';
     var wordsEditable = '';
     var wordpartsEditable = '';
     // var wordsList = [];
@@ -105,13 +104,13 @@ function Hilitor (id, tag) {
 
     for (let word in sortedKeys) {
       if (sortedKeys[word].FindWords) {
-        words += sortedKeys[word].regex + '|';
+        // words += sortedKeys[word].regex + '|';
         if (sortedKeys[word].ShowInEditableFields) {
           wordsEditable += sortedKeys[word].regex + '|';
         }
       }
       else {
-        wordparts += sortedKeys[word].regex + '|';
+        // wordparts += sortedKeys[word].regex + '|';
         if (sortedKeys[word].ShowInEditableFields) {
           wordpartsEditable += sortedKeys[word].regex + '|';
         }
@@ -176,7 +175,7 @@ function Hilitor (id, tag) {
       if (nv.trim().length > 3) {
         debugHilitor('cleanName(node.nodeValue) >' + nv + '<');
       }
-      const t1 = performance.now();
+      const t1 = performance.now(); // eslint-disable-line no-unused-vars
       if (nv.length > 3) {
         if(inContentEditable) {
           debugHilitor('matchRegexEditable.exec(nv) 1');
@@ -184,7 +183,8 @@ function Hilitor (id, tag) {
         } else {
           // build a mini-regex as a first step toward eliminating gigantic regexes
           let namesString = '';
-          const nvLower = nv.toLowerCase();
+          const nvLower = nv.toLowerCase().trim();
+          // console.log('miniRe raw names string nvLower: \'' + nvLower + '\'');
           for (let i = 0; i < names.length; i++) {
             if (nvLower.includes(names[i].toLowerCase())) {
               namesString += names[i] + '|';
@@ -200,7 +200,7 @@ function Hilitor (id, tag) {
           }
         }
       }
-      const t2 = performance.now();
+      const t2 = performance.now();  // eslint-disable-line no-unused-vars
       // timingFgLog(t1, t2, 'in hilitor.js, exec`ing the regex took', 8.0);
       if (regs) {
         var wordfound = '';
@@ -211,6 +211,10 @@ function Hilitor (id, tag) {
           if (pattern.test(regs[0]) && word.length > wordfound.length) {
             wordfound = word;
             debugHilitor('hilitor word found: ' + word);
+            debugHilitorMatch('hilitor matching word found: ' + wordColor[word].regex);
+            if(wordColor[word].regex === 'Colin Allred') {
+              console.log('wordColor[word].regex === Colin Allred');
+            }
             break;
           }
         }
@@ -220,8 +224,7 @@ function Hilitor (id, tag) {
 
           if ((node.parentElement.tagName == hiliteTag && node.parentElement.className == hiliteClassname)) {
             //skip highlighting
-          }
-          else {
+          } else {
             var match = document.createElement(hiliteTag);
             match.className = hiliteClassname;
             match.appendChild(document.createTextNode(regs[0]));
@@ -250,41 +253,51 @@ function Hilitor (id, tag) {
               urlHref = this.weVoteDomMods(node, match, wordfound);
               // End of modification for WeVote
             }
+            var nodeAttributes = this.findNodeAttributes(node.parentElement, {
+              'offset': 0,
+              'isInHidden': false
+            });
+
+            debugHilitor('WORD FOUND IN DOM: ', wordColor[wordfound].word);
+            highlightMarkers[numberOfHighlights] = {
+              'word': wordColor[wordfound].word,
+              'offset': nodeAttributes.offset,
+              'hidden': nodeAttributes.isInHidden,
+              'color': wordColor[wordfound].Color,
+              'href': urlHref.length ? encodeURI(urlHref) : '',
+            };
+
+            numberOfHighlights += 1;
+            highlights[wordfound] = highlights[wordfound] + 1 || 1;
           }
-
-          var nodeAttributes = this.findNodeAttributes(node.parentElement, {
-            'offset': 0,
-            'isInHidden': false
-          });
-
-          debugHilitor('WORD FOUND IN DOM: ', wordColor[wordfound].word);
-          highlightMarkers[numberOfHighlights] = {
-            'word': wordColor[wordfound].word,
-            'offset': nodeAttributes.offset,
-            'hidden': nodeAttributes.isInHidden,
-            'color': wordColor[wordfound].Color,
-            'href': urlHref.length ? encodeURI(urlHref) : '',
-          };
-
-          numberOfHighlights += 1;
-          highlights[wordfound] = highlights[wordfound] + 1 || 1;
         }
       }
     }
   };
 
   this.weVoteDomMods = async function (node, match, wordfound) {
-    const possibleA = node.parentNode;
-    let candidateHomePage = '';
-    // eslint-disable-next-line no-nested-ternary
-    let urlHref = (possibleA.href) ? possibleA.href : (possibleA.title ? possibleA.title : '');  // The parent might have been an 'a' before we swapped it out for a span, but if it has an href, use it.
-    candidateHomePage = encodeURIComponent(urlHref);
-    // If the name is in a link tag, disable it by changing the "A" to a "SPAN"
-    if (possibleA.localName === 'a') {   // Only swap it one time, ie. don't swap it if it has the class "once was an A tag"
-      $(possibleA).replaceWith(function () {
-        return '<span class="once was an A tag" title="' + urlHref + '">' + $(possibleA).text() + '</span>';
-      });
-    }
+    const  urlHref = node.href;
+    const candidateHomePage = encodeURIComponent(urlHref);
+    // 5/8/23: Disabling 'a' links caused too much trouble to be worth it
+    // const possibleA = node.parentNode;
+    // if($(possibleA).text().includes('Michael Bennet')) {
+    //   console.log('--------------- $(possibleA).text(): ', $(possibleA).text());
+    // }
+    // let candidateHomePage = '';
+    // // eslint-disable-next-line no-nested-ternary
+    // let urlHref = (possibleA.href) ? possibleA.href : (possibleA.title ? possibleA.title : '');  // The parent might have been an 'a' before we swapped it out for a span, but if it has an href, use it.
+    // candidateHomePage = encodeURIComponent(urlHref);
+    // // If the name is in a link tag, disable it by changing the "A" to a "SPAN"
+    // if (possibleA.localName === 'a') {   // Only swap it one time, ie. don't swap it if it has the class "once was an A tag"
+    //   let newSpan = document.createElement('span', { class: 'once was an A tag', title: urlHref });
+    //   const newContent = document.createTextNode(possibleA.innerText);
+    //   newSpan.appendChild(newContent);
+    //   possibleA.replaceChild(newSpan, possibleA.childNodes[0]);
+    //
+    //   // $(possibleA).replaceWith(function () {
+    //   //   return '<span class="once was an A tag" title="' + urlHref + '">' + $(possibleA).text() + '</span>';
+    //   // });
+    // }
     const emNode = node.nextElementSibling;
     if (emNode.tagName === 'EM') {
       const cleanedName = this.cleanName(emNode.innerText);
@@ -308,18 +321,20 @@ function Hilitor (id, tag) {
       const state = await getGlobalState();
       const { voterGuidePossibilityId } = state;
 
-      const frameUrl = candidateExtensionWebAppURL + '?candidate_name=' + encodedName +
+      const jQueryEmNode = $(emNode);
+      if (wordColor[wordfound].Icon.length) {
+        $(match).prepend(wordColor[wordfound].Icon);
+      }
+      jQueryEmNode.wrap('<button type="button" id="' + id + '" class="endorsementHighlights"></button>');
+      const createNew = wordColor[wordfound].Color === '#ff6';         // If yellow highlight
+
+      const frameUrl = createNew ? addCandidateExtensionWebAppURL : candidateExtensionWebAppURL + '?candidate_name=' + encodedName +
         '&candidate_we_vote_id=' + candidateId +
         '&endorsement_page_url=' + encodeURIComponent(location.href) +
         '&candidate_specific_endorsement_url=' + candidateHomePage +
         '&voter_guide_possibility_id=' + voterGuidePossibilityId;
 
-      const jQueryEmNode = $(emNode);
-      jQueryEmNode.wrap('<button type="button" id="' + id + '" class="endorsementHighlights"></button>');
-      if (wordColor[wordfound].Icon.length) {
-        $(match).prepend(wordColor[wordfound].Icon);
-      }
-      addHighlightOnClick (id, frameUrl, jQueryEmNode);
+      addHighlightOnClick(id, frameUrl, jQueryEmNode);
     }
     return urlHref;
   };
@@ -382,7 +397,7 @@ function Hilitor (id, tag) {
       if (iFrameBody) {
         targetNode = $('#frame').contents().find('body')[0]; // .contents();
       }
-    } catch (e) {}
+    } catch (e) { /* empty */ }
 
     this.hiliteWords(targetNode, printHighlights, false);
     return {numberOfHighlights: numberOfHighlights, details: highlights, markers: highlightMarkers};
