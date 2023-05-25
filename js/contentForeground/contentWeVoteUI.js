@@ -139,13 +139,17 @@ function signIn (attemptLogin) {
       };
       // False in V3, could be simplified: (pre 2022 comment) Unfortunately /avatar-generic.png can't be "served" from the extension, since file loading is relative to the endorsement page
 
-      if (voterInfo.success && voterInfo.voterIsSignedIn && voterInfo.voterIsSignedIn !== undefined) {
+      const state = await getGlobalState();
+      const { showPanel } = state;
+
+      if (showPanel && voterInfo.success && voterInfo.voterIsSignedIn && voterInfo.voterIsSignedIn !== undefined) {
         await updateGlobalState({ voterIsSignedIn: voterIsSignedIn });
         setSignInOutMarkup();
 
         // everytime the dom changes, reset domHasChanged to true
-        let domHasChanged = true;
+        let domHasChanged = false;  // TODO Experiment 5/25/23 2:30pm, tried off to
         $('body').on('domChanged', function () {
+          debugFgLog('content, domChanged listener tripped! ================');
           domHasChanged = true;
         });
         // Sign in has been confirmed, the panels have been drawn, now it is time to do the highlighting (on a loading page) so
@@ -416,7 +420,7 @@ async function getHighlights (highlighterEnabledThisTab, highlighterEditorEnable
               doGetCombinedHighlights(highlighterEditorEnabled, tabId, urlToQuery);
             }, timeoutDuration);
           } else {
-            // 5/17/23 the 7 sec delay causes problems if non-tabbed
+            // 5/17/23 the 7 sec delay causes problems if non-paneled
             doGetCombinedHighlights(highlighterEditorEnabled, tabId, urlToQuery);
           }
         } else {
@@ -465,7 +469,7 @@ async function getRefreshedHighlights (dialogClosed) {
 }
 
 // Call into the background script to do a voterGuidePossibilityRetrieve() api call, and return the data, then update the top menu
-async function updateTopMenu (update) {
+async function updateTopMenu (topPanelExists) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugFgLog('updateTopMenu()');
   const state = await getGlobalState();
@@ -500,21 +504,22 @@ async function updateTopMenu (update) {
           tabId: tabId,
         });
 
-        if (update) {
+        // Get the org data, but don't attempt to update the top panel if it does not exist .i.e. in "Show Highlights On This Tab" mode
+        if (topPanelExists) {
           $('#orgLogo').attr('src', orgLogo);
           $('#orgName').text(orgName ? orgName : 'Organization not found for this URL');
           $('#sendTopComment').click(() => {
             sendTopComment();
           });
           debugFgLog('updateTopMenu voterGuidePossibilityId: ' + voterGuidePossibilityId);
+
+          signIn(false);                       // Calls handleUpdatedOrNewPositions() to draw the initial position pane if the editor has been chosen on popup.js
+          initializeOrgChoiceList();           //  Does not display an org choice list, if not logged in, or have not chosen an org
+          greyAllPositionPanes(false);
+
+          // debugFgLog('updateTopMenu updatePositionPanelConditionally update: ' + update);
+          updatePositionPanelConditionally(update);
         }
-
-        signIn(false);                       // Calls handleUpdatedOrNewPositions() to draw the initial position pane if the editor has been chosen on popup.js
-        initializeOrgChoiceList();           //  Does not display an org choice list, if not logged in, or have not chosen an org
-        greyAllPositionPanes(false);
-
-        // debugFgLog('updateTopMenu updatePositionPanelConditionally update: ' + update);
-        updatePositionPanelConditionally(update);
       } else {
         console.error('ERROR: updateTopMenu received empty response');
       }
@@ -524,7 +529,7 @@ async function updateTopMenu (update) {
 /* eslint-disable no-unused-vars */
 function updateHighlightsIfNeeded () {
   debugFgLog('ENTERING contentWeVoteUI > updateHighlightsIfNeeded ========================== dialogClosed now always true');
-  // may 8, 2023 3:45: TODO  experiment to see if changing update to true, makes it work as "show highlights" without breaking tabbed
+  // may 8, 2023 3:45: TODO  experiment to see if changing update to true, makes it work as "show highlights" without breaking 3 paneled mode
   handleUpdatedOrNewPositions(true, false, false, true);
 }
 
