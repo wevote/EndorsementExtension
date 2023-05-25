@@ -2,7 +2,7 @@
 const debugServiceWorker = false;
 const debugStorageEvents = false;
 const debugTimingServiceWorker = false;
-const debugTimingForegroundContent = false;        // debugFgLog
+const debugTimingForegroundContent = true;        // debugFgLog
 const debugPopUpMessages = false;
 const debugHilitorEnabled = false;              // This can tremendously slow down page processing
 const debugHilitorMatchEnabled = false;
@@ -38,7 +38,7 @@ const colors = {
 
 const webAppChoice = 'quality';           // should be 'production' in git repository
 const apiServerChoice = 'production';     // should be 'production' in git repository
-const overrideStartingYear = false;       // Should be 'false' in git repository
+const overrideStartingYear = true;       // Should be 'false' in git repository
 const startingYearOverride = 2022;
 const allowAnyYearForVoterGuides = true;
 let webAppRoot = '';

@@ -1,9 +1,16 @@
+**5/25/23**
+* Paneled and Non-Paneled is working now.
+* API performance is 50x faster for time critical calls see https://github.com/wevote/WeVoteServer/pull/2130
+* on https://giffords.org/elections/endorsements/past-endorsements/
+  * Non-paneled seems to work well, if you "load more" candidates, they get highlighted progressively, but
+  if you edit/add a candidate with the popup.  "load more" loads candidates, but doesn't highlight them.
+
 **5/19/23**
-* There is a horrible performance problem on the live server with voterGuidePossibilityHighlightsRetrieve,
-this api completes in a second on the local Python server, and only completes 2/3s of the time on the live api server, and when it does complete it takes 45 to 90 seconds.
-* Tabbed using a local API server is very fast, with the green highlights appearing in less than a second, and with the yellow highlights in 15 seconds.  The code is currently configured to send 26k old candidates, instead of just this year's, so even that will speed up by a huge amount.
-* Non-tabbed is slower, and sometimes after drawing the greens, then the yellows, reload the page and only shows the greens.  Sometimes it works perfectly.
-* Sometimes the first attempt at tabbed does not respond, and needs to be rerun.
+* ~~There is a horrible performance problem on the live server with voterGuidePossibilityHighlightsRetrieve,
+this api completes in a second on the local Python server, and only completes 2/3s of the time on the live api server, and when it does complete it takes 45 to 90 seconds.~~
+* Paneled using a local API server is very fast, with the green highlights appearing in less than a second, and with the yellow highlights in 15 seconds.  The code is currently configured to send 26k old candidates, instead of just this year's, so even that will speed up by a huge amount.
+* Non-paneled is slower, and sometimes after drawing the greens, then the yellows, reload the page and only shows the greens.  Sometimes it works perfectly.
+* Sometimes the first attempt at "Open Edit Panel" does not respond, and needs to be rerun.
 
 **Lower Priority**
 * Medium priority: Update the endorsement page in editor view, when the status of the highlight is changed via iframe to WebApp 
@@ -18,11 +25,11 @@ this api completes in a second on the local Python server, and only completes 2/
 
 **4/4/23**
 * For PDFS, Tabs usually only open on second load of pdf -> html
-* On opening a tabbed pdf, it sometimes takes a minute or two for the green highlights to appear,  This is on (CADEM)[https://cadem.org/wp-content/uploads/2022/09/2022-CADEM-General-Endorsements.pdf] which is a very dense page with 140 highlights.
+* On opening a pdf (Open Edit Panel mode), it sometimes takes a minute or two for the green highlights to appear,  This is on (CADEM)[https://cadem.org/wp-content/uploads/2022/09/2022-CADEM-General-Endorsements.pdf] which is a very dense page with 140 highlights.
 Works decently on (Everydistrict)[https://everydistrict.us/candidates/2022-candidates/]. 
 * Performance is still inconsistent, with multiple opportunities for reworking sections of code.  First load of a medium complex page like every district is now very good.
   * I have the new options on APIs to load more than one year, turned on to work with old endorsement pages, this is a performance degradation that can be easily adjusted. (allowAnyYearForVoterGuides etc.)
-* On tabbed, changes the refresh of the right side panel is so slow, and requires a full page refresh, which is slow on a dense or slow to load page -- must be a better way.
+* On "Open Edit Panel", changes the refresh of the right side panel is so slow, and requires a full page refresh, which is slow on a dense or slow to load page -- must be a better way.
 * ~~Edit pop-up does not show endorsement text~~
 * ~~The edit pop up (Max's second dialog EditCandidateForExtension.js), is not yet used, and it would be useful~~
 
