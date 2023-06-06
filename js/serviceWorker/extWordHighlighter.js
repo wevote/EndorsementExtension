@@ -314,7 +314,7 @@ function updateContextMenu (inUrl, tabId){
       remove('idContextMenuCreateNew', () => {
         let myError = chrome.runtime.lastError;  // null or Error object, 4/29/23 Painfully discovered barely documented magic code, do not simplify
         if (myError) {
-          console.log('----------------------------------- contextMenuCreated myError: ', myError);
+          console.log('----------------------------------- contextMenuCreated myError: ', myError.message);
         }
         console.log('----------------------------------- contextMenuCreated, before create');
         create({
@@ -347,7 +347,7 @@ function processUniqueNames (uniqueNamesFromPage) {
 
 function hardResetActiveTab (tabId) {
   debugSwLog('sendMessage hardResetActiveTab tabId:', tabId);
-  console.log('XXXXXVV hardResetActiveTab extWordHighlighter location: ', location);
+  console.log('hardResetActiveTab extWordHighlighter location: ', location);
 
   sendMessage(tabId, {
     tabId: tabId,
@@ -685,7 +685,7 @@ chrome.runtime.onMessage.addListener(
       hardResetActiveTab(tabId);
     } else if (request.command === 'updateBackgroundForButtonChange') {
       debugSwLog('extWordHighlighter "updateBackgroundForButtonChange" received from popup');
-      handleButtonStateChange(request.showHighlights, request.openEditPanel, request.pdfURL, request.tabId, request.tabUrl);
+      handleButtonStateChange(request.showHighlights, request.showPanels, request.pdfURL, request.tabId, request.tabUrl);
       return false;
     } else {
       console.error('extWordHighlighter received unknown command : ' + request.command);
@@ -750,8 +750,8 @@ function getThisTabsStatus (tabURL, sendResponse) {
 
     // Feb 16, 2023 partial abandoning of the local storage of global state
     const state = await getGlobalState();
-    const { highlighterEditorEnabled: showEditor, highlighterEnabledThisTab: showHighlights } = state;
-    status = {...status, showEditor: showEditor, showHighlights: showHighlights, highlighterEnabled: showHighlights};
+    const { showEditor, showHighlights } = state;
+    status = {...status, showEditor, showHighlights, highlighterEnabled: showHighlights};
     // Feb 16, 2023 end of change
 
     debugSwLog('extWordHighlighter.getThisTabsStatus: ', status);
@@ -845,7 +845,7 @@ function onPage () {
 // Set badge color, icon overlay
 function showHighlightsCount (label, altColor, tabId)
 {
-  debugSwLog('ENTERING extWordHighlighter.showHighlightsCount');
+  debugSwLog('ENTERING extWordHighlighter.showHighlightsCount label: ', label);
   chrome.action.setBadgeText({ text: label });
   let color = altColor.length === 0 ? 'limegreen' : altColor;
   chrome.action.setBadgeBackgroundColor ({'color': color}); //"#0091EA"});

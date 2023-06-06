@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  async function updateButtonDisplayedState() {
+  async function updateButtonDisplayedState () {
     const state = await getGlobalState();
     const {
       organizationName,
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
       organizationTwitterHandle,
       url,
       showHighlights,
-      showPanel
+      showPanels
     } = state;
     const isPDF = url.toLowerCase().endsWith('.pdf');
     if (isPDF) {
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
       $('#highlightCandidatesThisTabButton').removeClass('weButtonRemove').text(highlightThisText);
     }
 
-    if (showPanel) {
+    if (showPanels) {
       $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);
     } else if (isPDF) {
       $('#openEditPanelButton').removeClass('weButtonRemove').text(openEditTextConvertedPDF);
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Reset the highlighted tab
     $('#resetThisTabButton').click(() => {
       console.log('addButtonListeners resetThisTabButton hardResetActiveTab click tabId', tabId);
-      console.log('XXXXXVV hardResetActiveTab popup.js location: ', location);
+      console.log('hardResetActiveTab popup.js location: ', location);
       logFromPopup (tabId, 'sending hardResetActiveTab');
       sendMessage(tabId, {
         command: 'hardResetActiveTab',
@@ -183,16 +183,16 @@ document.addEventListener('DOMContentLoaded', function () {
       console.log('getGlobalState in popup 137');
       let state = await getGlobalState();
       const showHighlights = !state.showHighlights;
-      const showPanel = false;
+      const showPanels = false;
       const isFromPDF = pdfURL && pdfURL.length > 0;
 
       if (showHighlights) {
         // $('#highlightingMasterSwitch').prop('checked', true);
         await updateGlobalState({
-          showPanel: showPanel,
+          showPanels: showPanels,
           showHighlights: showHighlights,
           tabId: tabId,
-          highlighterEnabledThisTab: true,  // TODO: Remove this vestigial leftover from multiple highlighted tabs version
+          // highlighterEnabledThisTab: true,  // TODO: Remove this vestigial leftover from multiple highlighted tabs version
         });
       } else {
         await reInitializeGlobalState();
@@ -205,9 +205,9 @@ document.addEventListener('DOMContentLoaded', function () {
         command: 'updateForegroundForButtonChange',
         payload: {
           isFromPDF,
-          openEditPanel: showPanel,
+          showPanels,
           pdfURL,
-          showHighlights: showHighlights,
+          showHighlights,
           tabId,
           tabUrl: url,
         }
@@ -229,15 +229,13 @@ document.addEventListener('DOMContentLoaded', function () {
     openEditPanelButtonSelector.click(async () => {
       console.log('openEditPanelButton button onClick -- popup.js');
       console.log('getGlobalState in popup 179');
-      let showPanel = false;
+      let showPanels = false;
       let showHighlights = false;
-      let highlighterEditorEnabled = false;
-      let highlighterEnabledThisTab = false;  // TODO: Remove this
       let newTabId = tabId;
       const isFromPDF = pdfURL && pdfURL.length > 0;
 
       let state = await getGlobalState();
-      if (state.showPanel) {  // if pressing the button would do a remove...
+      if (state.showPanels) {  // if pressing the button would do a remove...
         newTabId = -1;
         if (pdfURL) {
           openEditPanelButtonSelector.removeClass('weButtonRemove').text(openEditTextConvertedPDF);
@@ -247,18 +245,14 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         $('#openEditPanelButton').addClass('weButtonRemove').text(removeEditText);  // Change button label
         showHighlights = true;
-        showPanel = true;
-        highlighterEditorEnabled = true;
-        highlighterEnabledThisTab = true;  // TODO: Remove this
+        showPanels = true;
       }
       await updateGlobalState({
         isFromPDF: isFromPDF,
         pdfURL: pdfURL,
-        showPanel: showPanel,
+        showPanels: showPanels,
         showHighlights: showHighlights,
         tabId: newTabId,
-        highlighterEditorEnabled: highlighterEditorEnabled,
-        highlighterEnabledThisTab: highlighterEnabledThisTab,  // TODO: Remove this vestigial leftover from multiple highlighted tabs version
       });
 
       logFromPopup (tabId, 'sending updateForegroundForButtonChange');
@@ -266,9 +260,9 @@ document.addEventListener('DOMContentLoaded', function () {
         command: 'updateForegroundForButtonChange',
         payload: {
           isFromPDF,
-          openEditPanel: showPanel,
+          showPanels,
           pdfURL,
-          showHighlights: showHighlights,
+          showHighlights,
           tabId,
           tabUrl: url
         }
