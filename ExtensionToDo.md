@@ -1,3 +1,14 @@
+**5/31/23**
+* Delete in right pane, does not actually delete
+* Loses pop-up state after using the paned view.
+* Loses top and right pane, after editing a candidate on the endorsement page.
+* Somehow difference: info only, some grey, some purple
+* There is a lot more to optimize, but let's get it working first
+* ~~Sending showHighlightsCount of zero after sending 9 correctly~~
+* ~~Update stance in left pane, updates right pane, then loses right pane~~
+* ~~Completely eliminate weContentState, highlighterEditorEnabled, highlighterEnabled -- legacy variables that just caused stale data and confusion~~
+
+
 **5/25/23**
 * Paneled and Non-Paneled is working now.
 * API performance is 50x faster for time critical calls see https://github.com/wevote/WeVoteServer/pull/2130

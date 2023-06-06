@@ -139,3 +139,25 @@ function sleep (ms) {
 function getPhotoURL (photoURL) {
   return (!photoURL || photoURL.length < 10) ? 'https://wevote.us/img/global/icons/avatar-generic.png' : photoURL;
 }
+
+
+function addElementToPositions (array, element) {
+  let name = element.ballot_item_name;
+  let added = false;
+  if (name) {
+    name = name.toUpperCase();
+    let unique = true;
+    if (array.length > 1) {
+      for (let i = 0; i < array.length; i++) {
+        if (array[i].ballot_item_name.toUpperCase() === name) {
+          unique = false;
+        }
+      }
+    }
+    if (unique) {
+      array.push(element);
+      added = true;
+    }
+  }
+  return added;
+}

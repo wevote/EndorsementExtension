@@ -9,7 +9,8 @@
 //  - stop the recursive search for words at the id weContainer (our menus)
 //  - stop at the id noDisplayPageBeforeFraming (the original dom, that becomes dormant and invisible, with a fresh copy in the new iframe)
 
-/* global $, addHighlightOnClick, addCandidateExtensionWebAppURL, candidateExtensionWebAppURL */
+/* global $, addHighlightOnClick, addCandidateExtensionWebAppURL, candidateExtensionWebAppURL,
+addElementToPositions, updateGlobalState, getGlobalState, debugHilitor */
 
 // eslint-disable-next-line no-unused-vars
 function Hilitor (id, tag) {
@@ -27,7 +28,7 @@ function Hilitor (id, tag) {
   // var openRight = false;
   var skipClasses = new RegExp('(ui-datepicker)','gi');
   var skipTags = new RegExp('^(?:SCRIPT|HEAD|NOSCRIPT|STYLE|TEXTAREA)$');
-  var wordColor = [];
+  // var wordColor = [];
   const urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML
   const isFromPDF = (urlToQuery && urlToQuery.length > 0);
 
@@ -109,11 +110,8 @@ function Hilitor (id, tag) {
           wordsEditable += sortedKeys[word].regex + '|';
         }
       }
-      else {
-        // wordparts += sortedKeys[word].regex + '|';
-        if (sortedKeys[word].ShowInEditableFields) {
-          wordpartsEditable += sortedKeys[word].regex + '|';
-        }
+      else if (sortedKeys[word].ShowInEditableFields) {
+        wordpartsEditable += sortedKeys[word].regex + '|';
       }
     }
     re = '';
@@ -302,7 +300,7 @@ function Hilitor (id, tag) {
     if (emNode.tagName === 'EM') {
       const cleanedName = this.cleanName(emNode.innerText);
       const nameLC = cleanedName.toLowerCase();
-      urlsForHighlights[nameLC] = emNode.baseURI;
+      // urlsForHighlights[nameLC] = emNode.baseURI;
       const {namesToIds} = window;
       const candidateId = namesToIds && namesToIds[nameLC] ? namesToIds[nameLC] : '';
       const encodedName = encodeURIComponent(cleanedName);
@@ -319,7 +317,7 @@ function Hilitor (id, tag) {
         }
       }
       const state = await getGlobalState();
-      const { voterGuidePossibilityId } = state;
+      const { voterGuidePossibilityId, positions } = state;
 
       const jQueryEmNode = $(emNode);
       if (wordColor[wordfound].Icon.length) {
@@ -327,6 +325,11 @@ function Hilitor (id, tag) {
       }
       jQueryEmNode.wrap('<button type="button" id="' + id + '" class="endorsementHighlights"></button>');
       const createNew = wordColor[wordfound].Color === '#ff6';         // If yellow highlight
+      if (createNew) {
+        if (addElementToPositions(positions, { 'ballot_item_name': wordColor[wordfound].Regex })) {
+          await updateGlobalState({ positions : positions });
+        }
+      }
 
       const frameUrl = createNew ? addCandidateExtensionWebAppURL : candidateExtensionWebAppURL + '?candidate_name=' + encodedName +
         '&candidate_we_vote_id=' + candidateId +

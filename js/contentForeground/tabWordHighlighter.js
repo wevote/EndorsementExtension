@@ -26,16 +26,16 @@ let HighlightLoop;
 let HighlightWarmup=300; // min time to wait before running a highlight execution
 
 let wordsReceived = false;
-let searchEngines = {
-  'google.com': 'q',
-  'bing.com': 'q'
-};
+// let searchEngines = {
+//   'google.com': 'q',
+//   'bing.com': 'q'
+// };
 let markerCurrentPosition = -1;
 let markerPositions = [];
 let highlightMarkers = {};
 let markerScroll = false;
 let printHighlights = true;
-let voterInfo = {};
+// let voterInfo = {};
 let uniqueNameMatches = [];
 let voterDeviceId = '';
 let debug = false;
@@ -147,7 +147,6 @@ async function initializeTabWordHighlighter () {
   }
 
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
-  // weContentState.neverHighlightOn = defaultNeverHighlightOn;
   await updateGlobalState({ neverHighlightOn: defaultNeverHighlightOn });
 
   // const deb = $('div#wedivheader').length > 0;
@@ -164,12 +163,9 @@ async function initializeTabWordHighlighter () {
       const { tabId } = response;
       console.log('3/17/23  TEST TEST TEST think this is a tabId: ', tabId);
       $('#frame').attr('name', 'tabId=' + tabId);
-      // weContentState.tabId = tab;
       await updateGlobalState({ tabId: tabId });  // TODO: 7/8/22  this looks wrong
       debugFgLog('tabWordHighlighter initializeTabWordHighlighter tab.id: ' + tabId);
     });
-    debugFgLog('Hack that sets debugLocal to true in place ------------------------------------');
-    debugLocal = true;
   }
 
   // If not in our iFrame
@@ -200,6 +196,7 @@ async function initializeTabWordHighlighter () {
             sender.id === 'highlightthis@deboel.eu') {
 
           const state = await getGlobalState();
+          const { showHighlights, showPanels, tabId, url, pdfURL } = state;
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
             if (window.location.href.toLowerCase().endsWith('.pdf')) {
@@ -208,16 +205,11 @@ async function initializeTabWordHighlighter () {
             }
             const t1 = performance.now();
             // const { priorHighlighterEnabledThisTab } = state;
-            const { showHighlights, showEditor, tabId } = request;
-            await clearPriorDataOnModeChange(showHighlights, showEditor);
-            // Feb 17, 2023., these should have already been set in the popup
-            // weContentState.highlighterEnabled = highlighterEnabled;
-            // weContentState.highlighterEnabledThisTab = showHighlights;  // Will always be true if showEditor is true
-            // weContentState.highlighterEditorEnabled = showEditor;
-            // if (tabId > 0) weContentState.tabId = tabId;
+            // const { showHighlights, showPanels, tabId } = request;
+            await clearPriorDataOnModeChange(showHighlights, showPanels);
 
             debugFgLog('------------------------------- ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes');
-            debugFgLog('ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes request.showHighlights: ', showHighlights, ', showEditor: ', showEditor, ', href: ', window.location.href);
+            debugFgLog('ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes showHighlights: ', showHighlights, ', showPanels: ', showPanels, ', href: ', window.location.href);
             if (!showHighlights) {
               debugFgLog('displayHighlightsForTabAndPossiblyEditPanes (before reload)');
               await updateGlobalState({
@@ -226,19 +218,15 @@ async function initializeTabWordHighlighter () {
               });
               location.reload();
             }
-            const { highlighterEnabledThisTab, highlighterEditorEnabled } = state;
-            if (window.location.href !== 'about:blank' && highlighterEnabledThisTab) {  // Avoid worthless queries
+            if (window.location.href !== 'about:blank' && showHighlights) {  // Avoid worthless queries
               const {href} = window.location;
 
-              if (href !== state.url && href !== state.pdfURL && state.url !== '') {
-                // debugSwLog('XXXXWW tabWordHighlighter request ', request);
-                // debugSwLog('XXXXWW tabWordHighlighter getGlobalState', state);
-                // debugSwLog('XXXXWW tabWordHighlighter window.location.href',  window.location.href);
-                console.log('XXXXWW Skipping non-selected tab href: ', href);
+              if (href !== url && href !== pdfURL && url !== '') {
+                console.log('Skipping non-selected tab href: ', href);
                 return false;
               }
-              console.log('XXXXWW Processing selected tab href: ', href);
-              displayHighlightingAndPossiblyEditor(highlighterEnabledThisTab, highlighterEditorEnabled, tabId);
+              console.log('Processing selected tab href: ', href);
+              displayHighlightingAndPossiblyEditor(showHighlights, showPanels, tabId);
             }
             const t2 = performance.now();
             timingFgLog(t1, t2, 'displayHighlightsForTabAndPossiblyEditPanes processing took', 8.0);
@@ -248,7 +236,7 @@ async function initializeTabWordHighlighter () {
             showMarkers();
             return false;
           } else if (request.command === 'hardResetActiveTab') {
-            console.log('XXXXXVV hardResetActiveTab tabWordHighlighter location: ', location);
+            console.log('hardResetActiveTab tabWordHighlighter location: ', location);
             location.reload();
             return false;
           } else if (request.command === 'getMarkers') {
@@ -258,12 +246,11 @@ async function initializeTabWordHighlighter () {
             highlightMarkers = {};
             return false;
           } else if (request.command === 'ReHighlight') {
-            // weContentState.highlighterEnabled = true;
-            // weContentState.highlighterEnabledThisTab = true;
-            await updateGlobalState({
-              highlighterEnabled: true,
-              highlighterEnabledThisTab: true,
-            });
+            // TODO Experimental removal 5/31/23 1pm
+            // await updateGlobalState({
+            //   highlighterEnabled: true,
+            //   highlighterEnabledThisTab: true,
+            // });
 
             reHighlight(request.words);
             return false;
@@ -274,13 +261,12 @@ async function initializeTabWordHighlighter () {
           } else if (request.command === 'revealRight') {
             revealRightAction(request.selection);
             return false;
-          } else if (request.command === 'getTabStatusValues' || request.command === 'getStatusForActiveTab') {
+          } else if (request.command === 'getStatusForActiveTab') {
             const encodedHref = encodeURIComponent(location.href);
-            const {orgName, organizationWeVoteId, organizationTwitterHandle, tabId, highlighterEnabledThisTab, highlighterEditorEnabled} = state;
-            debugFgLog('getTabStatusValues tabId: ', tabId, ', highlighterEnabledThisTab: ', highlighterEnabledThisTab, ', highlighterEditorEnabled: ', highlighterEditorEnabled, ', href: ', window.location.href);
+            const {orgName, organizationWeVoteId, organizationTwitterHandle} = state;
+            debugFgLog('getStatusForActiveTab tabId: ', tabId, ', href: ', window.location.href);
+
             sendResponse({
-              highlighterEnabledThisTab,
-              highlighterEditorEnabled,
               orgName,
               organizationWeVoteId,
               organizationTwitterHandle,
@@ -296,17 +282,16 @@ async function initializeTabWordHighlighter () {
             return true;
           } else if (request.command === 'updateForegroundForButtonChange') {
             debugSwLog('extWordHighlighter "updateForegroundForButtonChange" received from popup');
-            const { showHighlights, openEditPanel, pdfURL, tabId, tabUrl } = request.payload;
+            const { pdfURL, tabId, tabUrl } = request.payload;
             console.log('updateForegroundForButtonChange: ', request.payload);
-
             // March 30, 2023, we know the tabId and tabURL for sure here, so save them.  In the case of PDF, these will change later.
-            console.log('updateForegroundForButtonChange March 30thh, saving tabId and tabURL to global state');
+            console.log('updateForegroundForButtonChange, saving tabId and tabURL to global state');
             await updateGlobalState({ tabId: tabId, url: tabUrl });
 
             sendMessage({
               command: 'updateBackgroundForButtonChange',
               showHighlights,
-              openEditPanel,
+              showPanels,
               pdfURL,
               tabId,
               tabUrl
@@ -459,13 +444,6 @@ async function sendGetStatus () {
     }
 
     await clearPriorDataOnModeChange(showHighlights, showEditor);
-    // Feb 27, 2023 now set in popup
-    // weContentState.highlighterEnabled = highlighterEnabled;
-    // weContentState.highlighterEnabledThisTab  = showHighlights;
-    // weContentState.highlighterEditorEnabled = showEditor;
-    // if (tabId > 0) weContentState.tabId = tabId;
-    // weContentState.neverHighlightOn = neverHighlightOn && neverHighlightOn.length ? neverHighlightOn : weContentState.neverHighlightOn;
-    // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary --  April 26, 2020, do we even need 'myTabId' msg chain?
     const state = await getGlobalState();
     const { url: urlFromState, tabId: tabIdFromState } = state;
 
@@ -497,14 +475,6 @@ async function sendGetStatus () {
 //   const showHighlights = true;
 //   const showEditor = true;
 //   clearPriorDataOnModeChange(showHighlights, showEditor);
-//   // Feb 17, 2023., these should have already been set in the popup
-//   // weContentState.highlighterEnabled = highlighterEnabled;
-//   // weContentState.highlighterEnabledThisTab  = showHighlights;
-//   // weContentState.highlighterEditorEnabled = showEditor;
-//   // if (tabId > 0) weContentState.tabId = tabId;
-//   // weContentState.neverHighlightOn = neverHighlightOn && neverHighlightOn.length ? neverHighlightOn : weContentState.neverHighlightOn;
-//   // weContentState.neverHighlightOn = false;
-//
 //   // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary TODO: April 26, 2020, do we even need 'myTabId' msg chain?
 //   if (highlighterEnabledThisTab) {
 //     debugFgLog('about to get words', window.location);
@@ -513,14 +483,9 @@ async function sendGetStatus () {
 //   // });
 // }
 
-async function clearPriorDataOnModeChange (showHighlights, showEditor) {
-  const state = await getGlobalState();
-  const { highlighterEnabledThisTab, highlighterEditorEnabled } = state;
-
-  if ((!showHighlights && !showEditor) ||
-    (highlighterEnabledThisTab && highlighterEditorEnabled !== showEditor)) {
+async function clearPriorDataOnModeChange (showHighlights, showPanels) {
+  if (!showHighlights && !showPanels) {
     await updateGlobalState({ priorData: [] });
-    // weContentState.priorData = [];  // Needed to avoid the 'unchanged data ... abort' when swapping display editor/highlights only
   }
 }
 
@@ -762,8 +727,9 @@ function findWords () {
   if (Object.keys(wordsArray).length > 0) {
     Highlight=false;
 
-    setTimeout(function () {
+    setTimeout(async function () {
       debugFgLog('ENTERING findWords: ', window.location);
+      const state = await getGlobalState();
 
       ReadyToFindWords=false;
 
@@ -789,40 +755,54 @@ function findWords () {
           let {word} = highlightMarkers[i];
           if (!uniqueNameMatches.includes(word)) {
             uniqueNameMatches.push(word);
+            addElementToPositions(state.positions, { 'ballot_item_name': word });
           }
         }
+        await updateGlobalState({ 'positions': state.positions });
 
         try {
-          console.log('showHighlightsCount in tabWordHighlighter, count = ' + uniqueNameMatches.length.toString()); // always log this
+          console.log('sending showHighlightsCount in findWords (762), count = ' + uniqueNameMatches.length.toString()); // always log this
           sendMessage({
             command: 'showHighlightsCount',
             label: uniqueNameMatches.length.toString(),
             uniqueNames: uniqueNameMatches,
             altColor: uniqueNameMatches.length ? '' : 'darkgreen',
           }, function () {
-            if (lastError) {
-              debugFgLog('findWords() ... chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
-            }
           });
         } catch (e) {
           debugFgLog('Caught showHighlightsCount > 0: ', e);
         }
       } else {
         try {
-          sendMessage({
-            command: 'showHighlightsCount',
-            label: '0',
-            uniqueNames: [],
-            altColor: 'darkgreen',
-          }, function () {
-            if (lastError) {
-              debugFgLog(' chrome.runtime.sendMessage("showHighlightsCount")', lastError.message);
-            }
-          });
+          // May 31, 2023 is this reusing the positions state var that is needed for something else?
+          const len = state.positions.length;
+          if (len > 0) {
+            console.log('sending showHighlightsCount in findWords (782), based on positions: ', len); // always log this
+            sendMessage({
+              command: 'showHighlightsCount',
+              label: len.toString(),
+              uniqueNames: state.positions,
+              altColor: 'darkgreen',
+            }, function () {
+            });
+          } else {
+            console.log('sending showHighlightsCount in findWords (795), Clear Count to 0, highlights.numberOfHighlights: ', highlights.numberOfHighlights); // always log this
+            sendMessage({
+              command: 'showHighlightsCount',
+              label: '0',
+              uniqueNames: [],
+              altColor: 'darkgreen',
+            }, function () {
+              // May 31, 2023:  There is no "chrome.tabs" in the content foreground
+              // let myError = chrome.tabs.lastError;  // null or Error object, 4/29/23 Painfully discovered barely documented magic code, do not simplify
+              // if (myError) {
+              //   debugFgLog('chrome.runtime.sendMessage("showHighlightsCount") (804) error: ', myError.message);
+              // }
+            });
+          }
         } catch (e) {
           debugFgLog('Caught showHighlightsCount === 0 ', e);
         }
-
       }
       //setTimeout(function () {
       ReadyToFindWords = true;
@@ -880,16 +860,15 @@ function revealRightAction (selection) {
 }
 
 // This allows the popup to find out if this tab is highlighted and/or editors are displayed
-async function getDisplayedTabStatus (tabId) {
-  const state = await getGlobalState();
-  const { highlighterEditorEnabled, highlighterEnabledThisTab, editorEnabledThisTab } = state;
-  // const { highlighterEnabledThisTab, highlighterEditorEnabled} = weContentState;
-  debugFgLog('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', highlighterEditorEnabled: ' + highlighterEditorEnabled);
-  return {
-    highlighterEnabledThisTab,
-    editorEnabledThisTab,
-  };
-}
+// async function getDisplayedTabStatus (tabId) {
+//   const state = await getGlobalState();
+//   const { highlighterEditorEnabled, highlighterEnabledThisTab, editorEnabledThisTab } = state;
+//   debugFgLog('getDisplayedTabStatus tabId: ' + tabId + ', highlighterEnabledThisTab: ' + highlighterEnabledThisTab + ', highlighterEditorEnabled: ' + highlighterEditorEnabled);
+//   return {
+//     highlighterEnabledThisTab,
+//     editorEnabledThisTab,
+//   };
+// }
 
 function globStringToRegex (str) {
   return preg_quote(str).replace(/\\\*/g, '\\S*').replace(/\\\?/g, '.');
