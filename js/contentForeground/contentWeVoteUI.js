@@ -613,8 +613,9 @@ async function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogC
         await coreUpdatePositions(data, update);
         await updateGlobalState({ priorData: data, positions: positions });   // May 31, 2023 is this used anymore?
 
-        // TODO: 5/18/23 noon: this following getRefreshedHighlights call is experimental and may be redundant
-        getRefreshedHighlights(dialogClosed);
+        // 5/18/23 noon: this following getRefreshedHighlights call is experimental and may be redundant
+        // 6/6/23 noon: removed the following experiment, right pane updates **greatly** improved performance
+        // getRefreshedHighlights(dialogClosed);
         // TODO 5/18/23 4pm, removed this one, so we always call getRefreshedHighlights at this point
         // if (fromIFrame && !preLoad) {
         //   getRefreshedHighlights(dialogClosed);
@@ -746,7 +747,8 @@ async function coreUpdatePositions (data, update) {
 
 function rightPositionPanes (i, candidate, selector) {
   const { name, comment, url, positionWeVoteId,  } = candidate;
-  let dupe = $(".candidateName:contains('" + name + "')").length;
+  // const existingCandidates = $('div.gridCandidateName');
+  const dupe = $("div.gridCandidateName:contains('" + name + "')").length;
   debugFgLog('rightPositionPanes -- i: ' + i + ', ' + name);
   let furlNo = 'furlable-' + i;
   let candNo = 'candidateWe-' + i;
