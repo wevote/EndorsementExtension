@@ -22,7 +22,7 @@ let ReadyToFindWords = true; //indicates if not in a highlight execution
 
 let Highlight=true; // indicates if the extension needs to highlight at start or due to a change. This is evaluated in a loop
 let HighlightLoopFrequency=300; // the frequency of checking if a highlight needs to occur
-let HighlightLoop;
+
 let HighlightWarmup=300; // min time to wait before running a highlight execution
 
 let wordsReceived = false;
@@ -246,12 +246,6 @@ async function initializeTabWordHighlighter () {
             highlightMarkers = {};
             return false;
           } else if (request.command === 'ReHighlight') {
-            // TODO Experimental removal 5/31/23 1pm
-            // await updateGlobalState({
-            //   highlighterEnabled: true,
-            //   highlighterEnabledThisTab: true,
-            // });
-
             reHighlight(request.words);
             return false;
           } else if (request.command === 'createEndorsement') {
@@ -315,7 +309,7 @@ async function initializeTabWordHighlighter () {
   }
 
   if (window.location.href !== 'about:blank') {  // Avoid worthless queries
-    await sendGetStatus();  // Initial get statos
+    await sendGetStatus();  // Initial get status
   }
 }
 
@@ -362,6 +356,10 @@ function reHighlight (words) {
     if (words[group].Enabled) {
       for (let word in words[group].Words) {
         // reHighlightDebug && debugFgLog('reHighlight word = ' + word);
+        // if (words[group].Words[word].includes('colin')) {
+        // if(words[group].Color !== '#ff6') {  // if not yellow
+        //   console.log('============================================= reHighlight word = ' + words[group].Words[word], words[group].Color);
+        // }
         if (words[group].Words[word]) {
           wordsArray.push({
             word: words[group].Words[word].toLowerCase(),
@@ -475,7 +473,7 @@ async function sendGetStatus () {
 //   const showHighlights = true;
 //   const showEditor = true;
 //   clearPriorDataOnModeChange(showHighlights, showEditor);
-//   // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary TODO: April 26, 2020, do we even need 'myTabId' msg chain?
+//   // tabId = responseTabId;  Since this works in our iFrame,  a lot of the other startup is unnecessary : April 26, 2020, do we even need 'myTabId' msg chain?
 //   if (highlighterEnabledThisTab) {
 //     debugFgLog('about to get words', window.location);
 //     await getWordsThenStartHighlighting();
@@ -489,19 +487,35 @@ async function clearPriorDataOnModeChange (showHighlights, showPanels) {
   }
 }
 
-function closeIFrameDialog () {
-  console.log('------------------------------------ closeIFrameDialog 528 entry');
+let debounceCloseMessage = false;
+function debounceCloseIFrameDialog () {
+  if (debounceCloseMessage === false) {
+    debounceCloseMessage = true;
+    setTimeout(function (){
+      debugFgLog('Debounce of closeIFrameDialog message has ended');
+      debounceCloseMessage = false;
+    }, 1000);
+    return false;
+  }
+  return debounceCloseMessage;
+}
+
+async function closeIFrameDialog () {
+  if (debounceCloseIFrameDialog()) {
+    return;
+  }
   const dialogClosed = true;
+
+  $('#weVoteModal').remove();
   if (isInOurIFrame()) { // if in an iframe
     debugFgLog('With editors displayed, and the endorsement page in an iFrame, the modal containing an iFrame to the webapp has closed.  Evaluating the need to update the PositionsPanel,state ');
-    console.log('------------------------------------ closeIFrameDialog 531');
+    await getWordsThenStartHighlighting();  // Force an update to HighlightsData
     retryLoadPositionPanel();         // Refresh the Position Panel with the potentially updated data (very fast)
+    const state = await getGlobalState();
   } else {
     debugFgLog('dialog containing iFrame has closed, either without the editor displayed, or for newly discovered positions, ie right click on highlighed position');
-    console.log('------------------------------------ closeIFrameDialog 546 no iframe');
-    updateHighlightsIfNeeded(dialogClosed);
+    updateHighlightsIfNeeded(dialogClosed);   // this updates only the right panel?????????
   }
-  $('#weVoteModal').remove();
 }
 
 function createWediv () {
@@ -535,18 +549,19 @@ function createWediv () {
   // console.log('------------------------------ role=dialog at 0 seconds');
   // const timer = setTimeout(() => {
   //   let dialog = $('[role=dialog]');
-  //   console.log('------------------------------ role=dialog at 5 seconds, 5/11/23 TODO: Put pane refresh logic here');
+  //   console.log('------------------------------ role=dialog at 5 seconds, 5/11/23 Put pane refresh logic here');
   // }, 5000);
 
   $('.weclose').click(() => {
-    console.log('-------------------------------------- closeIFrameDialog() called -----------');
+    console.log('-------------------------------------- closeIFrameDialog() called ----------- ');
     closeIFrameDialog();
   });
   window.addEventListener('message', function (e) {
-    debugFgLog('tabWordHighlighter receiving close message from iFrame: ', e.data);
-    console.log('tabWordHighlighter receiving close message from iFrame: ', e.data);
+    e.stopPropagation();
+    debugFgLog('tabWordHighlighter (create new) receiving close message from iFrame: ', e.data);
+    console.log('------ close ------ close ------ close ------ close ------ close ------ close ------ close ------ close ------ close ------');
     if (e.data === 'closeIFrameDialog') {
-      debugFgLog('closing iFrame dialog');
+      debugFgLog('closing iFrame dialog after creating a new endorsement');
       closeIFrameDialog();
     }
   }, false);
@@ -556,7 +571,7 @@ async function getWordsThenStartHighlighting () {
   const getWordsThenStartHighlightingDebug = false;
   const t1 = performance.now();
   const {chrome: {runtime: {sendMessage, lastError}}} = window;
-  debugFgLog('ENTERING tabWordHighlighter > getWordsThenStartHighlighting,  Called \'getWords\'');
+  debugFgLog('ENTERING tabWordHighlighter > getWordsThenStartHighlighting,  About to call "getWords"');
   const state = await getGlobalState();
   const { tabId } = state;
 
@@ -570,6 +585,8 @@ async function getWordsThenStartHighlighting () {
       debugFgLog('chrome runtime sendMessage("getWords") did not receive a response');
       return;
     }
+
+    // console.log('------------------------------------ Received response getWordsThenStartHighlighting()', JSON.parse(JSON.stringify(response)));
 
     const { url, storedDeviceId, words } = response;
     getWordsThenStartHighlightingDebug && debugFgLog('Received response getWordsThenStartHighlighting() URL: ', url);
@@ -626,31 +643,65 @@ function detectBodyBind () {
   $(document).ready(function () {
     Highlight = true;
 
-    debugFgLog('setup binding of dom sub tree modification');
-    $('body').bind('DOMSubtreeModified', function () {
-      //debugFgLog("dom sub tree modified");
-      Highlight = true;
-    });
+    // June 15, 2023: was receiving jquery-3.6.0.min.js:2 [Violation] Added synchronous DOM mutation listener to a 'DOMSubtreeModified' event. Consider using MutationObserver to make the page more responsive.
+    // And it is unclear if this had any value, so removed it (and the app did seem more responsive):
+    // debugFgLog('setup binding of dom sub tree modification');  // June 2023, detect that the dom was modified.  Not sure why we need this?
+    // $('body').bind('DOMSubtreeModified', function () {
+    //   //debugFgLog("dom sub tree modified");
+    //   Highlight = true;
+    // });
   });
 }
 
 
-function highlightLoop (){
-
+async function highlightLoop (){
   ReadyToFindWords = true;
-
   // let i = 0;
-  HighlightLoop = setInterval(function () {
-    // if (i % 10 === 0) {
-    //   console.log('-------- calling findWords in highlightLoop -----------');  // uses a lot of CPU, but useful sometimes
-    // }
-    const modalDisplayed = isModalDisplayed();
-    !modalDisplayed && Highlight && ReadyToFindWords && findWords();
-    if(!ReadyToFindWords) {
-      sleep(500);
-    }
-  }, HighlightLoopFrequency);
 
+  const state = await getGlobalState();
+  const { highlighterLooping, suppressHighlightLoop } = state;
+
+  if (highlighterLooping) {
+    // Do secondary findWords, so after the quick draw of endorsements for this page (greens)
+    // we do the slower find all candidates (yellows).  This avoids having two highlightLoops running simultaneously
+    // for the life of the page, which then wastefully processes the same page twice for each update.
+    console.log('-------- calling findWords outside of the highlightLoop ----------- ');
+    findWords();
+  } else {
+    await updateGlobalState({highlighterLooping: true});
+    let highlightLoopIntervalId = setInterval(async function () {
+      try {
+        const state = await getGlobalState();
+        const {
+          showHighlights,
+          showPanels,
+          suppressHighlightLoop,
+        } = state;
+        // if (++i % 10 === 0) {
+        //   console.log('-------- calling findWords (if needed) in highlightLoop ----------- ', i, suppressHighlightLoop, showHighlights, showPanels, Highlight, highlightLoopIntervalId);  // uses a lot of CPU, but useful sometimes
+        // }
+        if (!showHighlights && !showPanels) {
+          console.log('-------- CLEARING INTERVAL in highlightLoop ----------- ', i, showHighlights, showPanels, highlightLoopIntervalId);
+          clearInterval(highlightLoopIntervalId);
+          highlightLoopIntervalId = null;
+          await updateGlobalState({highlighterLooping: false});
+        }
+        const modalDisplayed = isModalDisplayed();
+        if (!suppressHighlightLoop && !modalDisplayed && Highlight && ReadyToFindWords) {
+          // console.log('-------- calling findWords inside of the highlightLoop, actually calling it ----------- ');
+          findWords();
+        }
+        if (!ReadyToFindWords) {
+          await sleep(500);
+        }
+      } catch (e) {
+        // console.log('-------- CLEARING INTERVAL in highlightLoop, Extension context invalidated ----------- ', i);
+        clearInterval(highlightLoopIntervalId);
+        highlightLoopIntervalId = null;
+        // context is invalidated, so you can't: await updateGlobalState({highlighterLooping: false});
+      }
+    }, HighlightLoopFrequency);
+  }
 }
 
 // function getSearchKeyword () {
@@ -786,7 +837,12 @@ function findWords () {
             }, function () {
             });
           } else {
-            console.log('sending showHighlightsCount in findWords (795), Clear Count to 0, highlights.numberOfHighlights: ', highlights.numberOfHighlights); // always log this
+            const state = await getGlobalState();
+            const { showPanels } = state;
+            if (showPanels) {
+              console.log('--------------------- suppressHighlightLoop variable cleared in reHighlight -- prevents using stale data');
+              await updateGlobalState({suppressHighlightLoop: false});
+            }
             sendMessage({
               command: 'showHighlightsCount',
               label: '0',
@@ -846,6 +902,14 @@ function convertV2onClickToV3 () {  // 4/5/23: Removed the ".each" replacement o
       }
     }
   });
+  window.addEventListener('message', function (e) {
+    // debugFgLog('tabWordHighlighter (editing existing) receiving close message from iFrame: ', e.data);
+    if (e.data === 'closeIFrameDialog') {
+      // debugFgLog('closing iFrame dialog after editing existing endorsement');
+      closeIFrameDialog();
+    }
+  }, false);
+
 }
 
 function revealRightAction (selection) {

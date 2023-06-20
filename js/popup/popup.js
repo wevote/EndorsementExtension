@@ -64,8 +64,8 @@ document.addEventListener('DOMContentLoaded', function () {
       state.url + ' ->' + url);
     const lastDate = new Date(state.lastStateChange);
     const lastPlus12 = lastDate.setHours(lastDate.getHours() + 12);
-    if (state.tabId !== tabId || state.windowId !== windowId || state.url !== url || lastPlus12 < Date.now()) {
-      console.log('RESETTING STORAGE DUE TO TAB CHANGE OR OUTDATED STORAGE');
+    if (state.tabId !== tabId || /* state.windowId !== windowId ||*/ state.url !== url || lastPlus12 < Date.now()) {
+      console.log('RESETTING STORAGE DUE TO TAB CHANGE OR OUTDATED STORAGE ', state.tabId, tabId, state.windowId, windowId, state.url, url, lastPlus12, Date.now());
       await reInitializeGlobalState();
       let isFromPDF = false;
       if (url && url.length > 5) {

@@ -1,12 +1,20 @@
-**6/6/23**
-* In paneled mode:  Adding a candidate auto-closes on save, but editing does not auto-close the dialog
+**6/20/23**
+* After an edit, the endorsement count green ball goes to zero
+* In paneled, after editing with the dialog, we run handleUpdatedOrNewPostions twice, wasteful
+* Can't edit two candidates between hard refreshes, right-click does not work 2nd time
+* Right click on green/red does not work until getCombinedHighlights completes (7 + 23 seconds in my case)
 * Sometimes the first attempt at "Open Edit Panel" does not respond, and needs to be rerun.
+  * 0.641 : chrome.runtime.sendMessage({command: 'getStatus'} https://giffords.org/elections/endorsements/past-endorsements/commonWeVote.js:93
+  * 0.641 : response from getStatus undefined commonWeVote.js:93
+  * 0.641 : ERROR: sendMessage for getStatus returned no status
 * Sometimes after a few edits on left, then on right, when you go back to left the onclick for Greens gets broken.
 * There is more to optimize, but let's get it working first
-* ~~Loses top and right pane, after editing a candidate on the endorsement page.~~
-* ~~After add on left, right pane disappears (removed experimental getRefreshedHighlights @ L618 in contentWeVoteUI)~~
-* ~~Delete button takes forever, left pane fully updates first (removal of experiment above did it)~~
-* ~~Yellow into a green in left pane, Ret right pane with lots of dupes, green sticks on left~~
+* ~~Looks like the suppression code breaks refresh after editing in non-paneled mode, as is edit vs add~~
+* ~~Editing a candidate in left, does a refresh, but does not catch the change~~
+* ~~highlight loop keeps going after reloading endorsement page~~
+* ~~Colin Allred example, set info only, appears red on left, plum on right~~
+* ~~In paneled mode:  Adding a candidate auto-closes on save, but editing does not auto-close the dialog~~
+
 
 **Lower Priority**
 * Medium priority: Update the endorsement page in editor view, when the status of the highlight is changed via iframe to WebApp
@@ -16,6 +24,13 @@
 * Lower priority: The state of the buttons in the popup gets cleared and is inconsistent on pdf -> html
 * Lower priority: Can't edit names in the right pane.
 * Lower priority: Get those last 'Uncaught (in promise) Error: Could not establish connection. Receiving end does not exist.' errors
+ 
+
+**6/6/23**
+* ~~Loses top and right pane, after editing a candidate on the endorsement page.~~
+* ~~After add on left, right pane disappears (removed experimental getRefreshedHighlights @ L618 in contentWeVoteUI)~~
+* ~~Delete button takes forever, left pane fully updates first (removal of experiment above did it)~~
+* ~~Yellow into a green in left pane, Ret right pane with lots of dupes, green sticks on left~~
 
 
 **5/31/23**

@@ -60,7 +60,7 @@ function getWordsInGroup (groupName, highlightsList) {
   const display = groupName.split('_')[0];
   let stance = groupName.split('_')[1] ? groupName.split('_')[1] : '';
   if (stance === 'INFO') {
-    stance = 'NO_STANCE';
+    stance = 'INFO_ONLY';
   }
   let wordList = [];
 
@@ -73,6 +73,8 @@ function getWordsInGroup (groupName, highlightsList) {
     } else {
       if (highlight.display === display && highlight.stance === stance) {
         wordList.push(highlight.name);
+      } else if (display === 'POSSIBILITY' && highlight.position_stance === stance) {   // On processing updated possibility positions after editing existing position from endorsement site page in paneled layour
+        wordList.push(highlight.ballot_item_name);
       }
     }
   }
@@ -158,19 +160,19 @@ function initializeHighlightsData (ballotItemHighlights, voterGuideHighlights, n
   // debugSwLog("END END END initializeHighlightsData");
 }
 
+// These are the Green, Red, Gray voter guide endorsement possibilities
 function initializeVoterGuideHighlightsData (tabId, voterGuideHighlights, neverHighLightOnLocal) {
   const initializeVoterGuideHighlightsDataDebug = true;
   initializeVoterGuideHighlightsDataDebug && debugSwLog('ENTERING extWordHighlighter > initializeVoterGuideHighlightsData');
   overlayOrganizationPositions(voterGuideHighlights);
 
   HighlightsData.Version = '12';
-  HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOnLocal);
-  // let {neverHighlightOn} = HighlightsData;
-  // debugSwLog('neverHighLightOn:', HighlightsData.neverHighLightOn);
-  // HighlightsData.ShowFoundWords = true;
-  HighlightsData.PrintHighlights = true;
-  let today = new Date();
-  HighlightsData.Donate = today.setDate(today.getDate() + 20);
+  if (neverHighLightOnLocal !== null) {  // If we receive a null, only overwrite (the already existing) HighlightsData.Groups (as a result of edit in paned pop-up dialog)
+    HighlightsData.neverHighlightOn = preProcessNeverList(neverHighLightOnLocal);
+    HighlightsData.PrintHighlights = true;
+    let today = new Date();
+    HighlightsData.Donate = today.setDate(today.getDate() + 20);
+  }
   HighlightsData.Groups = [];
   for (let groupName in groupNames) {
     let group = {
@@ -340,7 +342,7 @@ function processUniqueNames (uniqueNamesFromPage) {
     const name = uniqueNamesFromPage[0];
     if (inArray(name, uniqueNames) === -1) {
       uniqueNames.push(name);
-      // TODO: add a json fetch of some information
+      // someday add a json fetch of some information
     }
   }
 }
