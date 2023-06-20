@@ -64,8 +64,8 @@ function displayEditPanes () {
   $(weFlexBox).append('<div id="sideArea"></div>');
   $('#frame').attr('src', hr).attr('class','weVoteEndorsementFrame');
 
-  // The worker thread IS NOT the same java script thread that the foreground
-  //  runs in, they run asynchronously, so be careful
+  // The Service Worker thread IS NOT the same JavaScript thread that the Content Foreground
+  //  runs in, and they run asynchronously, so be careful
 
   topMenu();
   updateTopMenu(true);
@@ -86,7 +86,7 @@ function initializeOrgChoiceList () {
         }, 6000);
       }
     } else {
-      setSideAreaStatus(voterIsSignedIn ? 'No candidates found' : 'You must be signed in to display Candidate information.');
+      setSideAreaStatus(voterIsSignedIn ? 'No known candidates found on page (would be yellow)' : 'You must be signed in to display Candidate information.');
     }
   }, 2000);  // Yuck! Time delays are always a last resort
 }
@@ -142,7 +142,7 @@ function signIn (attemptLogin) {
         setSignInOutMarkup();
 
         // everytime the dom changes, reset domHasChanged to true
-        let domHasChanged = false;  // TODO Experiment 5/25/23 2:30pm, tried off to
+        let domHasChanged = false;
         $('body').on('domChanged', function () {
           debugFgLog('content, domChanged listener tripped! ================');
           domHasChanged = true;
@@ -248,7 +248,7 @@ function setSignInOutOnClick () {
         debugFgLog('signIn setSignInOutOnClick called ---------------------------------- 3b signing in');
         debugFgLog('Sign in pressed');
         signIn(true);
-        // This is a bit hacky, and ideally would not be needed, but without it you wait for an entire
+        // This is a bit hacky, and ideally would not be needed, but without it, you wait for an entire
         // refresh/re-highlight of the screen sometimes a full minutes, before anything renders
         window.location.reload();
         displayHighlightingAndPossiblyEditor(showHighlights, showPanels, tabId);
@@ -410,12 +410,12 @@ async function getHighlights (showHighlights, showPanels, tabId) {
           const timeoutDuration = 7000;  // 7 seconds so the voterGuidePossibilityHighlightsRetrieve can finish
           if (showPanels) {
             debugFgLog('STARTING === 7 Second Delay === contentWeVoteUI > getHighlights > getCombinedHighlights duration: ', timeoutDuration);
-            setTimeout(() => {
-              doGetCombinedHighlights(showPanels, tabId, urlToQuery);
+            setTimeout(async () => {
+              await doGetCombinedHighlights(showPanels, tabId, urlToQuery);
             }, timeoutDuration);
           } else {
             // 5/17/23 the 7 sec delay causes problems if non-paneled
-            doGetCombinedHighlights(showPanels, tabId, urlToQuery);
+            await doGetCombinedHighlights(showPanels, tabId, urlToQuery);
           }
         } else {
           debugFgLog('ERROR: getHighlights received empty response');
@@ -429,7 +429,7 @@ async function getRefreshedHighlights (dialogClosed) {
   debugFgLog('getRefreshedHighlights called');
   await getVoterDeviceId().then(async (voterDeviceId) => {
     const state = await getGlobalState();
-    const { tabId } = state;
+    const { tabId, showPanels } = state;
 
     console.log('**************** before send message getRefreshedHighlights in getVoterDeviceId(), tabId:', tabId);
     sendMessage({ command: 'getHighlights', url: window.location.href, 'voterDeviceId': voterDeviceId, doReHighlight: true, tabId: tabId },
@@ -445,10 +445,10 @@ async function getRefreshedHighlights (dialogClosed) {
           const { showHighlights } = state;
           if (showHighlights) {
             debugFgLog('getRefreshedHighlights reloading iframe (before reload)');
-            if (dialogClosed) {
-              window.location.reload(true);  // Reload the Editor mode iframe from within the iframe
-            } else {
+            if (showPanels) {
               document.getElementsByClassName('weVoteEndorsementFrame')[0].contentDocument.location.reload(true);  // Works when called from the candidate pane
+            } else {
+              window.location.reload();  // Reload the Editor mode iframe from within the iframe
             }
           } else {
             debugFgLog('getRefreshedHighlights reloading endorsement page (before reload)');
@@ -520,9 +520,8 @@ async function updateTopMenu (topPanelExists) {
 }
 
 /* eslint-disable no-unused-vars */
-function updateHighlightsIfNeeded () {
+function updateHighlightsIfNeeded (dialogClosed) {
   debugFgLog('ENTERING contentWeVoteUI > updateHighlightsIfNeeded ========================== dialogClosed now always true');
-  // may 8, 2023 3:45: TODO  experiment to see if changing update to true, makes it work as "show highlights" without breaking 3 paneled mode
   handleUpdatedOrNewPositions(true, false, false, true);
 }
 
@@ -534,7 +533,7 @@ function updatePositionPanelUnconditionally () {
 function updatePositionPanelLoop () {
   const updatePositionPanelInterval = setInterval(async () => {
     const state = await getGlobalState();
-    const { refreshSideAreaNeeded  } = state;   // TODO 5/11/23, this is never set true, so an incomplete approach
+    const { refreshSideAreaNeeded  } = state;   // 5/11/23, this is never set true, so an incomplete approach
     if (refreshSideAreaNeeded) {
       debugFgLog('updatePositionPanelLoop fired retryLoadPositionPanel due to refreshSideAreaNeeded ==========================');
       console.log('------------------------------------ refreshSideAreaNeeded: false 536');
@@ -576,7 +575,7 @@ async function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogC
   const state = await getGlobalState();
   const { voterGuidePossibilityId, voterWeVoteId } = state;
 
-  debugFgLog('ENTERING contentWeVoteUI > handleUpdatedOrNewPositions() getPositions,voterGuidePossibilityId: ' + voterGuidePossibilityId);
+  debugFgLog('ENTERING contentWeVoteUI > handleUpdatedOrNewPositions() getPositions, voterGuidePossibilityId: ' + voterGuidePossibilityId);
 
   getVoterDeviceId().then((voterDeviceId) => {
     sendMessage({
@@ -611,15 +610,11 @@ async function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogC
           addElementToPositions(positions, el);
         }
         await coreUpdatePositions(data, update);
-        await updateGlobalState({ priorData: data, positions: positions });   // May 31, 2023 is this used anymore?
+        await updateGlobalState({ priorData: data, positions: positions });   // May 31, 2023 is priorData this used anymore?
 
-        // 5/18/23 noon: this following getRefreshedHighlights call is experimental and may be redundant
-        // 6/6/23 noon: removed the following experiment, right pane updates **greatly** improved performance
-        // getRefreshedHighlights(dialogClosed);
-        // TODO 5/18/23 4pm, removed this one, so we always call getRefreshedHighlights at this point
-        // if (fromIFrame && !preLoad) {
-        //   getRefreshedHighlights(dialogClosed);
-        // }
+        if (dialogClosed) {
+          await getRefreshedHighlights(dialogClosed);
+        }
       } else {
         // This is not necessarily an error, it could be a brand-new voter guide possibility with no position possibilities yet.
         debugFgLog('EXITING contentWeVoteUI > handleUpdatedOrNewPositions(), NOTE: getPositions returned an empty response or no data element.');
@@ -660,6 +655,7 @@ async function coreUpdatePositions (data, update) {
     if (update) {
       setSideAreaStatus();
     }
+    debugFgLog('coreUpdatePositions called with positions: ', positionsCount);
     let allHtml = update ? $('#noDisplayPageBeforeFraming').html() : '';
     let insert = 0;
     for (let i = 0; i < positionsCount; i++) {
@@ -763,7 +759,7 @@ function rightPositionPanes (i, candidate, selector) {
     $('.moreInfoURL-' + i).val(url).css('height: unset !important;');
     return true;
   } else {
-    debugFgLog('Found duplicate voterGuidePossibility candidate ... indicates data problem.');
+    debugFgLog('Found duplicate voterGuidePossibility candidate ... indicates data problem, or unnecessary rightPositionPanes calls.');
   }
   return false;
 }
@@ -920,11 +916,11 @@ function backgroundColor (stance, isStored) {
   if (stance === 'OPPOSE') {
     return isStored ? colors.STORED_OPPOSE_BACKGROUND : colors.POSS_OPPOSE_BACKGROUND;
   }
-  if (stance === 'NO_STANCE') {
-    return colors.POSS_INFO_BACKGROUND;
+  if (stance === 'INFO_ONLY' || stance === 'NO_STANCE') {
+    return isStored ? colors.STORED_INFO_BACKGROUND : colors.POSS_INFO_BACKGROUND;
   }
 
-  return 'purple';
+  return 'cyan';  // for debugging only
 }
 /* eslint-enable no-undef */
 
@@ -1216,6 +1212,12 @@ async function getSuggestionPopupURL (selection) {
 // eslint-disable-next-line no-unused-vars
 async function openSuggestionPopUp (selection) {
   console.log('============================= openSuggestionPopUp selection: ', selection);
+  const state = await getGlobalState();
+  const { showPanels } = state;
+  if (showPanels) {
+    await updateGlobalState({suppressHighlightLoop: true});
+    console.log('--------------------- suppressHighlightLoop set in openSuggestionPopUp to prevent highlighting with stale data');
+  }
   let dialog = $('[role=dialog]');
   dialog.remove();  // Only one suggestion dialog at a time is allowed, so close any previous
   const frameUrl = await getSuggestionPopupURL (selection);
@@ -1276,15 +1278,15 @@ async function openSuggestionPopUp (selection) {
   const timerForDialog = setTimeout(() => {
     enableInterval = false;
   }, 30000);
-  let i = 0;
+  // let i = 0;
   let intervalForDialog = setInterval(() => {
     let dialog3 = $('[role=dialog]');
-    console.log('role=dialog existence detection in interval: ', i++, dialog3.length);
+    // console.log('role=dialog existence detection in interval: ', i++, dialog3.length);
     if (dialog3.length === 0 && enableInterval) {
       console.log('role=dialog existence detection in interval, dialog not found, clearing interval and timers');
-      updateHighlightsIfNeeded(true);
       clearInterval(intervalForDialog);
       clearTimeout(timerForDialog);
+      updateHighlightsIfNeeded();
     }
   }, 500);
 
@@ -1294,13 +1296,6 @@ async function openSuggestionPopUp (selection) {
     $('div.u2i-dialog').remove();
     // console.log('------------------------------------ dialogclose in openSuggestionPopUp() 1265');
     retryLoadPositionPanel();
-    // TODO 5/4/23: none of these approaches work to reload the content of the iframe.  At one time I completely reloaded the outer page, which took a while but worked.
-    // document.getElementById('tabId').src = document.getElementById('tabId').src;
-    // const endorsementFrame = $('iframe.weVoteEndorsementFrame');
-    // if (endorsementFrame.length > 0) {
-    //   endorsementFrame.contentDocument.location.reload(true);  // Reload just the iframe that contains the endorsement web page
-    // }
-    // updateHighlightsIfNeeded(true);
   });
 }
 

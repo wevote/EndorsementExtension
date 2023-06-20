@@ -144,19 +144,22 @@ function getPhotoURL (photoURL) {
 function addElementToPositions (array, element) {
   let name = element.ballot_item_name;
   let added = false;
+  let replaced = false;
   if (name) {
     name = name.toUpperCase();
-    let unique = true;
     if (array.length > 1) {
       for (let i = 0; i < array.length; i++) {
-        if (array[i].ballot_item_name.toUpperCase() === name) {
-          unique = false;
+        if (array[i].ballot_item_name && array[i].ballot_item_name.toUpperCase() === name) {
+          // array.splice(i, 1, element);  // this does nothing, since this ballot_item_name structure has only this one element
+          replaced = true;
+        } else if (array[i].position && array[i].position.name.toUpperCase() === name) {
+          array.splice(i, 1, element);
+          replaced = true;
+        } else {
+          array.push(element);
+          added = true;
         }
       }
-    }
-    if (unique) {
-      array.push(element);
-      added = true;
     }
   }
   return added;

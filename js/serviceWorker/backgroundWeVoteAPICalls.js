@@ -297,11 +297,14 @@ function getPossiblePositions (voterGuidePossibilityId, hrefURL, voterDeviceId, 
     }
     const apiURL = `${rootApiURL}/voterGuidePossibilityPositionsRetrieve/?voter_device_id=${voterDeviceId}&voter_guide_possibility_id=${vGPId}${allowAnyYearForVoterGuides ? '&limit_to_this_year=false' : ''}`;
     debugSwLog('getPossiblePositions fetch: ' + apiURL);
-    // TODO: 7/1 maybe not json?
     console.log('background apiURL', apiURL);
+    // console.log('voterGuidePossibilityPositionsRetrieve response date', Date.now());
     fetch(apiURL).then((resp) => resp.json()).then((results) => {
       debugSwLog('get json from getPossiblePositions API returned ', results);
       const {possible_position_list: possiblePositions} = results;
+      // June 20, 2023: If we are getting updated data to fill in the right pane in paneled view, update the HighlightsData to keep it from getting stale
+      initializeVoterGuideHighlightsData (null, possiblePositions, null);
+
       sendResponse({data: possiblePositions});
       voterGuidePossibilityPositionsRetrieveT0 = performance.now();
     }).catch((err) => {
@@ -324,10 +327,10 @@ function updatePossibleVoterGuide (voterGuidePossibilityId, orgName, orgTwitter,
         `&possible_organization_twitter_handle=${encodeURIComponent(orgTwitter ? orgTwitter.trim() : '')}` +
         `&contributor_comments=${encodeURIComponent(comments)}&limit_to_this_state_code=${orgState ? orgState.trim() : ''}`;
       updatePossibleVoterGuideDebug && debugSwLog('voterGuidePossibilitySave fetch: ' + apiURL);
-      // TODO: 7/1 maybe not json?
       console.log('background apiURL', apiURL);
       fetch(apiURL).then((resp) => resp.json()).then((results) => {
         updatePossibleVoterGuideDebug && debugSwLog('updatePossibleVoterGuide voterGuidePossibilitySave API results:', results);
+        // console.log('updatePossibleVoterGuide voterGuidePossibilitySave API results:', Date.now(), results);
         const {
           possible_organization_name: orgName,
           contributor_comments: comments
@@ -367,8 +370,7 @@ function voterGuidePossibilityPositionSave (itemName, voterGuidePossibilityId, v
           apiURL += `&more_info_url=${encodeURIComponent(moreInfoURL)}`;
         }
       }
-      debugSwLog('voterGuidePossibilityPositionSave: ' + apiURL);
-      // TODO: 7/1 maybe not json?
+      debugSwLog('voterGuidePossibilityPositionSave: ', Date.now(), apiURL);
       console.log('background apiURL', apiURL);
       fetch(apiURL).then((resp) => resp.json()).then((results) => {
         debugSwLog('get json from voterGuidePossibilityPositionSave API SUCCESS', results);
@@ -392,7 +394,6 @@ function voterGuidePossibilitySave (organizationWeVoteId, voterGuidePossibilityI
       let apiURL = `${rootApiURL}/voterGuidePossibilitySave/?voter_device_id=${voterDeviceId}` +
         `&voter_guide_possibility_id=${voterGuidePossibilityId}&organization_we_vote_id=${organizationWeVoteId}&internal_notes=${encodeURIComponent(internalNotes)}&contributor_email=${contributorEmail}`;
       voterGuidePossibilitySaveDebug && debugSwLog('voterGuidePossibilitySave: ' + apiURL);
-      // TODO: 7/1 maybe not json?
       console.log('background apiURL', apiURL);
       fetch(apiURL).then((resp) => resp.json()).then((results) => {
         voterGuidePossibilitySaveDebug && debugSwLog('voterGuidePossibilitySave API results:', results);
@@ -421,7 +422,6 @@ function getCandidate (candidateWeVoteId, sendResponse) {
         `&candidate_id=&candidate_we_vote_id=${candidateWeVoteId}`;
       // debugBackground &&
       debugSwLog('getCandidate: ' + apiURL);
-      // TODO: 7/1 maybe not json?
       console.log('background apiURL', apiURL);
       fetch(apiURL).then((resp) => resp.json()).then((results) => {
         if (results.length) {

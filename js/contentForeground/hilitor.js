@@ -28,7 +28,7 @@ function Hilitor (id, tag) {
   // var openRight = false;
   var skipClasses = new RegExp('(ui-datepicker)','gi');
   var skipTags = new RegExp('^(?:SCRIPT|HEAD|NOSCRIPT|STYLE|TEXTAREA)$');
-  // var wordColor = [];
+  var wordColor = [];
   const urlToQuery = $('input[name="pdfFileName"]').val();  // This is for PDFs that have been converted to HTML
   const isFromPDF = (urlToQuery && urlToQuery.length > 0);
 
@@ -138,9 +138,12 @@ function Hilitor (id, tag) {
 
   // recursively apply word highlighting
   // eslint-disable-next-line complexity
-  this.hiliteWords = function (node, printHighlights, inContentEditable) {
+  this.hiliteWords = async function (node, printHighlights, inContentEditable) {
     debugHilitor('entry to hiliteWords');
     const hiliteWordsDebug = false;
+    const state = await getGlobalState();
+    const { suppressHighlightLoop } = state;
+
     if (node == undefined || !node) {return;}
     // if (!matchRegex) {return;}
 
@@ -161,7 +164,7 @@ function Hilitor (id, tag) {
     // debugHilitor('before iterating Through every child node using highlight words cnt: ' + (node.hasChildNodes() ? node.childNodes.length : 0));
     // End of modification for WeVote
 
-    if (node.hasChildNodes()) {
+    if (node.hasChildNodes() && !suppressHighlightLoop) {
       for (var i = 0; i < node.childNodes.length; i++) {
         this.hiliteWords(node.childNodes[i], printHighlights, inContentEditable || node.isContentEditable);
       }
@@ -204,23 +207,26 @@ function Hilitor (id, tag) {
         var wordfound = '';
 
         //find back the word
-        for (word in wordColor) {
+        for (let word in wordColor) {
           var pattern = new RegExp(wordColor[word].regex, 'i');
           if (pattern.test(regs[0]) && word.length > wordfound.length) {
             wordfound = word;
             debugHilitor('hilitor word found: ' + word);
             debugHilitorMatch('hilitor matching word found: ' + wordColor[word].regex);
-            if(wordColor[word].regex === 'Colin Allred') {
-              console.log('wordColor[word].regex === Colin Allred');
-            }
+            // if(wordColor[word].regex === 'Colin Allred') {
+            //   let c = 'gray';
+            //   if (wordColor[word].Color === "#fb6532") c = 'red';
+            //   if (wordColor[word].Color === "#27af72") c = 'green';
+            //   console.log('wordColor[word].regex === Colin Allred, wordColor[word].Color: ', c);
+            // }
             break;
           }
         }
 
-        if (wordColor[wordfound] != undefined) {
+        if (wordColor[wordfound] !== undefined) {
           let urlHref = '';  //WeVote
 
-          if ((node.parentElement.tagName == hiliteTag && node.parentElement.className == hiliteClassname)) {
+          if (node.parentElement.tagName === hiliteTag && node.parentElement.className === hiliteClassname) { // &&
             //skip highlighting
           } else {
             var match = document.createElement(hiliteTag);
@@ -388,7 +394,7 @@ function Hilitor (id, tag) {
 
   // start highlighting at target node
   this.apply = function (input, printHighlights) {
-    wordColor = input;
+    wordColor = input;  // Where the "myHilitor.apply(wordsArray, printHighlights);" from tabWordsHighLighter sends the global to this file wordColor array
     numberOfHighlights = 0;
     if (input == undefined || !input) {return;}
 
