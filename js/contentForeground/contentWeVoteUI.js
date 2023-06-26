@@ -333,6 +333,7 @@ function topMenu () {
   setSignInOutMarkup ();
 }
 
+// Get the yellows, all the candidates that are known
 async function doGetCombinedHighlights (showPanels, tabId, urlToQuery) {
   const t3 = performance.now();
   if (showPanels) {
@@ -375,7 +376,6 @@ async function getHighlights (showHighlights, showPanels, tabId) {
   if (!urlToQuery || urlToQuery.length < 1) {
     urlToQuery = window.location.href;
   }
-  // TODO: We need to send both urls, html and pdf to the server.   4/4/23: Not sure what this means?
 
   // Start by just retrieving the endorsements already captured
   await getVoterDeviceId().then((voterDeviceId) => {
@@ -424,14 +424,14 @@ async function getHighlights (showHighlights, showPanels, tabId) {
   });
 }
 
-async function getRefreshedHighlights (dialogClosed) {
+async function getRefreshedHighlights () {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugFgLog('getRefreshedHighlights called');
   await getVoterDeviceId().then(async (voterDeviceId) => {
     const state = await getGlobalState();
     const { tabId, showPanels } = state;
 
-    console.log('**************** before send message getRefreshedHighlights in getVoterDeviceId(), tabId:', tabId);
+    console.log('**************** before send message getRefreshedHighlights in getVoterDeviceId(), tabId: ', tabId);
     sendMessage({ command: 'getHighlights', url: window.location.href, 'voterDeviceId': voterDeviceId, doReHighlight: true, tabId: tabId },
       async function (response) {
         if (lastError) {
@@ -444,7 +444,8 @@ async function getRefreshedHighlights (dialogClosed) {
           const state = await getGlobalState();
           const { showHighlights } = state;
           if (showHighlights) {
-            debugFgLog('getRefreshedHighlights reloading iframe (before reload)');
+            await updateGlobalState({ reloadTimeStamp: Date.now()});
+            debugFgLog('getRefreshedHighlights reloading iframe (logging before the actual reload)');
             if (showPanels) {
               document.getElementsByClassName('weVoteEndorsementFrame')[0].contentDocument.location.reload(true);  // Works when called from the candidate pane
             } else {
@@ -613,7 +614,7 @@ async function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogC
         await updateGlobalState({ priorData: data, positions: positions });   // May 31, 2023 is priorData this used anymore?
 
         if (dialogClosed) {
-          await getRefreshedHighlights(dialogClosed);
+          await getRefreshedHighlights();
         }
       } else {
         // This is not necessarily an error, it could be a brand-new voter guide possibility with no position possibilities yet.
@@ -645,6 +646,7 @@ async function hasCandidateDataChanged (data) {
 }
 
 async function coreUpdatePositions (data, update) {
+  // console.log('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- coreUpdatePositions -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-');
   let names = [];
   let positions = [];
   let organizationWeVoteIdOuter = '';
@@ -1009,10 +1011,6 @@ async function saveUpdatedCandidatePossiblePosition (event, removePosition, deta
 
     if (detachedDialog) {
       $('div.ui-dialog').remove();
-      /* TODO BEGIN HACK 4/5 noon
-      setSideAreaStatus();
-      updatePositionPanelUnconditionally();
-      */
       console.log('------------------------------------ refreshSideAreaNeeded: true 1007');
       await updateGlobalState({ refreshSideAreaNeeded: true });
     } else {
@@ -1184,7 +1182,7 @@ async function getSuggestionPopupURL (selection) {
       position_stance: stance,
       statement_text: statementText,
     } = rightPanePositions[pos];
-    console.log('create/edit position name: ', name);
+    debugFgLog('create/edit position name: ', name);
     // Might be looking for "Jeanne Casteen", but are highlighting selection "Jeanne Casteen AZ State Senate District 2"
     // So let's just go with the first two words in the highlight (not perfect)
     if (name && name.includes(selectionMatchPortion)) {
@@ -1212,12 +1210,6 @@ async function getSuggestionPopupURL (selection) {
 // eslint-disable-next-line no-unused-vars
 async function openSuggestionPopUp (selection) {
   console.log('============================= openSuggestionPopUp selection: ', selection);
-  const state = await getGlobalState();
-  const { showPanels } = state;
-  if (showPanels) {
-    await updateGlobalState({suppressHighlightLoop: true});
-    console.log('--------------------- suppressHighlightLoop set in openSuggestionPopUp to prevent highlighting with stale data');
-  }
   let dialog = $('[role=dialog]');
   dialog.remove();  // Only one suggestion dialog at a time is allowed, so close any previous
   const frameUrl = await getSuggestionPopupURL (selection);

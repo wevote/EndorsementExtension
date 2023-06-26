@@ -1,6 +1,6 @@
 // New state object 2/8/2023 ONLY FOR WEVOTE ChromeExtension ... do not use this in WebApp
 // Assumes only one active tab, which is a bit of a retreat from original plans, but provides manageable performance
-// Prior to this change we were having one minute delays loading a page with lots of endorsements and the right editor pane
+// Prior to this change we were having one-minute delays loading a page with lots of endorsements and the right editor pane
 /* global debugStorage, chrome */
 /* eslint-disable no-unused-vars */
 
@@ -9,7 +9,6 @@
 const initialState = {
   allNames: '',
   candidateName: '',
-  rightPanePositions: {},
   email: '',
   encodedHref: '',
   highlighterEnabled: false,
@@ -34,16 +33,18 @@ const initialState = {
   priorData: [],
   priorHighlighterEnabledThisTab: false,
   refreshSideAreaNeeded: false,
+  reloadTimeStamp: 0,
+  rightPanePositions: [],
   showEditor: false,
   showHighlights: false,
   showPanels: false,
-  suppressHighlightLoop: false,
   tabId: -1,
   tabPreparedForHighlighting: false,
   twitterHandle: '',
   url: '',
   voterDeviceId: '',
   voterGuidePossibilityId: -1,
+  voterGuideHighlights: {},
   voterIsSignedIn: false,
   voterWeVoteId: '',
   weVoteId: '',
@@ -77,12 +78,6 @@ async function updateGlobalState (dict) {
   debugStorage('saveGlobalState old: ', oldState);
   debugStorage('saveGlobalState in updateGlobalState new merged state: ', state);
   await lowLevelSetStorage(state);
-}
-
-function clearGlobalState () {
-  return new Promise((resolve) => {
-    chrome.storage.local.remove('extensionGlobalState', resolve);
-  });
 }
 
 async function reInitializeGlobalState () {
