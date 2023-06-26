@@ -22,9 +22,6 @@ let ReadyToFindWords = true; //indicates if not in a highlight execution
 
 let Highlight=true; // indicates if the extension needs to highlight at start or due to a change. This is evaluated in a loop
 let HighlightLoopFrequency=300; // the frequency of checking if a highlight needs to occur
-
-let HighlightWarmup=300; // min time to wait before running a highlight execution
-
 let wordsReceived = false;
 // let searchEngines = {
 //   'google.com': 'q',
@@ -35,20 +32,9 @@ let markerPositions = [];
 let highlightMarkers = {};
 let markerScroll = false;
 let printHighlights = true;
-// let voterInfo = {};
 let uniqueNameMatches = [];
 let voterDeviceId = '';
 let debug = false;
-let urlsForHighlights = {};
-
-// importScripts(
-//   'libs/jquery/jquery-3.6.0',
-// );
-// const jq = chrome.runtime.getURL('libs/jquery/jquery-3.6.0');
-// const script = document.createElement('img');
-// img.src = chrome.runtime.getURL('logo.png');
-// document.body.append(img);
-// const $ = jQuery;
 
 document.addEventListener('DOMContentLoaded', async function () {  // This wastes about 1 ms for every open tab in the browser, that we are not going to highlight on
   const t0 = performance.now();
@@ -197,6 +183,7 @@ async function initializeTabWordHighlighter () {
 
           const state = await getGlobalState();
           const { showHighlights, showPanels, tabId, url, pdfURL } = state;
+          debugFgLog('@@@@@@@@@@@ Message listener in tabWordHighlighter received: ', request.command);
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
             if (window.location.href.toLowerCase().endsWith('.pdf')) {
@@ -249,7 +236,7 @@ async function initializeTabWordHighlighter () {
             reHighlight(request.words);
             return false;
           } else if (request.command === 'createEndorsement') {
-            console.log('================================  received createEndorsement');
+            console.log('================================  received createEndorsement request.selection: ', request.selection);
             await openSuggestionPopUp(request.selection);
             return false;
           } else if (request.command === 'revealRight') {
@@ -356,22 +343,31 @@ function reHighlight (words) {
     if (words[group].Enabled) {
       for (let word in words[group].Words) {
         // reHighlightDebug && debugFgLog('reHighlight word = ' + word);
-        // if (words[group].Words[word].includes('colin')) {
-        // if(words[group].Color !== '#ff6') {  // if not yellow
-        //   console.log('============================================= reHighlight word = ' + words[group].Words[word], words[group].Color);
-        // }
         if (words[group].Words[word]) {
-          wordsArray.push({
+          const reg = globStringToRegex(words[group].Words[word]);
+          const newWordsElement = {
             word: words[group].Words[word].toLowerCase(),
-            'regex': globStringToRegex(words[group].Words[word]),
+            'regex': reg,
             'Color': words[group].Color,
             'Fcolor': words[group].Fcolor,
             'Icon': words[group].Icon,
             'FindWords': words[group].FindWords,
             'ShowInEditableFields': words[group].ShowInEditableFields
-          });
+          };
+          const oldWordElement = wordsArray.find((arrayItem) => arrayItem.regex === reg);
+          if (oldWordElement) {
+            const exactDupe = JSON.stringify(oldWordElement) === JSON.stringify(newWordsElement);
+            if (exactDupe) {
+              debugFgLog('^^^^^^^^^^^^^^^^^^^^^ entry to reHighlight() SKIPPING duplicate element: ', oldWordElement, newWordsElement);
+            } else {
+              debugFgLog('^^^^^^^^^^^^^^^^^^^^^ entry to reHighlight() REPLACING OLDER element: ', oldWordElement, newWordsElement);
+              Object.assign(oldWordElement, newWordsElement);
+            }
+          } else {
+            wordsArray.push(newWordsElement);
+          }
         } else {
-          reHighlightDebug && debugFgLog('Null word in rehighlight');
+          debugFgLog('Null word in rehighlight');
         }
       }
     }
@@ -392,7 +388,7 @@ async function getVoterDeviceIdFromWeVoteDomainPage () {
       await mergeToGlobalState({ 'voterDeviceId': id });
       debugFgLog('======= voterDeviceId was merged mergeToGlobalState from a wevote page, id: ' + id);
     } else {
-      debugFgLog('======= voterDeviceId WAS NOT MERGED mergeToGlobalState from a wevote page since no id');
+      // debugFgLog('======= voterDeviceId WAS NOT MERGED mergeToGlobalState from a wevote page since no id');
     }
     return id;
   } catch (e) {
@@ -511,7 +507,6 @@ async function closeIFrameDialog () {
     debugFgLog('With editors displayed, and the endorsement page in an iFrame, the modal containing an iFrame to the webapp has closed.  Evaluating the need to update the PositionsPanel,state ');
     await getWordsThenStartHighlighting();  // Force an update to HighlightsData
     retryLoadPositionPanel();         // Refresh the Position Panel with the potentially updated data (very fast)
-    const state = await getGlobalState();
   } else {
     debugFgLog('dialog containing iFrame has closed, either without the editor displayed, or for newly discovered positions, ie right click on highlighed position');
     updateHighlightsIfNeeded(dialogClosed);   // this updates only the right panel?????????
@@ -558,9 +553,9 @@ function createWediv () {
   });
   window.addEventListener('message', function (e) {
     e.stopPropagation();
-    debugFgLog('tabWordHighlighter (create new) receiving close message from iFrame: ', e.data);
-    console.log('------ close ------ close ------ close ------ close ------ close ------ close ------ close ------ close ------ close ------');
     if (e.data === 'closeIFrameDialog') {
+      console.log('------ close ------ close ------ close ------ close ------ close ------ close ------ close ------ close ------ close ------');
+      debugFgLog('tabWordHighlighter (create new) receiving close message from iFrame: ', e.data);
       debugFgLog('closing iFrame dialog after creating a new endorsement');
       closeIFrameDialog();
     }
@@ -574,6 +569,8 @@ async function getWordsThenStartHighlighting () {
   debugFgLog('ENTERING tabWordHighlighter > getWordsThenStartHighlighting,  About to call "getWords"');
   const state = await getGlobalState();
   const { tabId } = state;
+
+  debugFgLog('In getWordsThenStartHighlighting');
 
   sendMessage({
     command: 'getWords',
@@ -592,7 +589,7 @@ async function getWordsThenStartHighlighting () {
     getWordsThenStartHighlightingDebug && debugFgLog('Received response getWordsThenStartHighlighting() URL: ', url);
 
     if (lastError) {
-      debugFgLog('chrome runtime sendMessage("getWords")',lastError.message);
+      debugFgLog('chrome runtime sendMessage("getWords")', lastError.message);
       return;
     }
     getWordsThenStartHighlightingDebug && debugFgLog('got words response: ', response);
@@ -637,6 +634,8 @@ async function getWordsThenStartHighlighting () {
       createWediv();
     }
   });
+
+  debugFgLog('In getWordsThenStartHighlighting AFTER IN CODE setTimer for 10 SECOND DELAY HACK');
 }
 
 function detectBodyBind () {
@@ -659,7 +658,7 @@ async function highlightLoop (){
   // let i = 0;
 
   const state = await getGlobalState();
-  const { highlighterLooping, suppressHighlightLoop } = state;
+  const { highlighterLooping } = state;
 
   if (highlighterLooping) {
     // Do secondary findWords, so after the quick draw of endorsements for this page (greens)
@@ -675,7 +674,6 @@ async function highlightLoop (){
         const {
           showHighlights,
           showPanels,
-          suppressHighlightLoop,
         } = state;
         // if (++i % 10 === 0) {
         //   console.log('-------- calling findWords (if needed) in highlightLoop ----------- ', i, suppressHighlightLoop, showHighlights, showPanels, Highlight, highlightLoopIntervalId);  // uses a lot of CPU, but useful sometimes
@@ -687,8 +685,8 @@ async function highlightLoop (){
           await updateGlobalState({highlighterLooping: false});
         }
         const modalDisplayed = isModalDisplayed();
-        if (!suppressHighlightLoop && !modalDisplayed && Highlight && ReadyToFindWords) {
-          // console.log('-------- calling findWords inside of the highlightLoop, actually calling it ----------- ');
+        if (!modalDisplayed && Highlight && ReadyToFindWords) {
+          // console.log('-------- calling findWords inside the highlightLoop, actually calling it ----------- ');
           findWords();
         }
         if (!ReadyToFindWords) {
@@ -704,95 +702,39 @@ async function highlightLoop (){
   }
 }
 
-// function getSearchKeyword () {
-//   let searchKeyword = null;
-//   if (document.referrer) {
-//     for (searchEngine in searchEngines) {
-//       if (document.referrer.indexOf(searchEngine)) {
-//         searchKeyword = getSearchParameter(searchEngines[searchEngine]);
-//       }
-//     }
-//   }
-//   return searchKeyword;
-// }
-
-// function getSearchParameter (n) {
-//   const half = document.referrer.split(n + '=')[1];
-//   return half !== undefined ? decodeURIComponent(half.split('&')[0]) : null;
-// }
-
-/*function start() {
-    debugFgLog("in start");
-    if (wordsReceived == true) {
-        debugFgLog("in start - words received");
-        Highlight=true
-        $("body").bind("DOMSubtreeModified", function () {
-            debugFgLog("dom sub tree modified", readyToFindWords);
-            Highlight=true;
-        });
-    }
-    else {
-        setTimeout(function () {
-            debugFgLog('waiting for words');
-            start();
-        }, 250);
-    }
-}*/
-
-// <td>
-//   <em class="Highlight" style="padding: 1px; box-shadow: rgb(229, 229, 229) 1px 1px; border-radius: 3px; " +
-//             "-webkit-print-color-adjust: exact; background-color: rgb(124, 123, 124); " +
-//             "color: rgb(255, 255, 255); font-style: inherit;">Kate Gallego</em>
-// </td>
-// function removeAllHighlights () {
-//   // For some reason when we get here, the dom for the iframe is inaccessible, even though it should be in the same
-//   // domain.
-//   // 9/26/19:  Will go with a iframe reload for now
-//
-//   // let bod = $('body');
-//   // let ems = $(bod).children().find('em.Highlight');
-//   let arr = document.getElementsByTagName('EM');
-//   let fd = document.getElementById('frameDiv');
-//   let f0 = $('iframe')[0];
-//   let f0b = $(f0).find(':button');
-//   let f0e = $(f0).find('em');
-//
-//   let b2 = $('body').find('em');
-//   let b3 = $('body').find('em.Highlight');
-//   let b4 = $('body em');
-//   let b5 = $('body em.Highlight');
-//   let buttons = $('body').find(':button');
-//   debugFgLog($('#weContainer').html());
-//
-//   $('em.Highlight').each((em) => {
-//     let text = $(em).text();
-//     debugFgLog('removeAll: ' + i + ', ' + text);
-//     $(em).replace(text);
-//   });
-//   // ems.replaceWith(ems.innerText);
-// }
-
-
-function findWords () {
-  const {chrome: {runtime: {sendMessage, lastError}}} = window;
+async function findWords () {
+  const {chrome: {runtime: {sendMessage}}} = window;
   if (Object.keys(wordsArray).length > 0) {
     Highlight=false;
+    let state = await getGlobalState();
+    const { reloadTimeStamp } = state;
+    // For some slow to load pages, wait a longer time if reloading after an edit with the WebApp in an iFrame
+    let highlightWarmupPeriod = reloadTimeStamp > 0 ? 10000 : 300;
 
     setTimeout(async function () {
       debugFgLog('ENTERING findWords: ', window.location);
-      const state = await getGlobalState();
-
       ReadyToFindWords=false;
-
       const t1 = performance.now();
-      let myHilitor = new Hilitor();
-      let highlights = myHilitor.apply(wordsArray, printHighlights);
-      const t2 = performance.now();
-      timingFgLog(t1, t2, 'in findWords, Hilitor (apply) took', 8.0);
 
-      // debugFgLog('after myHilitor.apply num highlights: ' + highlights.numberOfHighlights);
-      if (highlights.numberOfHighlights > 0) {
-        highlightMarkers = highlights.markers;
+      for (let i = 0; i < wordsArray.length; i++) {
+        if (wordsArray[i].word === 'pete aguilar') {
+          let c = 'gray';
+          if (wordsArray[i].Color === "#fb6532") c = 'red';
+          if (wordsArray[i].Color === "#27af72") c = 'green';
+          console.log('^^^^^^^^^^^^^^^^^^^^^ entry to findWords() wordsArray[i].word === "pete aguilar", wordsArray[i].Color: ', c, i);
+        }
+      }
+
+      let myHilitor = new Hilitor();
+      let highlightsObj = myHilitor.apply(wordsArray, printHighlights);
+      const t2 = performance.now();
+      timingFgLog(t1, t2, 'myHilitor.apply in findWords took ', 8.0);
+      state = await getGlobalState();
+
+      // debugFgLog('after myHilitor.apply num highlights: ' + highlightsObj.numberOfHighlights);
+      let count = highlightsObj.numberOfHighlights || state.rightPanePositions.length;
+      if (highlightsObj.numberOfHighlights > 0) {
+        highlightMarkers = highlightsObj.markers;
         markerPositions = [];
         for (let marker in highlightMarkers) {
           if (markerPositions.indexOf(highlightMarkers[marker].offset) === -1) {
@@ -811,8 +753,9 @@ function findWords () {
         }
         await updateGlobalState({ 'positions': state.positions });
 
+        count = uniqueNameMatches.length || count;
         try {
-          console.log('sending showHighlightsCount in findWords (762), count = ' + uniqueNameMatches.length.toString()); // always log this
+          console.log('sending showHighlightsCount in findWords (762), count = ' + count.toString()); // always log this
           sendMessage({
             command: 'showHighlightsCount',
             label: uniqueNameMatches.length.toString(),
@@ -825,24 +768,18 @@ function findWords () {
         }
       } else {
         try {
-          // May 31, 2023 is this reusing the positions state var that is needed for something else?
-          const len = state.positions.length;
-          if (len > 0) {
-            console.log('sending showHighlightsCount in findWords (782), based on positions: ', len); // always log this
+          // May 31, 2023, this is reusing the positions state var that is needed for something else?
+          count = state.positions.length || count;
+          if (count > 0) {
+            console.log('sending showHighlightsCount in findWords (782), based on positions: ', count.toString()); // always log this
             sendMessage({
               command: 'showHighlightsCount',
-              label: len.toString(),
+              label: count.toString(),
               uniqueNames: state.positions,
               altColor: 'darkgreen',
             }, function () {
             });
           } else {
-            const state = await getGlobalState();
-            const { showPanels } = state;
-            if (showPanels) {
-              console.log('--------------------- suppressHighlightLoop variable cleared in reHighlight -- prevents using stale data');
-              await updateGlobalState({suppressHighlightLoop: false});
-            }
             sendMessage({
               command: 'showHighlightsCount',
               label: '0',
@@ -863,7 +800,7 @@ function findWords () {
       //setTimeout(function () {
       ReadyToFindWords = true;
       //}, HighligthCooldown);
-    }, HighlightWarmup);
+    }, highlightWarmupPeriod);
   }
 
   convertV2onClickToV3();

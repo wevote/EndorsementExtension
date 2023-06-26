@@ -1,29 +1,41 @@
-**6/20/23**
-* After an edit, the endorsement count green ball goes to zero
-* In paneled, after editing with the dialog, we run handleUpdatedOrNewPostions twice, wasteful
-* Can't edit two candidates between hard refreshes, right-click does not work 2nd time
-* Right click on green/red does not work until getCombinedHighlights completes (7 + 23 seconds in my case)
+**6/26/23**
+* Yellow highlights disappear in non-paneled mode, after adding a candidate
+* fix updateBackgroundForButtonChange Unchecked runtime.lastError: The message port closed before a response was received.
+* In non-paneled view, it is difficult to hit the Green/Red?Grey highlight and get the "Edit candidate endoresment" modal dialog -- too often get the "Add" modal.
+* Loses state in the "W" pop-up after using the paned view.
 * Sometimes the first attempt at "Open Edit Panel" does not respond, and needs to be rerun.
   * 0.641 : chrome.runtime.sendMessage({command: 'getStatus'} https://giffords.org/elections/endorsements/past-endorsements/commonWeVote.js:93
   * 0.641 : response from getStatus undefined commonWeVote.js:93
   * 0.641 : ERROR: sendMessage for getStatus returned no status
 * Sometimes after a few edits on left, then on right, when you go back to left the onclick for Greens gets broken.
-* There is more to optimize, but let's get it working first
+* ~~Right click on green/red does not work until getCombinedHighlights completes (7 + 23 seconds in my case)~~
+* ~~fix 'showHighlightsCount'~~
+* ~~Update the endorsement page in editor view, when the status of the highlight is changed via iframe to WebApp~~
+* ~~No repro: Delete a candidate in right pane, but they stay highlighted in the left (the db is correctly updated)~~
+* ~~No repro: Delete a candidate in right pane, but they stay highlighted in the left (the db is correctly updated)~~
+* ~~After an edit, the endorsement count green ball goes to zero~~
+* ~~Can't edit two candidates between hard refreshes, right-click does not work 2nd time~~
+* ~~Info only selection sometimes appears as grey, sometimes as purple.~~
+
+**Lower Priority**
+* Switch tabs (diff organizations) and the right pane preserves the content from the previous pane.
+* In paneled, after editing with the dialog, we run handleUpdatedOrNewPositions twice, which is wasteful
+* On some pages the name of the candidate gets split into two adjacent clickable links, but only prefills the add dialog with the half of the name you clicked on.  Maybe cache the matches and then lookup the name and prefill the name field, if you only get one word.
+* The state of the buttons in the popup gets cleared and is inconsistent on pdf -> html
+* Can't edit names in the right pane.
+* Get those last 'Uncaught (in promise) Error: Could not establish connection. Receiving end does not exist.' errors
+
+**Test Cases**
+* https://candidates.aipacpac.org/page/featured/
+* Prior years:  https://giffords.org/elections/endorsements/past-endorsements/
+* 
+
+**6/20/23**
 * ~~Looks like the suppression code breaks refresh after editing in non-paneled mode, as is edit vs add~~
 * ~~Editing a candidate in left, does a refresh, but does not catch the change~~
 * ~~highlight loop keeps going after reloading endorsement page~~
 * ~~Colin Allred example, set info only, appears red on left, plum on right~~
 * ~~In paneled mode:  Adding a candidate auto-closes on save, but editing does not auto-close the dialog~~
-
-
-**Lower Priority**
-* Medium priority: Update the endorsement page in editor view, when the status of the highlight is changed via iframe to WebApp
-* Lower priority: Loses pop-up state after using the paned view.
-* Lower priority: Info only selection sometimes appears as grey, sometimes as purple.
-* Lower priority: On some pages the name of the candidate gets split into two adjacent clickable links, but only prefills the add dialog with the half of the name you clicked on.  Maybe cache the matches and then lookup the name and prefill the name field, if you only get one word.
-* Lower priority: The state of the buttons in the popup gets cleared and is inconsistent on pdf -> html
-* Lower priority: Can't edit names in the right pane.
-* Lower priority: Get those last 'Uncaught (in promise) Error: Could not establish connection. Receiving end does not exist.' errors
  
 
 **6/6/23**

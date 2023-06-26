@@ -161,7 +161,7 @@ function initializeHighlightsData (ballotItemHighlights, voterGuideHighlights, n
 }
 
 // These are the Green, Red, Gray voter guide endorsement possibilities
-function initializeVoterGuideHighlightsData (tabId, voterGuideHighlights, neverHighLightOnLocal) {
+async function initializeVoterGuideHighlightsData (tabId, voterGuideHighlights, neverHighLightOnLocal) {
   const initializeVoterGuideHighlightsDataDebug = true;
   initializeVoterGuideHighlightsDataDebug && debugSwLog('ENTERING extWordHighlighter > initializeVoterGuideHighlightsData');
   overlayOrganizationPositions(voterGuideHighlights);
@@ -173,6 +173,7 @@ function initializeVoterGuideHighlightsData (tabId, voterGuideHighlights, neverH
     let today = new Date();
     HighlightsData.Donate = today.setDate(today.getDate() + 20);
   }
+  HighlightsData.refreshedTimeStamp = Date.now();
   HighlightsData.Groups = [];
   for (let groupName in groupNames) {
     let group = {
@@ -194,6 +195,7 @@ function initializeVoterGuideHighlightsData (tabId, voterGuideHighlights, neverH
   }
 
   printHighlights = HighlightsData.PrintHighlights;
+  await updateGlobalState({voterGuideHighlights: HighlightsData});  // TODO June 26, 10:30 not using this yet
   // debugSwLog("END END END initializeHighlightsData");
 }
 
@@ -544,7 +546,7 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
       wordAlreadyAdded = true;
     }
   } else if (info.menuItemId === 'Highlight') {
-    // TODO: I don't think this can work!
+    // TODO: I don't think this can work in V3 API!
     query({active: true, currentWindow: true}, function (tabs) {
       sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
     });
@@ -559,7 +561,7 @@ chrome.commands.onCommand.addListener(function (command) {
   console.log('onCommand');
   const {tabs: {sendMessage, query}} = chrome;
   if (command === 'ScrollHighlight') {
-    // TODO: I don't think this can work!
+    // TODO: I don't think this can work in V3 API!
     query({active: true, currentWindow: true}, function (tabs) {
       sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
     });
@@ -629,7 +631,7 @@ chrome.runtime.onMessage.addListener(
       if (request.altColor.length === 0) {
         processUniqueNames(request.uniqueNames);
       }
-      sendResponse({command: request.command, success: 'ok'});
+      // sendResponse({command: request.command, success: 'ok'});
     } else if(request.command === 'voterGuidePossibilitySave') {
       voterGuidePossibilitySave(request.organizationWeVoteId, request.voterGuidePossibilityId, request.internalNotes, request.contributorEmail, sendResponse);
 
@@ -686,7 +688,7 @@ chrome.runtime.onMessage.addListener(
       debugSwLog('extWordHighlighter "hardResetActiveTab" received from tab: ' + tabId);
       hardResetActiveTab(tabId);
     } else if (request.command === 'updateBackgroundForButtonChange') {
-      debugSwLog('extWordHighlighter "updateBackgroundForButtonChange" received from popup');
+      debugSwLog('extWordHighlighter "updateBackgroundForButtonChange" received from popup for tab: ', request.tabId);
       handleButtonStateChange(request.showHighlights, request.showPanels, request.pdfURL, request.tabId, request.tabUrl);
       return false;
     } else {

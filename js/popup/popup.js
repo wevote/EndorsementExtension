@@ -192,7 +192,6 @@ document.addEventListener('DOMContentLoaded', function () {
           showPanels: showPanels,
           showHighlights: showHighlights,
           tabId: tabId,
-          // highlighterEnabledThisTab: true,  // TODO: Remove this vestigial leftover from multiple highlighted tabs version
         });
       } else {
         await reInitializeGlobalState();

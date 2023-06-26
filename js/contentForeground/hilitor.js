@@ -65,11 +65,11 @@ function Hilitor (id, tag) {
     // --------------------------
     // debugHilitor('duped sortedKeys.length ' + sortedKeys.length);
 
-    console.log('hilitor -- duped sortedKeys.length ' + sortedKeys.length);
+    // console.log('&&&&&&&&&&&&& hilitor -- duped sortedKeys.length ' + sortedKeys.length);
 
     for (let i = 0; i < sortedKeys.length; i++) {
       const name = sortedKeys[i].word;
-      if (name === 'tamara sawyer' || name === 'tami sawyer') {
+      if (name === 'pete aguilar' || name === 'Pete Aguilar') {
         debugHilitor('hilitor  ' + i + ': ' + sortedKeys[i].word);
       }
       if (names.includes(name)) {
@@ -138,13 +138,11 @@ function Hilitor (id, tag) {
 
   // recursively apply word highlighting
   // eslint-disable-next-line complexity
-  this.hiliteWords = async function (node, printHighlights, inContentEditable) {
+  this.hiliteWords = function (node, printHighlights, inContentEditable) {
     debugHilitor('entry to hiliteWords');
     const hiliteWordsDebug = false;
-    const state = await getGlobalState();
-    const { suppressHighlightLoop } = state;
 
-    if (node == undefined || !node) {return;}
+    if (node === undefined || !node) {return;}
     // if (!matchRegex) {return;}
 
     // Begin modification for WeVote
@@ -164,13 +162,13 @@ function Hilitor (id, tag) {
     // debugHilitor('before iterating Through every child node using highlight words cnt: ' + (node.hasChildNodes() ? node.childNodes.length : 0));
     // End of modification for WeVote
 
-    if (node.hasChildNodes() && !suppressHighlightLoop) {
+    if (node.hasChildNodes()) {
       for (var i = 0; i < node.childNodes.length; i++) {
         this.hiliteWords(node.childNodes[i], printHighlights, inContentEditable || node.isContentEditable);
       }
     }
 
-    if (node.nodeType == 3) { // NODE_TEXT
+    if (node.nodeType === 3) { // NODE_TEXT
       let regs = undefined;
       let nv = this.cleanName(node.nodeValue);
       if (nv.trim().length > 3) {
@@ -213,12 +211,12 @@ function Hilitor (id, tag) {
             wordfound = word;
             debugHilitor('hilitor word found: ' + word);
             debugHilitorMatch('hilitor matching word found: ' + wordColor[word].regex);
-            // if(wordColor[word].regex === 'Colin Allred') {
-            //   let c = 'gray';
-            //   if (wordColor[word].Color === "#fb6532") c = 'red';
-            //   if (wordColor[word].Color === "#27af72") c = 'green';
-            //   console.log('wordColor[word].regex === Colin Allred, wordColor[word].Color: ', c);
-            // }
+            if(wordColor[word].regex === 'Pete Aguilar') {
+              let c = 'gray';
+              if (wordColor[word].Color === "#fb6532") c = 'red';
+              if (wordColor[word].Color === "#27af72") c = 'green';
+              console.log('wordColor[word].regex === Pete Aguilar, wordColor[word].Color: ', c);
+            }
             break;
           }
         }
@@ -326,9 +324,10 @@ function Hilitor (id, tag) {
       const { voterGuidePossibilityId, positions } = state;
 
       const jQueryEmNode = $(emNode);
-      if (wordColor[wordfound].Icon.length) {
-        $(match).prepend(wordColor[wordfound].Icon);
-      }
+      // TODO 6/22/23 nice when it works, but messes up some pages with highly constrained css for the name area:
+      // if (wordColor[wordfound].Icon.length) {
+      //   $(match).prepend(wordColor[wordfound].Icon);
+      // }
       jQueryEmNode.wrap('<button type="button" id="' + id + '" class="endorsementHighlights"></button>');
       const createNew = wordColor[wordfound].Color === '#ff6';         // If yellow highlight
       if (createNew) {
@@ -354,7 +353,7 @@ function Hilitor (id, tag) {
     if (isFromPDF && (typeof workingCopy === 'string' || workingCopy instanceof String)) {
       // Remove new lines and form feeds
       workingCopy = workingCopy.replace(/[\n\f]/g, '');
-      // Remove following text in parenthesis, if the first char in the string is not am opening parenthesis
+      // Remove following text in parentheses, if the first char in the string is not am opening parenthesis
       if (workingCopy.charAt(0) !== '(') {
         workingCopy = workingCopy.replace(/(\(.*?\))/g, '');
       }
@@ -396,7 +395,7 @@ function Hilitor (id, tag) {
   this.apply = function (input, printHighlights) {
     wordColor = input;  // Where the "myHilitor.apply(wordsArray, printHighlights);" from tabWordsHighLighter sends the global to this file wordColor array
     numberOfHighlights = 0;
-    if (input == undefined || !input) {return;}
+    if (input === undefined || !input) {return;}
 
     this.setRegex(input);
 
