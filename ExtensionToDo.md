@@ -1,5 +1,4 @@
-**6/26/23**
-* Yellow highlights disappear in non-paneled mode, after adding a candidate
+**6/27/23**
 * fix updateBackgroundForButtonChange Unchecked runtime.lastError: The message port closed before a response was received.
 * In non-paneled view, it is difficult to hit the Green/Red?Grey highlight and get the "Edit candidate endoresment" modal dialog -- too often get the "Add" modal.
 * Loses state in the "W" pop-up after using the paned view.
@@ -8,6 +7,9 @@
   * 0.641 : response from getStatus undefined commonWeVote.js:93
   * 0.641 : ERROR: sendMessage for getStatus returned no status
 * Sometimes after a few edits on left, then on right, when you go back to left the onclick for Greens gets broken.
+* ~~yellow highlights disappear in non-paneled mode, after adding a candidate~~
+
+**6/26/23**
 * ~~Right click on green/red does not work until getCombinedHighlights completes (7 + 23 seconds in my case)~~
 * ~~fix 'showHighlightsCount'~~
 * ~~Update the endorsement page in editor view, when the status of the highlight is changed via iframe to WebApp~~
@@ -18,6 +20,8 @@
 * ~~Info only selection sometimes appears as grey, sometimes as purple.~~
 
 **Lower Priority**
+* Edits that end without a save, should not refresh the screen.  Send a different 'closeIFrameDialog' message, for no-save.
+* It would be nice to have the warmup delay adjust to how long it took the first highlights to appear, rather than a fixed 10 seconds after an edit with the WebApp in an iFrame.  The delay is for slow to load pages, but a crude workaround.
 * Switch tabs (diff organizations) and the right pane preserves the content from the previous pane.
 * In paneled, after editing with the dialog, we run handleUpdatedOrNewPositions twice, which is wasteful
 * On some pages the name of the candidate gets split into two adjacent clickable links, but only prefills the add dialog with the half of the name you clicked on.  Maybe cache the matches and then lookup the name and prefill the name field, if you only get one word.
