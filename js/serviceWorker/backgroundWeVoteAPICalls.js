@@ -35,7 +35,7 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
   const t1 = performance.now();
   if (showVoterGuideHighlights && showCandidateOptionsHighlights) {
     // Get the entries already found from page scan
-    console.log('background voterGuidePossibilityHighlightsRetrieve', voterGuidePossibilityHighlightsRetrieve);
+    console.log('background voterGuidePossibilityHighlightsRetrieve (get the greens/reds/grays)', voterGuidePossibilityHighlightsRetrieve);
     fetch(voterGuidePossibilityHighlightsRetrieve, {method: 'GET'}).then((resp) => resp.json()).then((voterGuidePossibilityHighlightsRetrieveResponse) => {
       getHighlightsListsFromApiServerDebug && debugSwLog('ENTERING COMBINED backgroundWeVoteAPICalls > voterGuidePossibilityHighlightsRetrieve API results received');
       debugSwLog('------------------- voterGuidePossibilityHighlightsRetrieve API SUCCESS voterGuidePossibilityHighlightsRetrieve: ' + voterGuidePossibilityHighlightsRetrieve);
@@ -44,7 +44,7 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
 
       // Get all candidates in this year's elections
       const t3 = performance.now();
-      console.log('background ballotItemHighlightsRetrieve', ballotItemHighlightsRetrieve);
+      console.log('background ballotItemHighlightsRetrieve (get the yellows) ', ballotItemHighlightsRetrieve);
       fetch(ballotItemHighlightsRetrieve).then((resp) => resp.json()).then((ballotItemHighlightsRetrieveResponse) => {
         debugSwLog('ballotItemHighlightsRetrieve API SUCCESS', ballotItemHighlightsRetrieveResponse);
         debugSwLog('------------------- ballotItemHighlightsRetrieve API SUCCESS: ' + ballotItemHighlightsRetrieve);

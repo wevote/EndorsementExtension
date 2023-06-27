@@ -24,6 +24,7 @@ const initialState = {
   organizationName: '',
   organizationTwitterHandle: '',
   organizationWeVoteId: 0,
+  peakDefaultHighlights: [],
   pdfURL: '',
   photoURL: '',
   positions: [],
@@ -152,5 +153,4 @@ function lowLevelSetStorage (dict) {
 //     }
 //   });
 // });
-
 

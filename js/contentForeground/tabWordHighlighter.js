@@ -336,13 +336,11 @@ function showMarkers () {
   }
 }
 
-function reHighlight (words) {
-  const reHighlightDebug = true;
-  reHighlightDebug && debugFgLog('ENTERING function reHighlight(words), words:', words);
+function addWordsToWordsArray (words) {
   for (let group in words) {
     if (words[group].Enabled) {
       for (let word in words[group].Words) {
-        // reHighlightDebug && debugFgLog('reHighlight word = ' + word);
+        // reHighlightDebug && debugFgLog('addWordsToWordsArray word = ' + word);
         if (words[group].Words[word]) {
           const reg = globStringToRegex(words[group].Words[word]);
           const newWordsElement = {
@@ -358,9 +356,9 @@ function reHighlight (words) {
           if (oldWordElement) {
             const exactDupe = JSON.stringify(oldWordElement) === JSON.stringify(newWordsElement);
             if (exactDupe) {
-              debugFgLog('^^^^^^^^^^^^^^^^^^^^^ entry to reHighlight() SKIPPING duplicate element: ', oldWordElement, newWordsElement);
+              debugFgLog('^^^^^^^^^^^^^^^^^^^^^ addWordsToWordsArray() SKIPPING duplicate element: ', oldWordElement, newWordsElement);
             } else {
-              debugFgLog('^^^^^^^^^^^^^^^^^^^^^ entry to reHighlight() REPLACING OLDER element: ', oldWordElement, newWordsElement);
+              debugFgLog('^^^^^^^^^^^^^^^^^^^^^ addWordsToWordsArray() REPLACING OLDER element: ', oldWordElement, newWordsElement);
               Object.assign(oldWordElement, newWordsElement);
             }
           } else {
@@ -372,6 +370,12 @@ function reHighlight (words) {
       }
     }
   }
+}
+
+function reHighlight (words) {
+  const reHighlightDebug = true;
+  reHighlightDebug && debugFgLog('ENTERING function reHighlight(words), words:', words);
+  addWordsToWordsArray(words);
   reHighlightDebug && debugFgLog('reHighlight before findWords --------------------------- namesToIds: ', namesToIds);
 
   findWords();
@@ -598,25 +602,7 @@ async function getWordsThenStartHighlighting () {
       voterDeviceId = id;
     }
 
-    for (let group in words) {
-      if (words[group].Enabled) {
-        for (let word in words[group].Words) {
-          getWordsThenStartHighlightingDebug && debugFgLog('getWords response, ' + word + ', group: ' + group + ', findWords: ' + words[group].FindWords + ' icon: ' + words[group].Icon);
-          let wordText = words[group].Words[word];
-          if (wordText) {  // Sept 15, 2019:  Sometimes we get bad data, just skip it
-            wordsArray.push({
-              word: words[group].Words[word].toLowerCase(),
-              'regex': globStringToRegex(words[group].Words[word]),
-              'Color': words[group].Color,
-              'Fcolor': words[group].Fcolor,
-              'Icon': words[group].Icon,
-              'FindWords': words[group].FindWords,
-              'ShowInEditableFields': words[group].ShowInEditableFields
-            });
-          }
-        }
-      }
-    }
+    addWordsToWordsArray(words);
     const t2 = performance.now();
     timingFgLog(t1, t2, 'in getWordsThenStartHighlighting, retrieving "getWords" highlighting rules took', 8.0);
 
@@ -635,7 +621,7 @@ async function getWordsThenStartHighlighting () {
     }
   });
 
-  debugFgLog('In getWordsThenStartHighlighting AFTER IN CODE setTimer for 10 SECOND DELAY HACK');
+  debugFgLog('In getWordsThenStartHighlighting AFTER IN CODE setTimer for 10 SECOND DELAY HACK');  // 6/27/23 ??? does this still make sense
 }
 
 function detectBodyBind () {
@@ -660,6 +646,7 @@ async function highlightLoop (){
   const state = await getGlobalState();
   const { highlighterLooping } = state;
 
+  // TODO 6/27/23 this is triggering twice after and edit, so the highlighterLooping variable state is not being managed, wasteful and confusing
   if (highlighterLooping) {
     // Do secondary findWords, so after the quick draw of endorsements for this page (greens)
     // we do the slower find all candidates (yellows).  This avoids having two highlightLoops running simultaneously
@@ -702,12 +689,74 @@ async function highlightLoop (){
   }
 }
 
+function addToPeakDefaultsIfYellow (marker, yellows) {
+  if (marker.color === '#ff6') {
+    // Re-capitalize name
+    const capitalizedName = marker.word.replace(/(^\w{1})|(\s+\w{1})/g, (letter) => letter.toUpperCase());
+
+    const wordElement = {
+      Color: marker.color,
+      Fcolor: '#000',
+      FindWords: true,
+      Icon:  '',
+      ShowInEditableFields: false,
+      regex: capitalizedName,
+      word: marker.word,
+    };
+    yellows.push(wordElement);
+    // console.log('addToPeakDefaultsIfYellow yellows ', yellows.length, wordElement);
+  }
+  return yellows;
+}
+
+function mergeWordsArrays(peakDefaultHighlights){
+  const hash = {};
+  const ret = [];
+
+  for(let i= 0; i < wordsArray.length; i++){
+    let e = wordsArray[i];
+    if (!hash[e.word]){
+      hash[e.word] = true;
+      ret.push(e);
+    }
+  }
+
+  for(var i= 0; i < peakDefaultHighlights.length; i++){
+    var e = peakDefaultHighlights[i];
+    if (!hash[e.word]){
+      hash[e.word] = true;
+      ret.push(e);
+    }
+  }
+
+  return ret;
+}
+
+function logDebugForTwoCandidates () {
+  for (let i = 0; i < wordsArray.length; i++) {
+    if (wordsArray[i].word === 'pete aguilar') {
+      let c = 'gray';
+      if (wordsArray[i].Color === '#fb6532') c = 'red';
+      if (wordsArray[i].Color === '#27af72') c = 'green';
+      if (wordsArray[i].Color === '#ff6')    c = 'yellow';
+      console.log('^^^^^^^^^^^^^^^^^^^^^ entry to findWords() wordsArray[i].word === "pete aguilar", wordsArray[i].Color: ', c, i);
+    }
+    if (wordsArray[i].word === 'jake auchincloss') {
+      let c = 'gray';
+      if (wordsArray[i].Color === '#fb6532') c = 'red';
+      if (wordsArray[i].Color === '#27af72') c = 'green';
+      if (wordsArray[i].Color === '#ff6')    c = 'yellow';
+      console.log('^^^^^^^^^^^^^^^^^^^^^ entry to findWords() wordsArray[i].word === "jake auchincloss", wordsArray[i].Color: ', c, i);
+    }
+  }
+}
+
 async function findWords () {
   const {chrome: {runtime: {sendMessage}}} = window;
   if (Object.keys(wordsArray).length > 0) {
     Highlight=false;
     let state = await getGlobalState();
-    const { reloadTimeStamp } = state;
+    const { reloadTimeStamp, peakDefaultHighlights } = state;
     // For some slow to load pages, wait a longer time if reloading after an edit with the WebApp in an iFrame
     let highlightWarmupPeriod = reloadTimeStamp > 0 ? 10000 : 300;
 
@@ -716,29 +765,33 @@ async function findWords () {
       ReadyToFindWords=false;
       const t1 = performance.now();
 
-      for (let i = 0; i < wordsArray.length; i++) {
-        if (wordsArray[i].word === 'pete aguilar') {
-          let c = 'gray';
-          if (wordsArray[i].Color === "#fb6532") c = 'red';
-          if (wordsArray[i].Color === "#27af72") c = 'green';
-          console.log('^^^^^^^^^^^^^^^^^^^^^ entry to findWords() wordsArray[i].word === "pete aguilar", wordsArray[i].Color: ', c, i);
-        }
+      logDebugForTwoCandidates();
+
+      // We only need to do a costly ballotItemHighlightsRetrieve once per session, so cache the yellows,
+      // then add them into the second pass through right here
+      let applyArray = wordsArray;
+      if (peakDefaultHighlights && peakDefaultHighlights.length > 0) {
+        applyArray = mergeWordsArrays(peakDefaultHighlights);
       }
 
       let myHilitor = new Hilitor();
-      let highlightsObj = myHilitor.apply(wordsArray, printHighlights);
+      let highlightsObj = myHilitor.apply(applyArray, printHighlights);
       const t2 = performance.now();
       timingFgLog(t1, t2, 'myHilitor.apply in findWords took ', 8.0);
-      state = await getGlobalState();
 
       // debugFgLog('after myHilitor.apply num highlights: ' + highlightsObj.numberOfHighlights);
       let count = highlightsObj.numberOfHighlights || state.rightPanePositions.length;
       if (highlightsObj.numberOfHighlights > 0) {
         highlightMarkers = highlightsObj.markers;
         markerPositions = [];
+        let yellows = [];
         for (let marker in highlightMarkers) {
           if (markerPositions.indexOf(highlightMarkers[marker].offset) === -1) {
             markerPositions.push(highlightMarkers[marker].offset);
+            addToPeakDefaultsIfYellow(highlightMarkers[marker], yellows);
+            if (highlightMarkers[marker].color === '#ff6') {
+              console.log('tab default marker position: ', highlightMarkers[marker].word);
+            }
           }
         }
         markerPositions.sort();
@@ -751,7 +804,11 @@ async function findWords () {
             addElementToPositions(state.positions, { 'ballot_item_name': word });
           }
         }
-        await updateGlobalState({ 'positions': state.positions });
+        if (yellows.length) {
+          await updateGlobalState({ 'positions': state.positions, 'peakDefaultHighlights': yellows });
+        } else {
+          await updateGlobalState({ 'positions': state.positions});
+        }
 
         count = uniqueNameMatches.length || count;
         try {

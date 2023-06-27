@@ -825,7 +825,7 @@ function getWordsBackground (inUrl, tabId) {
     }
   }
   if (nameToIdMap) {
-    result['nameToIdMap'] = nameToIdMap;  // Needed if the endorsement page is in an iFrame, and probably is sufficent if not in an iFrame 3/20/20
+    result['nameToIdMap'] = nameToIdMap;  // Needed if the endorsement page is in an iFrame, and probably is sufficient if not in an iFrame 3/20/20
   }
 
   debugSwLog('Exit from extWordHighlighter.getWordsBackground: ' + urlToHighlight);
