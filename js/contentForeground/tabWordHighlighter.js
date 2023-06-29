@@ -38,9 +38,10 @@ let debug = false;
 
 document.addEventListener('DOMContentLoaded', async function () {  // This wastes about 1 ms for every open tab in the browser, that we are not going to highlight on
   const t0 = performance.now();
+  const { runtime: { getURL } } = chrome;
   if (jQuery === undefined) {
     const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('./libs/jquery/jquery-3.6.0.min.js');
+    script.src = getURL('./libs/jquery/jquery-3.6.0.min.js');
     script.type = 'text/javascript';
     document.body.append(script);
   }
@@ -64,66 +65,10 @@ document.addEventListener('DOMContentLoaded', async function () {  // This waste
   }
 });
 
-// function getThisTabId () {
-//   const { chrome: { runtime: { sendMessage, lastError } } } = window;
-//   console.log('ENTRY to command myTabId ');
-//
-//   return new Promise ((resolve) => {
-//     sendMessage({
-//       command: 'myTabId',
-//     }, function (response) {
-//       if (lastError) {
-//         debugFgLog(' chrome.runtime.sendMessage("myTabId")', lastError.message);
-//       }
-//       console.log('command myTabId response ', response);
-//       const {tabId} = response;
-//       $('#frame').attr('name', 'tabId=' + tabId);
-//       debugFgLog('tabWordHighlighter getThisTabId tab.id: ' + tabId);
-//       resolve(tabId);
-//     });
-//   });
-// }
-
-// Immediately-invoked function expression
-// const { chrome: { runtime: { tabs } } } = window;  // NO NO NO NMOMN  OWEEEEEEEEEE !!!
-// tabs.query({
-//   active: true,
-//   currentWindow: true
-// }, (tabs) => {
-//   const tabId = tab[0].id;
-//   chrome.scripting.executeScript({
-//     target: {
-//       tabId: tabId,
-//       allFrames: true
-//     },
-//     files: ['./libs/jquery/jquery-3.6.0.min.js'],
-// () => {
-//     console.log(`jQuery ${$.fn.jquery} has been loaded successfully!`);
-//     // use jQuery below
-//     initializeTabWordHighlighter();
-//     detectBodyBind();
-//   });
-// });
-
-// chrome.scripting.executeScript('./libs/jquery/jquery-3.6.0.min.js');
-// const script = document.createElement('script');
-// script.src = chrome.runtime.getURL('./libs/jquery/jquery-3.6.0.min.js');
-// script.type = 'text/javascript';
-// script.addEventListener('load', () => {
-//     console.log(`jQuery ${$.fn.jquery} has been loaded successfully!`);
-//     // use jQuery below
-//     initializeTabWordHighlighter();
-//     detectBodyBind();
-//   // });
-//   // document.head.appendChild(script);
-// }, 500);
-// }());
-
 function isInANonWeVoteIFrame () {
   return (window.self !== window.top  && $('.weVoteEndorsementFrame').length === 0) || window.location.href === 'about:blank';
 }
 
-// $(() => {
 async function initializeTabWordHighlighter () {
   if (window.location.href === 'about:blank' || window.location.href.includes('extension.html')) {
     debugFgLog('############ tabWordHighligher NOT initializing for:', window.location.href);
@@ -139,6 +84,7 @@ async function initializeTabWordHighlighter () {
   // const host = window.location.host;
 
   if (isInOurIFrame()) {
+    debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage myTabId in initializeTabWordHighlighter');
     sendMessage({
       command: 'myTabId',
     }, async function (response) {
@@ -168,7 +114,8 @@ async function initializeTabWordHighlighter () {
       }
     }
     //only listen for messages in the main page, not in iframes
-    chrome.runtime.onMessage.addListener(
+    const { runtime: { onMessage } } = chrome;
+    onMessage.addListener(
       // eslint-disable-next-line complexity
       async function (request, sender, sendResponse) {
         const tabWordHighlighterListenerDebug = true;
@@ -183,7 +130,7 @@ async function initializeTabWordHighlighter () {
 
           const state = await getGlobalState();
           const { showHighlights, showPanels, tabId, url, pdfURL } = state;
-          debugFgLog('@@@@@@@@@@@ Message listener in tabWordHighlighter received: ', request.command);
+          debugFgLog('@@@@@@@@@@@ Message listener in tabWordHighlighter received: ', request.command, request.selection);
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
             if (window.location.href.toLowerCase().endsWith('.pdf')) {
@@ -237,7 +184,11 @@ async function initializeTabWordHighlighter () {
             return false;
           } else if (request.command === 'createEndorsement') {
             console.log('================================  received createEndorsement request.selection: ', request.selection);
-            await openSuggestionPopUp(request.selection);
+            if (request.selection === undefined) {
+              console.log('================================  received createEndorsement with UNDEFINED request.selection');
+            } else {
+              await openSuggestionPopUp(request.selection);
+            }
             return false;
           } else if (request.command === 'revealRight') {
             revealRightAction(request.selection);
@@ -259,8 +210,7 @@ async function initializeTabWordHighlighter () {
             return false;
           } else if (request.command === 'logFromPopup') {
             console.log('popup: ' + request.payload);
-            sendResponse('hello from the tabWordHighlighter');
-            return true;
+            return false;
           } else if (request.command === 'updateForegroundForButtonChange') {
             debugSwLog('extWordHighlighter "updateForegroundForButtonChange" received from popup');
             const { pdfURL, tabId, tabUrl } = request.payload;
@@ -269,6 +219,7 @@ async function initializeTabWordHighlighter () {
             console.log('updateForegroundForButtonChange, saving tabId and tabURL to global state');
             await updateGlobalState({ tabId: tabId, url: tabUrl });
 
+            debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage updateBackgroundForButtonChange in isInANonWeVoteIFrame');
             sendMessage({
               command: 'updateBackgroundForButtonChange',
               showHighlights,
@@ -356,9 +307,9 @@ function addWordsToWordsArray (words) {
           if (oldWordElement) {
             const exactDupe = JSON.stringify(oldWordElement) === JSON.stringify(newWordsElement);
             if (exactDupe) {
-              debugFgLog('^^^^^^^^^^^^^^^^^^^^^ addWordsToWordsArray() SKIPPING duplicate element: ', oldWordElement, newWordsElement);
+              // debugFgLog('^^^^^^^^^^^^^^^^^^^^^ addWordsToWordsArray() SKIPPING duplicate element: ', oldWordElement, newWordsElement);
             } else {
-              debugFgLog('^^^^^^^^^^^^^^^^^^^^^ addWordsToWordsArray() REPLACING OLDER element: ', oldWordElement, newWordsElement);
+              // debugFgLog('^^^^^^^^^^^^^^^^^^^^^ addWordsToWordsArray() REPLACING OLDER element: ', oldWordElement, newWordsElement);
               Object.assign(oldWordElement, newWordsElement);
             }
           } else {
@@ -417,6 +368,7 @@ async function sendGetStatus () {
     }
   }
 
+  debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getStatus in sendGetStatus');
   sendMessage({command: 'getStatus', tabURL: window.location.href}, async function (response) {
     debugFgLog('chrome.runtime.sendMessage({command: \'getStatus\'}', document.URL);
     if (lastError) {
@@ -576,6 +528,7 @@ async function getWordsThenStartHighlighting () {
 
   debugFgLog('In getWordsThenStartHighlighting');
 
+  debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getWords #1 in getWordsThenStartHighlighting');
   sendMessage({
     command: 'getWords',
     url: location.href.replace(location.protocol + '//', ''),
@@ -641,7 +594,7 @@ function detectBodyBind () {
 
 async function highlightLoop (){
   ReadyToFindWords = true;
-  // let i = 0;
+  let i = 0;
 
   const state = await getGlobalState();
   const { highlighterLooping } = state;
@@ -652,7 +605,7 @@ async function highlightLoop (){
     // we do the slower find all candidates (yellows).  This avoids having two highlightLoops running simultaneously
     // for the life of the page, which then wastefully processes the same page twice for each update.
     console.log('-------- calling findWords outside of the highlightLoop ----------- ');
-    findWords();
+    await findWords();
   } else {
     await updateGlobalState({highlighterLooping: true});
     let highlightLoopIntervalId = setInterval(async function () {
@@ -674,7 +627,7 @@ async function highlightLoop (){
         const modalDisplayed = isModalDisplayed();
         if (!modalDisplayed && Highlight && ReadyToFindWords) {
           // console.log('-------- calling findWords inside the highlightLoop, actually calling it ----------- ');
-          findWords();
+          await findWords();
         }
         if (!ReadyToFindWords) {
           await sleep(500);
@@ -709,7 +662,7 @@ function addToPeakDefaultsIfYellow (marker, yellows) {
   return yellows;
 }
 
-function mergeWordsArrays(peakDefaultHighlights){
+function mergeWordsArrays (peakDefaultHighlights){
   const hash = {};
   const ret = [];
 
@@ -721,8 +674,8 @@ function mergeWordsArrays(peakDefaultHighlights){
     }
   }
 
-  for(var i= 0; i < peakDefaultHighlights.length; i++){
-    var e = peakDefaultHighlights[i];
+  for (let i= 0; i < peakDefaultHighlights.length; i++){
+    let e = peakDefaultHighlights[i];
     if (!hash[e.word]){
       hash[e.word] = true;
       ret.push(e);
@@ -739,14 +692,14 @@ function logDebugForTwoCandidates () {
       if (wordsArray[i].Color === '#fb6532') c = 'red';
       if (wordsArray[i].Color === '#27af72') c = 'green';
       if (wordsArray[i].Color === '#ff6')    c = 'yellow';
-      console.log('^^^^^^^^^^^^^^^^^^^^^ entry to findWords() wordsArray[i].word === "pete aguilar", wordsArray[i].Color: ', c, i);
+      console.log('~~~~~~~~~~~~~~~~~~~~~ entry to findWords() wordsArray[i].word === "pete aguilar", wordsArray[i].Color: ', c, i);
     }
     if (wordsArray[i].word === 'jake auchincloss') {
       let c = 'gray';
       if (wordsArray[i].Color === '#fb6532') c = 'red';
       if (wordsArray[i].Color === '#27af72') c = 'green';
       if (wordsArray[i].Color === '#ff6')    c = 'yellow';
-      console.log('^^^^^^^^^^^^^^^^^^^^^ entry to findWords() wordsArray[i].word === "jake auchincloss", wordsArray[i].Color: ', c, i);
+      console.log('~~~~~~~~~~~~~~~~~~~~~ entry to findWords() wordsArray[i].word === "jake auchincloss", wordsArray[i].Color: ', c, i);
     }
   }
 }
@@ -760,6 +713,7 @@ async function findWords () {
     // For some slow to load pages, wait a longer time if reloading after an edit with the WebApp in an iFrame
     let highlightWarmupPeriod = reloadTimeStamp > 0 ? 10000 : 300;
 
+    // eslint-disable-next-line complexity
     setTimeout(async function () {
       debugFgLog('ENTERING findWords: ', window.location);
       ReadyToFindWords=false;
@@ -789,9 +743,6 @@ async function findWords () {
           if (markerPositions.indexOf(highlightMarkers[marker].offset) === -1) {
             markerPositions.push(highlightMarkers[marker].offset);
             addToPeakDefaultsIfYellow(highlightMarkers[marker], yellows);
-            if (highlightMarkers[marker].color === '#ff6') {
-              console.log('tab default marker position: ', highlightMarkers[marker].word);
-            }
           }
         }
         markerPositions.sort();
@@ -813,13 +764,12 @@ async function findWords () {
         count = uniqueNameMatches.length || count;
         try {
           console.log('sending showHighlightsCount in findWords (762), count = ' + count.toString()); // always log this
-          sendMessage({
+          noResponseSendMessageWrapper (sendMessage, {
             command: 'showHighlightsCount',
             label: uniqueNameMatches.length.toString(),
             uniqueNames: uniqueNameMatches,
             altColor: uniqueNameMatches.length ? '' : 'darkgreen',
-          }, function () {
-          });
+          }, '^^^^^^^^^^^^^^^^^^^ sendMessage showHighlightsCount #1 in findWords');
         } catch (e) {
           debugFgLog('Caught showHighlightsCount > 0: ', e);
         }
@@ -829,26 +779,19 @@ async function findWords () {
           count = state.positions.length || count;
           if (count > 0) {
             console.log('sending showHighlightsCount in findWords (782), based on positions: ', count.toString()); // always log this
-            sendMessage({
+            noResponseSendMessageWrapper (sendMessage, {
               command: 'showHighlightsCount',
               label: count.toString(),
               uniqueNames: state.positions,
               altColor: 'darkgreen',
-            }, function () {
-            });
+            }, '^^^^^^^^^^^^^^^^^^^ sendMessage showHighlightsCount #2 in findWords');
           } else {
-            sendMessage({
+            noResponseSendMessageWrapper (sendMessage, {
               command: 'showHighlightsCount',
               label: '0',
               uniqueNames: [],
               altColor: 'darkgreen',
-            }, function () {
-              // May 31, 2023:  There is no "chrome.tabs" in the content foreground
-              // let myError = chrome.tabs.lastError;  // null or Error object, 4/29/23 Painfully discovered barely documented magic code, do not simplify
-              // if (myError) {
-              //   debugFgLog('chrome.runtime.sendMessage("showHighlightsCount") (804) error: ', myError.message);
-              // }
-            });
+            }, '^^^^^^^^^^^^^^^^^^^ sendMessage showHighlightsCount #3 in findWords');
           }
         } catch (e) {
           debugFgLog('Caught showHighlightsCount === 0 ', e);

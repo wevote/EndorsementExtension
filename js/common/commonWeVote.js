@@ -164,3 +164,15 @@ function addElementToPositions (array, element) {
   }
   return added;
 }
+
+function noResponseSendMessageWrapper (sendMessage, messageObj, logBaseText) {
+  debugFgLog(logBaseText);
+  const promise = sendMessage(messageObj);
+  promise.then((response) => {
+    if (response !== undefined) {
+      console.log(logBaseText + ' response: ', response);
+    }
+  }).catch((e) => {
+    console.log('error in ' + logBaseText + ' ', e);
+  });
+}
