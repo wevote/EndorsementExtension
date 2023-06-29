@@ -159,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function addButtonListeners(tabId, url) {
     // Reset the highlighted tab
     $('#resetThisTabButton').click(() => {
+      chrome.action.setBadgeText({text: ''});
       console.log('addButtonListeners resetThisTabButton hardResetActiveTab click tabId', tabId);
       console.log('hardResetActiveTab popup.js location: ', location);
       logFromPopup (tabId, 'sending hardResetActiveTab');

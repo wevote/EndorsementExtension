@@ -112,6 +112,7 @@ function debugWarn (...args) {
 function signIn (attemptLogin) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugFgLog('new signIn');
+  debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getVoterInfo in signIn');
   sendMessage({ command: 'getVoterInfo',},
     async function (response) {
       if (lastError) {
@@ -265,6 +266,7 @@ function setSignInOutOnClick () {
 
 function getVoterInfo () {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
+  debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getVoterInfo in getVoterInfo');
   sendMessage({ command: 'getVoterInfo',},
     async function (response) {
       if (lastError) {
@@ -344,6 +346,8 @@ async function doGetCombinedHighlights (showPanels, tabId, urlToQuery) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   const state = await getGlobalState();
   const { voterWeVoteId } = state;
+
+  debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getCombinedHighlights in doGetCombinedHighlights');
   sendMessage({command: 'getCombinedHighlights', voterWeVoteId: voterWeVoteId, tabId: tabId, url: urlToQuery, doReHighlight: true},
     function (response) {
       if (lastError) {
@@ -380,6 +384,7 @@ async function getHighlights (showHighlights, showPanels, tabId) {
   // Start by just retrieving the endorsements already captured
   await getVoterDeviceId().then((voterDeviceId) => {
     console.log('**************** before send message getHighlights in getVoterDeviceId(), tabId', tabId);
+    debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getHighlights in getHighlights');
     sendMessage({ command: 'getHighlights', url: urlToQuery, 'voterDeviceId': voterDeviceId, tabId: tabId, doReHighlight: false },
       async function (response) {
         if (lastError) {
@@ -424,6 +429,33 @@ async function getHighlights (showHighlights, showPanels, tabId) {
   });
 }
 
+async function handleGetRefreshedHighlightsResponse (response, showPanels, lastError) {
+  if (lastError) {
+    debugFgLog(' chrome.runtime.sendMessage("getRefreshedHighlights") ', lastError.message);
+  }
+  debugFgLog('getRefreshedHighlights() response', showPanels, response);
+
+  if (response) {
+    debugFgLog('SUCCESS: getRefreshedHighlights received a response', response);
+    const state = await getGlobalState();
+    const { showHighlights } = state;
+    if (showHighlights) {
+      await updateGlobalState({ reloadTimeStamp: Date.now()});
+      debugFgLog('getRefreshedHighlights reloading iframe (logging before the actual reload)');
+      if (showPanels) {
+        document.getElementsByClassName('weVoteEndorsementFrame')[0].contentDocument.location.reload(true);  // Works when called from the candidate pane
+      } else {
+        window.location.reload();  // Reload the Editor mode iframe from within the iframe
+      }
+    } else {
+      debugFgLog('getRefreshedHighlights reloading endorsement page (before reload)');
+      document.location.reload();  // Reload the endorsement page
+    }
+  } else {
+    debugFgLog('ERROR: getRefreshedHighlights received empty response');
+  }
+}
+
 async function getRefreshedHighlights () {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   debugFgLog('getRefreshedHighlights called');
@@ -431,34 +463,14 @@ async function getRefreshedHighlights () {
     const state = await getGlobalState();
     const { tabId, showPanels } = state;
 
-    console.log('**************** before send message getRefreshedHighlights in getVoterDeviceId(), tabId: ', tabId);
-    sendMessage({ command: 'getHighlights', url: window.location.href, 'voterDeviceId': voterDeviceId, doReHighlight: true, tabId: tabId },
-      async function (response) {
-        if (lastError) {
-          debugFgLog(' chrome.runtime.sendMessage("getRefreshedHighlights") ', lastError.message);
-        }
-        debugFgLog('getRefreshedHighlights() response', response);
-
-        if (response) {
-          debugFgLog('SUCCESS: getRefreshedHighlights received a response', response);
-          const state = await getGlobalState();
-          const { showHighlights } = state;
-          if (showHighlights) {
-            await updateGlobalState({ reloadTimeStamp: Date.now()});
-            debugFgLog('getRefreshedHighlights reloading iframe (logging before the actual reload)');
-            if (showPanels) {
-              document.getElementsByClassName('weVoteEndorsementFrame')[0].contentDocument.location.reload(true);  // Works when called from the candidate pane
-            } else {
-              window.location.reload();  // Reload the Editor mode iframe from within the iframe
-            }
-          } else {
-            debugFgLog('getRefreshedHighlights reloading endorsement page (before reload)');
-            document.location.reload();  // Reload the endorsement page
-          }
-        } else {
-          debugFgLog('ERROR: getRefreshedHighlights received empty response');
-        }
-      });
+    debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getRefreshedHighlights in getRefreshedHighlights');
+    sendMessage({
+      command: 'getHighlights',
+      url: window.location.href,
+      voterDeviceId: voterDeviceId,
+      doReHighlight: true,
+      tabId: tabId },
+    (response) => handleGetRefreshedHighlightsResponse(response, showPanels, lastError));
   });
 }
 
@@ -479,7 +491,7 @@ async function updateTopMenu (topPanelExists) {
     }
   }
 
-  // console.log('--|--------- url for voterGuidePossibilityRetrieve: ', topMenuURL);
+  debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getTopMenuData in updateTopMenu');
   sendMessage({ command: 'getTopMenuData', url: topMenuURL },
     async function (response) {
       if (lastError) {
@@ -579,6 +591,7 @@ async function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogC
   debugFgLog('ENTERING contentWeVoteUI > handleUpdatedOrNewPositions() getPositions, voterGuidePossibilityId: ' + voterGuidePossibilityId);
 
   getVoterDeviceId().then((voterDeviceId) => {
+    debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getPositions in handleUpdatedOrNewPositions');
     sendMessage({
       command: 'getPositions',
       voterDeviceId,
@@ -661,7 +674,7 @@ async function coreUpdatePositions (data, update) {
     let allHtml = update ? $('#noDisplayPageBeforeFraming').html() : '';
     let insert = 0;
     for (let i = 0; i < positionsCount; i++) {
-      debugFgLog('coreUpdatePositions data: ', data[i]);
+      // debugFgLog('coreUpdatePositions data: ', data[i]);
       // be sure not to use position_stance_stored, statement_text_stored, or more_info_url_stored -- we want the possibilities, not the live data
       let {
         ballot_item_name: name, candidate_alternate_names: alternateNames, position_stance: stance, statement_text: comment, more_info_url: url,
@@ -993,6 +1006,7 @@ async function saveUpdatedCandidatePossiblePosition (event, removePosition, deta
   const state = await getGlobalState();
   const { voterGuidePossibilityId } = state;
 
+  debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage savePosition in saveUpdatedCandidatePossiblePosition');
   sendMessage({
     command: 'savePosition',
     itemName,
@@ -1426,6 +1440,7 @@ function orgChoiceDialog (orgList) {
       const { voterGuidePossibilityId, voterWeVoteId } = state;
 
       debugFgLog('orgChoiceDialog voterGuidePossibilitySave, orgChoiceButton button onclick:  ' + event.currentTarget.id);
+      debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage voterGuidePossibilitySave in orgChoiceDialog');
       sendMessage({
         command: 'voterGuidePossibilitySave',
         organizationWeVoteId: organizationWeVoteId,
@@ -1455,6 +1470,7 @@ async function sendTopComment () {
   const state = await getGlobalState();
   const { organizationWeVoteId, voterGuidePossibilityId, voterWeVoteId } = state;
 
+  debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage voterGuidePossibilitySave in sendTopComment');
   sendMessage({
     command: 'voterGuidePossibilitySave',
     organizationWeVoteId: organizationWeVoteId,

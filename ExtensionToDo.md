@@ -1,28 +1,19 @@
-**6/27/23**
-* fix updateBackgroundForButtonChange Unchecked runtime.lastError: The message port closed before a response was received.
-* In non-paneled view, it is difficult to hit the Green/Red?Grey highlight and get the "Edit candidate endoresment" modal dialog -- too often get the "Add" modal.
+**6/29/23**
 * Loses state in the "W" pop-up after using the paned view.
-* Sometimes the first attempt at "Open Edit Panel" does not respond, and needs to be rerun.
-  * 0.641 : chrome.runtime.sendMessage({command: 'getStatus'} https://giffords.org/elections/endorsements/past-endorsements/commonWeVote.js:93
-  * 0.641 : response from getStatus undefined commonWeVote.js:93
-  * 0.641 : ERROR: sendMessage for getStatus returned no status
+* In non-paneled view, it is difficult to hit the Green/Red?Grey highlight and get the "Edit candidate endoresment" modal dialog -- too often get the "Add" modal.
 * Sometimes after a few edits on left, then on right, when you go back to left the onclick for Greens gets broken.
-* ~~yellow highlights disappear in non-paneled mode, after adding a candidate~~
-
-**6/26/23**
-* ~~Right click on green/red does not work until getCombinedHighlights completes (7 + 23 seconds in my case)~~
-* ~~fix 'showHighlightsCount'~~
-* ~~Update the endorsement page in editor view, when the status of the highlight is changed via iframe to WebApp~~
-* ~~No repro: Delete a candidate in right pane, but they stay highlighted in the left (the db is correctly updated)~~
-* ~~No repro: Delete a candidate in right pane, but they stay highlighted in the left (the db is correctly updated)~~
-* ~~After an edit, the endorsement count green ball goes to zero~~
+* ~~Remove buttons in popup.js, leaves green badgeText displaying~~
+* ~~Sometimes the first attempt at "Open Edit Panel" does not respond, and needs to be rerun.~~
 * ~~Can't edit two candidates between hard refreshes, right-click does not work 2nd time~~
-* ~~Info only selection sometimes appears as grey, sometimes as purple.~~
 
 **Lower Priority**
 * Edits that end without a save, should not refresh the screen.  Send a different 'closeIFrameDialog' message, for no-save.
 * It would be nice to have the warmup delay adjust to how long it took the first highlights to appear, rather than a fixed 10 seconds after an edit with the WebApp in an iFrame.  The delay is for slow to load pages, but a crude workaround.
+  * Tried timing the first load, and using that value (plus a couple of seconds) for the second warmup, but the load time was all over the place, and ended up starting too soon, and having the highlights not appear (fail).
+  * Tried using web-vitals library ... super cool, but did not trigger until the first user interaction.
+  * Tried using the PerformanceObserver api, but it also seemed to be waiting for user interaction.
 * Switch tabs (diff organizations) and the right pane preserves the content from the previous pane.
+* fix updateBackgroundForButtonChange Unchecked runtime.lastError: The message port closed before a response was received. (Easy ones have been fixed as of 6/28/23 return false on response if no round-trip response is needed)
 * In paneled, after editing with the dialog, we run handleUpdatedOrNewPositions twice, which is wasteful
 * On some pages the name of the candidate gets split into two adjacent clickable links, but only prefills the add dialog with the half of the name you clicked on.  Maybe cache the matches and then lookup the name and prefill the name field, if you only get one word.
 * The state of the buttons in the popup gets cleared and is inconsistent on pdf -> html
@@ -32,7 +23,18 @@
 **Test Cases**
 * https://candidates.aipacpac.org/page/featured/
 * Prior years:  https://giffords.org/elections/endorsements/past-endorsements/
-* 
+
+* **6/27/23**
+* ~~yellow highlights disappear in non-paneled mode, after adding a candidate~~
+
+**6/26/23**
+* ~~Right click on green/red does not work until getCombinedHighlights completes (7 + 23 seconds in my case)~~
+* ~~fix 'showHighlightsCount'~~
+* ~~Update the endorsement page in editor view, when the status of the highlight is changed via iframe to WebApp~~
+* ~~No repro: Delete a candidate in right pane, but they stay highlighted in the left (the db is correctly updated)~~
+* ~~No repro: Delete a candidate in right pane, but they stay highlighted in the left (the db is correctly updated)~~
+* ~~After an edit, the endorsement count green ball goes to zero~~
+* ~~Info only selection sometimes appears as grey, sometimes as purple.~~
 
 **6/20/23**
 * ~~Looks like the suppression code breaks refresh after editing in non-paneled mode, as is edit vs add~~

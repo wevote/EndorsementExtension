@@ -291,7 +291,7 @@ function createNewTabsHighlightedElement (tabId, url) {
 
 function updateContextMenu (inUrl, tabId){
   debugSwLog('updating context menu', tabId, inUrl);
-  if(inUrl&&noContextMenu.indexOf(inUrl) === -1){
+  if (inUrl&&noContextMenu.indexOf(inUrl) === -1){
     // chrome.contextMenus.removeAll();
     // createSearchMenu(); April 20, 2023 -- Causes:  Unchecked runtime.lastError while running contextMenus.create: Cannot create item with duplicate id Highlight
     let contexts = ['selection'];
@@ -300,7 +300,7 @@ function updateContextMenu (inUrl, tabId){
     let sortedByModified = [];
 
     for (let group in filteredGroups){
-      if(filteredGroups[group].Type !== 'remote'){
+      if (filteredGroups[group].Type !== 'remote'){
         sortedByModified.push([group, filteredGroups[group].Modified]);
       }
     }
@@ -353,6 +353,7 @@ function hardResetActiveTab (tabId) {
   debugSwLog('sendMessage hardResetActiveTab tabId:', tabId);
   console.log('hardResetActiveTab extWordHighlighter location: ', location);
 
+  debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage tabId weird parameters! in hardResetActiveTab');
   sendMessage(tabId, {
     tabId: tabId,
   }, function () {
@@ -401,6 +402,7 @@ function setEnableForActiveTab (showHighlights, showEditor, tabId, tabUrl) {
 
   debugSwLog('sendMessage displayHighlightsForTabAndPossiblyEditPanes tabId:', tabId,
     ', showHighlights: ', showHighlights, ', showEditor', showEditor);
+  debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage displayHighlightsForTabAndPossiblyEditPanes ext in setEnableForActiveTab');
   sendMessage(tabId, {
     command: 'displayHighlightsForTabAndPossiblyEditPanes',
     highlighterEnabled,
@@ -441,6 +443,7 @@ function removeHighlightsForAllTabs () {
 
     let intTabId = parseInt(key, 10);
 
+    debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage displayHighlightsForTabAndPossiblyEditPanes ext in removeHighlightsForAllTabs (NOT CALLED ANYMORE)');
     sendMessage(intTabId, {     // 5/1/2020: This MUST be chrome.tabs.sendMessage, not chrome.runtime.sendMessage
       command: 'displayHighlightsForTabAndPossiblyEditPanes',
       highlighterEnabled: false,
@@ -499,7 +502,7 @@ chrome.tabs.onCreated.addListener(
     // debugSwLog('XXXXXXYY getGlobalState in tabs onCreated 2 state state', state);
 
     const { url, id } = tab;
-    if(url !== undefined) {
+    if (url !== undefined) {
       updateContextMenu(url, id);
     }
   }
@@ -515,6 +518,7 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
 
   if (info.menuItemId.indexOf('idContextMenuCreateNew') > -1) {
     console.log('================================ chrome.contextMenus.onClicked sending createEndorsement');
+    debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage createEndorsement ext in onClicked idContextMenuCreateNew');
     sendMessage(tab.id, {
       command: 'createEndorsement',
       selection: info.selectionText,
@@ -527,6 +531,7 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
     //   debugSwLog('contextMenus on click, response received to createEndorsement ', result);
     });
   } else if (info.menuItemId.indexOf('idContextMenuRevealRight') > -1) {
+    debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage revealRight ext in onClicked idContextMenuRevealRight');
     sendMessage(tab.id, {
       command: 'revealRight',
       selection: info.selectionText,
@@ -548,6 +553,7 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
   } else if (info.menuItemId === 'Highlight') {
     // TODO: I don't think this can work in V3 API!
     query({active: true, currentWindow: true}, function (tabs) {
+      debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage ScrollHighlight ext in onClicked Highlight');
       sendMessage(tabs[0].id, {command: 'ScrollHighlight'});
     });
   }
@@ -601,11 +607,11 @@ chrome.runtime.onMessage.addListener(
         request.moreInfoURL.trim(),
         request.removePosition,
         sendResponse);
-    } else if(request.command === 'getCandidate') {
+    } else if (request.command === 'getCandidate') {
       getCandidate (request.candidateWeVoteId, sendResponse);
-    } else if(request.command === 'getVoterInfo') {
+    } else if (request.command === 'getVoterInfo') {
       getVoterSignInInfo (sendResponse);
-    } else if(request.command === 'getWords') {
+    } else if (request.command === 'getWords') {
       sendResponse({
         command: request.command,
         words: getWordsBackground(request.url, request.id),
@@ -626,44 +632,44 @@ chrome.runtime.onMessage.addListener(
       requestReHighlight();
       sendResponse({command: request.command, success: true,
         status: 'requestReHighlight invoked asynchronously'});
-    } else if(request.command === 'showHighlightsCount') {
+    } else if (request.command === 'showHighlightsCount') {
       showHighlightsCount(request.label, request.altColor, sender.tab.id);
       if (request.altColor.length === 0) {
         processUniqueNames(request.uniqueNames);
       }
-      // sendResponse({command: request.command, success: 'ok'});
-    } else if(request.command === 'voterGuidePossibilitySave') {
+      return false;
+    } else if (request.command === 'voterGuidePossibilitySave') {
       voterGuidePossibilitySave(request.organizationWeVoteId, request.voterGuidePossibilityId, request.internalNotes, request.contributorEmail, sendResponse);
 
       // The following commands are from "Highlight This", and are not currently in use
 
-    } else if(request.command === 'setPrintHighlights') {
+    } else if (request.command === 'setPrintHighlights') {
       sendResponse({command: request.command, success:setPrintHighlights(request.state)});
-    } else if(request.command === 'addGroup') {
+    } else if (request.command === 'addGroup') {
       debugSwLog('MESSAGING: XXXXXXXXX NO LONGER CALLED XXXXXXXXXXX addGroup message received', request, sender, sender.tab.id);
       sendResponse({command: request.command, success:addGroup(request.group, request.color, request.fcolor, request.icon, request.findwords, request.showon,
         request.dontshowon, request.words, request.groupType, request.remoteConfig, request.regex, request.showInEditableFields)});
-    } else if(request.command === 'removeWord') {
+    } else if (request.command === 'removeWord') {
       sendResponse({command: request.command, success:removeWord(request.word)});
-    } else if(request.command === 'beep') {
+    } else if (request.command === 'beep') {
       document.body.innerHTML += '<audio src="../../beep.wav" autoplay="autoplay"/>';
-    } else if(request.command === 'getStatus') {
-      // debugSwLog('if(request.command === \'getStatus\') highlighterEnabled: ', highlighterEnabled);
+    } else if (request.command === 'getStatus') {
+      // debugSwLog('if (request.command === \'getStatus\') highlighterEnabled: ', highlighterEnabled);
       getThisTabsStatus(request.tabURL, sendResponse);
-    } else if(request.command === 'updateContextMenu'){
+    } else if (request.command === 'updateContextMenu'){
       updateContextMenu(request.url, request.id);
       sendResponse({command: request.command, success: 'ok'});
-    } else if(request.command === 'flipGroup') {
+    } else if (request.command === 'flipGroup') {
       sendResponse({command: request.command, success: flipGroup(request.group, request.action)});
-    } else if(request.command === 'deleteGroup') {
+    } else if (request.command === 'deleteGroup') {
       sendResponse({command: request.command, success:deleteGroup(request.group)});
-    } else if(request.command === 'addWord') {
+    } else if (request.command === 'addWord') {
       sendResponse({command: request.command, success:addWord(request.word)});
-    } else if(request.command === 'addWords') {
+    } else if (request.command === 'addWords') {
       sendResponse({command: request.command, success:addWords(request.words)});
-    // } else if(request.command === 'syncList') {
+    // } else if (request.command === 'syncList') {
     //   sendResponse({success:syncWordList(HighlightsData.Groups[request.group], true,request.group)});
-    } else if(request.command === 'setWords') {
+    } else if (request.command === 'setWords') {
       sendResponse({command: request.command, success:setWords(request.words, request.group, request.color, request.fcolor, request.findwords,
         request.showon, request.dontshowon,  request.newname, request.groupType, request.remoteConfig,request.regex, request.showInEditableFields)});
     } else if (request.command === 'myTabId') {
@@ -779,6 +785,7 @@ function requestReHighlight (tabId, url){
   const {tabs: {sendMessage, lastError}} = chrome;
   if (tabId && tabId > 0) {
     debugSwLog('In extWordHighlighter.requestReHighlight, ReHighlight WAS sent -- for tabId:', tabId);
+    debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage ReHighlight ext in requestReHighlight');
     sendMessage(tabId, {command: 'ReHighlight', words: getWordsBackground(url, tabId)}, function () {
       debugSwLog(lastError ? `requestReHighlight lastError ${lastError.message}` : 'requestReHighlight returned');
     });
@@ -835,8 +842,9 @@ function getWordsBackground (inUrl, tabId) {
 function onPage () {
   const {tabs: {sendMessage, query}} = chrome;
   query({active: true, currentWindow: true}, function (tabs) {
+    debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getMarkers ext in onPage');
     sendMessage(tabs[0].id, {command: 'getMarkers'}, function (result){
-      if(result){
+      if (result){
         if (lastError) {
           debugSwLog(' chrome.runtime.sendMessage("getMarkers")', lastError.message);
         }
