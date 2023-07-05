@@ -1,7 +1,8 @@
 **6/29/23**
 * Loses state in the "W" pop-up after using the paned view.
-* In non-paneled view, it is difficult to hit the Green/Red?Grey highlight and get the "Edit candidate endoresment" modal dialog -- too often get the "Add" modal.
 * Sometimes after a few edits on left, then on right, when you go back to left the onclick for Greens gets broken.
+* ~~In non-paneled view, sometimes postions and currentEndorsements are not initialized,
+  so you always get 'Add' instead of the 'Edit candidate endoresment" modal dialog.~~
 * ~~Remove buttons in popup.js, leaves green badgeText displaying~~
 * ~~Sometimes the first attempt at "Open Edit Panel" does not respond, and needs to be rerun.~~
 * ~~Can't edit two candidates between hard refreshes, right-click does not work 2nd time~~

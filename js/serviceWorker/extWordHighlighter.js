@@ -1,4 +1,4 @@
-/* global chrome, defaultNeverHighlightOn */
+/* global chrome, defaultNeverHighlightOn, initializeEndorsementDetectionList */
 
 console.log('===================== extWordHighlighter ==========================');
 
@@ -126,6 +126,31 @@ function overlayOrganizationPositions (voterGuideHighlights) {
   }
 }
 
+// This is for non-paneled mode, so we can match a name to a existing endorsement if it exits
+async function initializeEndorsementDetectionList (voterGuideHighlights) {
+  debugSwLog('ENTERING initializePositionsArray, needed for non-paned mode Edit/Add decision for the modal pop up');
+  const nameArray = [];
+  let currentEndorsementsArray = [];
+  for (let i = 0; i < voterGuideHighlights.length; i++) {
+    let highlight = voterGuideHighlights[i];
+    const {we_vote_id: weVoteId, name, stance} = highlight;
+    if (name && name.length > 2 && !nameArray.includes(name.toLowerCase())) {
+      nameArray.push(name.toLowerCase());
+      currentEndorsementsArray.push({
+        ballot_item_name: name,
+        possibility_position_id: weVoteId,
+        position_stance: stance,
+        statement_text: null,
+      });
+    }
+  }
+  if (currentEndorsementsArray.length) {
+    debugStorage('---------------------------- initializeEndorsementDetectionList, before save ---- currentEndorsementsArray: ', currentEndorsementsArray);
+    // const currentEndorsementsString = JSON.stringify(currentEndorsementsArray);
+    await saveCurrentEndorsements(currentEndorsementsArray);
+  }
+}
+
 function initializeHighlightsData (ballotItemHighlights, voterGuideHighlights, neverHighLightOnLocal) {
   const initializeHighlightsDataDebug = true;
   initializeHighlightsDataDebug && debugSwLog('ENTERING extWord > initializeHighlightsData, ballotItemHighlights.length:', ballotItemHighlights.length);
@@ -165,6 +190,7 @@ async function initializeVoterGuideHighlightsData (tabId, voterGuideHighlights, 
   const initializeVoterGuideHighlightsDataDebug = true;
   initializeVoterGuideHighlightsDataDebug && debugSwLog('ENTERING extWordHighlighter > initializeVoterGuideHighlightsData');
   overlayOrganizationPositions(voterGuideHighlights);
+  await initializeEndorsementDetectionList(voterGuideHighlights);
 
   HighlightsData.Version = '12';
   if (neverHighLightOnLocal !== null) {  // If we receive a null, only overwrite (the already existing) HighlightsData.Groups (as a result of edit in paned pop-up dialog)

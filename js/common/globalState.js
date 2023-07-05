@@ -35,7 +35,6 @@ const initialState = {
   priorHighlighterEnabledThisTab: false,
   refreshSideAreaNeeded: false,
   reloadTimeStamp: 0,
-  rightPanePositions: [],
   showEditor: false,
   showHighlights: false,
   showPanels: false,
@@ -53,7 +52,7 @@ const initialState = {
 };
 
 async function getGlobalState () {
-  const state = (await lowLevelGetStorage());
+  const state = await lowLevelGetStorage();
   debugStorage('state from lowLevelGetStorage:', state);
   const valid = state.hasOwnProperty('candidateName');
   debugStorage('getGlobalState state', state);
@@ -69,7 +68,7 @@ async function getGlobalState () {
 
 async function updateGlobalState (dict) {
   debugStorage('updateGlobalState entry');
-  const oldState = (await lowLevelGetStorage());
+  const oldState = await lowLevelGetStorage();
   debugStorage('oldState updateGlobalState from updateGlobalState:', oldState);
 
   let state = dict;
@@ -103,7 +102,7 @@ async function mergeToGlobalState (dict) {
 
   return new Promise(() => {
     const newState = { ...stored, ...dict };
-    debugStorage('mergeToGlobalState combined state:', newState);
+    debugStorage('mergeToGlobalState combine BEFORE state:', newState);
     lowLevelSetStorage(newState);
   });
 }
@@ -137,6 +136,20 @@ function lowLevelSetStorage (dict) {
     chrome.storage.local.set(toStore, resolve);
   });
 }
+
+async function saveCurrentEndorsements (currentEndorsements) {
+  debugStorage('-=-=-=-=-=-=-=-=-=-=-=-=-=-=- saveCurrentEndorsements : ', currentEndorsements);
+  const toStore = { endorsementsGlobalState: currentEndorsements };
+  await chrome.storage.local.set(toStore);
+}
+
+async function getCurrentEndorsements () {
+  const endorsementsGlobalState = await chrome.storage.local.get('endorsementsGlobalState');
+  const entries = Object.entries(endorsementsGlobalState);
+  debugStorage('-=-=-=-=-=-=-=-=-=-=-=-=-=-=- getCurrentEndorsements : ', entries);
+  return endorsementsGlobalState ? endorsementsGlobalState : {};
+}
+
 
 // Note Feb 15, 2023:  It is also possible to do this without async keywords
 // chrome.storage.sync.get().then((all) => {

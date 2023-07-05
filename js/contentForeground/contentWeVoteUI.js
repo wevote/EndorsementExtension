@@ -1,5 +1,5 @@
 /* global $, markupForThumbSvg, extensionSignInPage, addCandidateExtensionWebAppURL, colors, getPhotoURL,
-   chrome, updateGlobalState, getGlobalState, getVoterDeviceId, sendGetStatus, debugFgLog, addElementToPositions
+   chrome, updateGlobalState, getGlobalState, getVoterDeviceId, sendGetStatus, debugFgLog, addElementToPositions, saveCurrentEndorsements
 */
 
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
@@ -617,7 +617,7 @@ async function handleUpdatedOrNewPositions (update, fromIFrame, preLoad, dialogC
         if (update && !fromIFrame) {
           $('.candidateWe').remove();   // Remove all the existing candidates, and then redraw them
         }
-        await updateGlobalState({'rightPanePositions': data});
+        await saveCurrentEndorsements(data);
         let { positions } = await getGlobalState();
         for (let i = 0; i < data.length; i++) {
           const el = data[i];
@@ -1178,7 +1178,9 @@ function deactivateActivePositionPane () {
 
 async function getSuggestionPopupURL (selection) {
   const state = await getGlobalState();
-  const { rightPanePositions, voterGuidePossibilityId } = state;
+  const { voterGuidePossibilityId } = state;
+  const currentEndorsements = await getCurrentEndorsements();
+  const endorsements = currentEndorsements.endorsementsGlobalState;
   if (!selection) {
     console.log('create/edit position no selection: ', selection);
     return;
@@ -1189,13 +1191,13 @@ async function getSuggestionPopupURL (selection) {
     selectionMatchPortion += ' ' + bits[1];
   }
 
-  for (const pos in rightPanePositions) {
+  for (const pos in endorsements) {
     const {
       ballot_item_name: name,
       possibility_position_id: id,
       position_stance: stance,
       statement_text: statementText,
-    } = rightPanePositions[pos];
+    } = endorsements[pos];
     debugFgLog('create/edit position name: ', name);
     // Might be looking for "Jeanne Casteen", but are highlighting selection "Jeanne Casteen AZ State Senate District 2"
     // So let's just go with the first two words in the highlight (not perfect)
