@@ -642,6 +642,8 @@ async function highlightLoop (){
   }
 }
 
+// This is the list of the maximum (peak) set of defaults that comes from the API server, ie known candidates in this election cycle
+// Some of them will be ignored in highlighting, ie they won't be yellows, if there are endorsement possibilites that have been added for the candidate
 function addToPeakDefaultsIfYellow (marker, yellows) {
   if (marker.color === '#ff6') {
     // Re-capitalize name
@@ -734,7 +736,8 @@ async function findWords () {
       timingFgLog(t1, t2, 'myHilitor.apply in findWords took ', 8.0);
 
       // debugFgLog('after myHilitor.apply num highlights: ' + highlightsObj.numberOfHighlights);
-      let count = highlightsObj.numberOfHighlights || state.rightPanePositions.length;
+      const currentEndorsements = await getCurrentEndorsements();
+      let count = highlightsObj.numberOfHighlights || currentEndorsements.endorsementsGlobalState.length;
       if (highlightsObj.numberOfHighlights > 0) {
         highlightMarkers = highlightsObj.markers;
         markerPositions = [];
