@@ -83,16 +83,17 @@ async function updateGlobalState (dict) {
   await lowLevelSetStorage(state);
 }
 
-async function reInitializeGlobalState () {
+async function reInitializeGlobalState (url) {
   const oldState = (await lowLevelGetStorage());
   debugStorage('oldState reInitializeGlobalState from lowLevelGetStorage:', oldState);
   const newState = {
     ...initialState,
+    photoURL: oldState.photoURL,
+    url: url ? url : oldState.url,
     voterDeviceId: oldState.voterDeviceId || '',
     voterIsSignedIn: oldState.voterIsSignedIn,
-    photoURL: oldState.photoURL,
   };                   // Make a copy of the simple object
-  // console.log('?????????????????????????????????? reInitializeGlobalState after copy showHighlights: ', newState.showHighlights, ', showPanels: ', newState.showPanels);
+  // console.log('?????????????????????????????????? reInitializeGlobalState after copy showHighlights: ', newState.showHighlights, ', showPanels: ', newState.showPanels, ', url: ', newState.url);
   await lowLevelSetStorage(newState);
   const newStateFromStorage = (await lowLevelGetStorage());
   debugStorage('reInitializeGlobalState initialized newStateFromStorage ', newStateFromStorage);
