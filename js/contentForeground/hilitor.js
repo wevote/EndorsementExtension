@@ -10,7 +10,7 @@
 //  - stop at the id noDisplayPageBeforeFraming (the original dom, that becomes dormant and invisible, with a fresh copy in the new iframe)
 
 /* global $, addHighlightOnClick, addCandidateExtensionWebAppURL, candidateExtensionWebAppURL,
-addElementToPositions, updateGlobalState, getGlobalState, debugHilitor */
+addElementToPositions, updateGlobalState, getGlobalState, debugHilitor, debugHilitorMatch */
 
 // eslint-disable-next-line no-unused-vars
 function Hilitor (id, tag) {
@@ -114,7 +114,7 @@ function Hilitor (id, tag) {
         wordpartsEditable += sortedKeys[word].regex + '|';
       }
     }
-    re = '';
+    let re = '';
     if (wordsEditable.length > 1) {
       wordsEditable = wordsEditable.substring(0, wordsEditable.length - 1);
       re += '(' + wordsEditable + ')';
@@ -169,7 +169,7 @@ function Hilitor (id, tag) {
     }
 
     if (node.nodeType === 3) { // NODE_TEXT
-      let regs = undefined;
+      let regs;
       let nv = this.cleanName(node.nodeValue);
       if (nv.trim().length > 3) {
         debugHilitor('cleanName(node.nodeValue) >' + nv + '<');
@@ -213,8 +213,8 @@ function Hilitor (id, tag) {
             debugHilitorMatch('hilitor matching word found: ' + wordColor[word].regex);
             if(wordColor[word].regex === 'Pete Aguilar') {
               let c = 'gray';
-              if (wordColor[word].Color === "#fb6532") c = 'red';
-              if (wordColor[word].Color === "#27af72") c = 'green';
+              if (wordColor[word].Color === '#fb6532') c = 'red';
+              if (wordColor[word].Color === '#27af72') c = 'green';
               console.log('wordColor[word].regex === Pete Aguilar, wordColor[word].Color: ', c);
             }
             break;

@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-/* global debugTimingForegroundContent, debugTimingServiceWorker, debugServiceWorker, debugHilitorEnabled, debugStorageEvents */
+/* global debugTimingForegroundContent, debugTimingServiceWorker, debugServiceWorker, debugHilitorEnabled, debugStorageEvents, debugHilitorMatchEnabled */
 
 // SVGs lifted from WebApp thumbs-up-color-icon.svg and thumbs-down-color-icon.svg
 function markupForThumbSvg (classString, type, fillColor) {

@@ -32,8 +32,8 @@ let uniqueNames = [];
 const tabInfoObj = {
   email: '',
   encodedHref: '',
-  highlighterEnabled,           // Non authoritative copy, this can get stale
-  neverHighlightOn: [],         // Non authoritative copy, but will super rarely be stale, only would effect performance a bit
+  highlighterEnabled,           // Non-authoritative copy, this can get stale
+  neverHighlightOn: [],         // Non-authoritative copy, but will super rarely be stale, only would effect performance a bit
   noExactMatchOrgList: {},
   orgLogo: '',
   orgName: '',
@@ -282,24 +282,20 @@ function getIcon (typeStance) {
   }
 }
 
-function createSearchMenu () {
-  chrome.runtime.getPlatformInfo(
-    function () {
-      chrome.contextMenus.create({
-        'title': 'Select a Candidate\'s full name, then try again!',
-        'id': 'Highlight'
-      }); //, () => chrome.runtime.lastError);  // March 2023, suppresses...   Unchecked runtime.lastError: Cannot create item with duplicate id Highlight, but hangs the dialog!
-    }
-  );
-}
+// function createSearchMenu () {
+//   chrome.runtime.getPlatformInfo(
+//     function () {
+//       chrome.contextMenus.create({
+//         'title': 'Select a Candidate\'s full name, then try again!',
+//         'id': 'Highlight'
+//       }); //, () => chrome.runtime.lastError);  // March 2023, suppresses...   Unchecked runtime.lastError: Cannot create item with duplicate id Highlight, but hangs the dialog!
+//     }
+//   );
+// }
 
 // Timing log appears in the background console, instead of in the popup.js console, which is destroyed when the pop up closes
 function popupMenuTiming (time0, time1, text, warnAt) {
   timingLog(time0, time1, text, warnAt);
-}
-
-function popupLogger (text) {
-  debugSwLog(text);
 }
 
 function createNewTabsHighlightedElement (tabId, url) {
@@ -340,13 +336,13 @@ function updateContextMenu (inUrl, tabId){
     // clues at: https://stackoverflow.com/questions/33834785/chrome-extension-context-menu-not-working-after-update
     setTimeout(() => {
       const { runtime: { lastError }, contextMenus: { create, remove } } = chrome;
-      console.log('----------------------------------- contextMenuCreated, before remove');
+      // console.log('----------------------------------- contextMenuCreated, before remove');
       remove('idContextMenuCreateNew', () => {
         let myError = chrome.runtime.lastError;  // null or Error object, 4/29/23 Painfully discovered barely documented magic code, do not simplify
         if (myError) {
           console.log('----------------------------------- contextMenuCreated myError: ', myError.message);
         }
-        console.log('----------------------------------- contextMenuCreated, before create');
+        // console.log('----------------------------------- contextMenuCreated, before create');
         create({
           'title': 'Create (or Edit) a We Vote Endorsement',
           'contexts': [contexts[0]],
@@ -446,45 +442,45 @@ function setEnableForActiveTab (showHighlights, showEditor, tabId, tabUrl) {
   });
 }
 
-function removeHighlightsForAllTabs () {
-  const { runtime: { lastError }, tabs: { sendMessage } } = chrome;
-
-  for (let key in tabsHighlighted) {
-    // skip loop if the property is from prototype
-    if (!tabsHighlighted.hasOwnProperty(key)) continue;
-
-    const { tabId, url } = tabsHighlighted[key];
-
-    if (tabId === undefined || tabId < 0) continue;
-
-    highlighterEnabled = false;
-
-    debugSwLog('removeHighlightsForAllTabs action tabId: ', tabId, ', url: ', url);
-
-    Object.assign(tabsHighlighted[tabId], {
-      highlighterEnabled: false,
-      showHighlights: false,
-      showEditor: false,
-    });
-
-    let intTabId = parseInt(key, 10);
-
-    debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage displayHighlightsForTabAndPossiblyEditPanes ext in removeHighlightsForAllTabs (NOT CALLED ANYMORE)');
-    sendMessage(intTabId, {     // 5/1/2020: This MUST be chrome.tabs.sendMessage, not chrome.runtime.sendMessage
-      command: 'displayHighlightsForTabAndPossiblyEditPanes',
-      highlighterEnabled: false,
-      showHighlights: false,
-      showEditor: false,
-      tabId: key,
-      url,
-    }, function (result) {
-      if (lastError) {
-        debugSwLog(' chrome.runtime.sendMessage("removeHighlightsForAllTabs")', lastError.message);
-      }
-      debugSwLog('on click icon, response received to removeHighlightsForAllTabs ', result);
-    });
-  }
-}
+// function removeHighlightsForAllTabs () {
+//   const { runtime: { lastError }, tabs: { sendMessage } } = chrome;
+//
+//   for (let key in tabsHighlighted) {
+//     // skip loop if the property is from prototype
+//     if (!tabsHighlighted.hasOwnProperty(key)) continue;
+//
+//     const { tabId, url } = tabsHighlighted[key];
+//
+//     if (tabId === undefined || tabId < 0) continue;
+//
+//     highlighterEnabled = false;
+//
+//     debugSwLog('removeHighlightsForAllTabs action tabId: ', tabId, ', url: ', url);
+//
+//     Object.assign(tabsHighlighted[tabId], {
+//       highlighterEnabled: false,
+//       showHighlights: false,
+//       showEditor: false,
+//     });
+//
+//     let intTabId = parseInt(key, 10);
+//
+//     debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage displayHighlightsForTabAndPossiblyEditPanes ext in removeHighlightsForAllTabs (NOT CALLED ANYMORE)');
+//     sendMessage(intTabId, {     // 5/1/2020: This MUST be chrome.tabs.sendMessage, not chrome.runtime.sendMessage
+//       command: 'displayHighlightsForTabAndPossiblyEditPanes',
+//       highlighterEnabled: false,
+//       showHighlights: false,
+//       showEditor: false,
+//       tabId: key,
+//       url,
+//     }, function (result) {
+//       if (lastError) {
+//         debugSwLog(' chrome.runtime.sendMessage("removeHighlightsForAllTabs")', lastError.message);
+//       }
+//       debugSwLog('on click icon, response received to removeHighlightsForAllTabs ', result);
+//     });
+//   }
+// }
 
 chrome.tabs.onActivated.addListener(function (tabId){
   chrome.tabs.query({active: true, currentWindow: true}, async function (tabs) {
@@ -497,7 +493,7 @@ chrome.tabs.onActivated.addListener(function (tabId){
       debugSwLog('XXXXXX decompose tabs onactivated raw tabs: ', JSON.stringify(tabs));
       const { 0 : { id, url } } = tabs;
 
-      if (url !== 'chrome://extensions/' && id === state.tabId ) {
+      if (url !== 'chrome://extensions/' && id === state.tabId) {
         debugSwLog('XXXXXX decompose tabs onactivated 3', id, url);
         debugSwLog('MESSAGING: chrome.tabs.onActivated.addListener', url, id);
         updateContextMenu(url, id);
@@ -521,11 +517,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // TODO: 4/20/23 should this be onUpdated?
 chrome.tabs.onCreated.addListener(
-  async function (tab) {
-    const state = await getGlobalState();
+  function (tab) {
+    // const state = await getGlobalState();
     // debugSwLog('XXXXXXYY getGlobalState in tabs onCreated 1 state TabId url', state.tabId, state.url);
     // debugSwLog('XXXXXXYY getGlobalState in tabs onCreated 2 state pdfURL', state.pdfURL);
-    // debugSwLog('XXXXXXYY getGlobalState in tabs onCreated 2 state state', state);
+    // debugSwLog('XXXXXXYY getGlobalState in tabs onCreated 2 state', state);
 
     const { url, id } = tab;
     if (url !== undefined) {
@@ -603,11 +599,10 @@ chrome.commands.onCommand.addListener(function (command) {
 chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {    // eslint-disable-line complexity
     debugSwLog('MESSAGING: message received -- ' + request.command + ': ', request, sender, sender.tab.id);
-    console.log('MESSAGING: message received -- ' + request.command + ': ', request, sender, sender.tab.id);
     let showVoterGuideHighlights;
     let showCandidateOptionsHighlights;
     if (request.command === 'getTopMenuData') {
-      console.log('--|------------------------- request.url ', request.url);
+      debugSwLog('MESSAGING:  request.url ', request.url);
       getOrganizationFound(request.url, sendResponse);
     } else if (request.command === 'getHighlights') {
       // Highlight the captured positions
@@ -755,8 +750,8 @@ function getThisTabsStatus (tabURL, sendResponse) {
   const { tabs: { query } } = chrome;
   debugSwLog('extWordHighlighter.getThisTabsStatus () {() called for url', tabURL);
   // 7/22/4:30pm, this does work
-  chrome.tabs.query({}, async function (tabs) {
-    tab = {};
+  query({}, async function (tabs) {
+    let tab = {};
     for (let i = 0; i < tabs.length; i++) {
       // debugSwLog('extWordHighlighter getThisTabsStatus >>>>>>>>>>>>>>> "' + tabs[i].url );
       if (tabs[i].url === tabURL) {
@@ -906,7 +901,7 @@ function setPrintHighlights (inState) {
 }
 
 function addGroup (inGroup, color, fcolor, findwords, showon, dontshowon, inWords, groupType, remoteConfig, regex, showInEditableFields) {
-  for(word in inWords){
+  for(let word in inWords){
     inWords[word]=inWords[word].replace(/(\r\n|\n|\r)/gm,'');
   }
   HighlightsData.Groups[inGroup]={'Color':color, 'Fcolor':fcolor, 'Enabled':true, 'ShowOn': showon, 'DontShowOn':dontshowon, 'FindWords':findwords, 'Type':groupType, 'ShowInEditableFields':showInEditableFields};
@@ -935,7 +930,7 @@ function flipGroup (inGroup, inAction) {
 
 function setWords (inWords, inGroup, inColor, inFcolor, inIcon, findwords, showon, dontshowon, newname, groupType, remoteConfig, regex, showInEditableFields) {
 
-  for(word in inWords){
+  for(let word in inWords){
     inWords[word]=inWords[word].replace(/(\r\n|\n|\r)/gm,'');
   }
   debugSwLog('@@@@@@@@@@@@   NOT BEING CALLED @@@@@@@@@@ setWords ' + inWords + ', icon ' + inIcon);

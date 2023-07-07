@@ -1,5 +1,6 @@
 /* global $, markupForThumbSvg, extensionSignInPage, addCandidateExtensionWebAppURL, colors, getPhotoURL,
-   chrome, updateGlobalState, getGlobalState, getVoterDeviceId, sendGetStatus, debugFgLog, addElementToPositions, saveCurrentEndorsements
+   chrome, updateGlobalState, getGlobalState, getVoterDeviceId, sendGetStatus, debugFgLog, addElementToPositions,
+   saveCurrentEndorsements, editCandidateExtensionWebAppURL, getCurrentEndorsements
 */
 
 const defaultImage = 'https://wevote.us/img/endorsement-extension/endorsement-icon48.png';
@@ -1179,8 +1180,7 @@ function deactivateActivePositionPane () {
 async function getSuggestionPopupURL (selection) {
   const state = await getGlobalState();
   const { voterGuidePossibilityId } = state;
-  const currentEndorsements = await getCurrentEndorsements();
-  const endorsements = currentEndorsements.endorsementsGlobalState;
+  const endorsements = await getCurrentEndorsements();
   if (!selection) {
     console.log('create/edit position no selection: ', selection);
     return;
@@ -1192,12 +1192,15 @@ async function getSuggestionPopupURL (selection) {
   }
 
   for (const pos in endorsements) {
-    const {
+    let {
       ballot_item_name: name,
       possibility_position_id: id,
       position_stance: stance,
       statement_text: statementText,
     } = endorsements[pos];
+    if (statementText === null || statementText === 'null') {
+      statementText = '';
+    }
     debugFgLog('create/edit position name: ', name);
     // Might be looking for "Jeanne Casteen", but are highlighting selection "Jeanne Casteen AZ State Senate District 2"
     // So let's just go with the first two words in the highlight (not perfect)

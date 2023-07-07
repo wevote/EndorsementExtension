@@ -58,10 +58,12 @@ async function getGlobalState () {
   debugStorage('getGlobalState state', state);
   if (valid) {
     debugStorage('getGlobalState returning valid potentialState ', state);
+    // console.log('?????????????????????????????????? getGlobalState GET showHighlights: ', state.showHighlights, ', showPanels: ', state.showPanels);
     return state;
   } else {
     await lowLevelSetStorage(initialState);
     debugStorage('getGlobalState initialized state');
+    // console.log('?????????????????????????????????? getGlobalState **initialState** showHighlights: ', state.showHighlights, ', showPanels: ', state.showPanels);
     return initialState;
   }
 }
@@ -75,6 +77,7 @@ async function updateGlobalState (dict) {
   if (oldState) {
     state = { ...oldState, ...dict };
   }
+  // console.log('?????????????????????????????????? updateGlobalState after copy showHighlights: ', state.showHighlights, ', showPanels: ', state.showPanels);
   debugStorage('saveGlobalState old: ', oldState);
   debugStorage('saveGlobalState in updateGlobalState new merged state: ', state);
   await lowLevelSetStorage(state);
@@ -89,6 +92,7 @@ async function reInitializeGlobalState () {
     voterIsSignedIn: oldState.voterIsSignedIn,
     photoURL: oldState.photoURL,
   };                   // Make a copy of the simple object
+  // console.log('?????????????????????????????????? reInitializeGlobalState after copy showHighlights: ', newState.showHighlights, ', showPanels: ', newState.showPanels);
   await lowLevelSetStorage(newState);
   const newStateFromStorage = (await lowLevelGetStorage());
   debugStorage('reInitializeGlobalState initialized newStateFromStorage ', newStateFromStorage);
@@ -102,6 +106,7 @@ async function mergeToGlobalState (dict) {
 
   return new Promise(() => {
     const newState = { ...stored, ...dict };
+    // console.log('?????????????????????????????????? mergeToGlobalState after copy showHighlights: ', newState.showHighlights, ', showPanels: ', newState.showPanels);
     debugStorage('mergeToGlobalState combine BEFORE state:', newState);
     lowLevelSetStorage(newState);
   });
@@ -145,9 +150,9 @@ async function saveCurrentEndorsements (currentEndorsements) {
 
 async function getCurrentEndorsements () {
   const endorsementsGlobalState = await chrome.storage.local.get('endorsementsGlobalState');
-  const entries = Object.entries(endorsementsGlobalState);
-  debugStorage('-=-=-=-=-=-=-=-=-=-=-=-=-=-=- getCurrentEndorsements : ', entries);
-  return endorsementsGlobalState ? endorsementsGlobalState : {};
+  const stateArray = endorsementsGlobalState.endorsementsGlobalState;
+  debugStorage('-=-=-=-=-=-=-=-=-=-=-=-=-=-=- getCurrentEndorsements : ', stateArray);
+  return stateArray ? stateArray : [];
 }
 
 

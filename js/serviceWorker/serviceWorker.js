@@ -1,7 +1,8 @@
+/* eslint-disable no-undef */
+
 self.oninstall = () => {
   console.log('serviceWorker.js install');
   try {
-    console.log('serviceWorker.js install 2');
     // import the singleton "background" scripts to start the extension
     importScripts(
       '../common/config.js',
