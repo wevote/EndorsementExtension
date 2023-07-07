@@ -29,6 +29,14 @@ fileArchitectureDrawing.png
 https://docs.google.com/drawings/d/1C32qtyMrsqAZXxN7TEG3lryZXn56owVHnZhwxoAAOLo/edit?usp=sharing 
 -->
 
+### Craziness
+* JavaScript is single threaded, but in an extension we are dealing with at least three threads, with no good tools 
+to diagnose threading issues.  So sometimes simple problems that might take minutes to resolve in a thread aware language like Java
+takes a day to resolve, and the fix usually involves a work around for some simple bit of code that is so elementary that it should be working.
+* When you see a log line with 'VM' in front of the file name on the right, you are in wierd thread land.
+* There are 3 DOMs involved, and the latest Chrome Dev Tools debugger is getting better at allowing you to figure out the complexites.
+* Timing is a big mess.  Some pages take longer to load than others, and some pages unexpectedly rewrite the area that we are writing to, thereby erasing our added markup.  
+
 ### Black Magic
 1) If making changes to popup.js or popup.html, you need to "Remove" the extension from chrome://extensions/ in order for
 the changes to take effect.

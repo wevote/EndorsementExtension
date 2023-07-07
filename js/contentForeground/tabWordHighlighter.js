@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async function () {  // This waste
   }
   console.log(`jQuery ${$.fn.jquery} has been loaded successfully!`);
   // use jQuery below
-  await initializeTabWordHighlighter();  // heavy handed for a tab that will not need initialization, ie all other than the one we want
+  await initializeTabWordHighlighter();  // heavy-handed for a tab that will not need initialization, ie all other than the one we want
   detectBodyBind();
   const t1 = performance.now();
   timingLog(t0, t1, `DOMContentLoaded for tab ${window.location.href} took`, 8.0);
@@ -70,18 +70,24 @@ function isInANonWeVoteIFrame () {
 }
 
 async function initializeTabWordHighlighter () {
-  if (window.location.href === 'about:blank' || window.location.href.includes('extension.html')) {
-    debugFgLog('############ tabWordHighligher NOT initializing for:', window.location.href);
+  const state = await getGlobalState();
+  const { url } = state;
+  const { location: { href, host }} = window;
+
+  debugFgLog('############ tabWordHighlighter url from state: ', url, href);
+
+  // 7/7/23: We get here for each tab in the window in the browser, for each time we get a 'DOMContentLoaded' event.
+  // If the tab we are interested in, doesn't get 'tabWordHighlighter INITIALIZED' then the popup.js can't query its status with getStatus.
+  // So we need to run this for each tab, and unfortunately each widget (iFrame) that triggers a 'DOMContentLoaded' event.
+  if (href === 'about:blank' || href.includes('extension.html')) {
+    debugFgLog('############ tabWordHighlighter NOT initializing for:', href);
     return;
   } else {
-    debugFgLog('############ tabWordHighligher initialzed with url: ', window.location.href);
+    debugFgLog('############ tabWordHighlighter INITIALIZED with url: ', href);
   }
 
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   await updateGlobalState({ neverHighlightOn: defaultNeverHighlightOn });
-
-  // const deb = $('div#wedivheader').length > 0;
-  // const host = window.location.host;
 
   if (isInOurIFrame()) {
     debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage myTabId in initializeTabWordHighlighter');
@@ -103,7 +109,7 @@ async function initializeTabWordHighlighter () {
   // If not in our iFrame
   if (!isInOurIFrame() && !isInANonWeVoteIFrame()) {
     // Check to see if we are on the WebApp signin page, and capture the device id if signed in
-    if (window.location.host.indexOf('wevote.us') > -1 || window.location.host.indexOf('localhost:3000') > -1) {
+    if (host.indexOf('wevote.us') > -1 || host.indexOf('localhost:3000') > -1) {
       const voterDeviceIdFromPage = getVoterDeviceIdFromWeVoteDomainPage();
       if (voterDeviceIdFromPage.length) {
         getVoterDeviceId().then((voterDeviceId) => {
@@ -133,7 +139,7 @@ async function initializeTabWordHighlighter () {
           debugFgLog('@@@@@@@@@@@ Message listener in tabWordHighlighter received: ', request.command, request.selection);
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
-            if (window.location.href.toLowerCase().endsWith('.pdf')) {
+            if (href.toLowerCase().endsWith('.pdf')) {
               debugFgLog('displayHighlightsForTabAndPossiblyEditPanes skipping PDF file');
               return false;
             }
@@ -143,7 +149,7 @@ async function initializeTabWordHighlighter () {
             await clearPriorDataOnModeChange(showHighlights, showPanels);
 
             debugFgLog('------------------------------- ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes');
-            debugFgLog('ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes showHighlights: ', showHighlights, ', showPanels: ', showPanels, ', href: ', window.location.href);
+            debugFgLog('ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes showHighlights: ', showHighlights, ', showPanels: ', showPanels, ', href: ', href);
             if (!showHighlights) {
               debugFgLog('displayHighlightsForTabAndPossiblyEditPanes (before reload)');
               await updateGlobalState({
@@ -152,9 +158,7 @@ async function initializeTabWordHighlighter () {
               });
               location.reload();
             }
-            if (window.location.href !== 'about:blank' && showHighlights) {  // Avoid worthless queries
-              const {href} = window.location;
-
+            if (href !== 'about:blank' && showHighlights) {  // Avoid worthless queries
               if (href !== url && href !== pdfURL && url !== '') {
                 console.log('Skipping non-selected tab href: ', href);
                 return false;
@@ -196,7 +200,7 @@ async function initializeTabWordHighlighter () {
           } else if (request.command === 'getStatusForActiveTab') {
             const encodedHref = encodeURIComponent(location.href);
             const {orgName, organizationWeVoteId, organizationTwitterHandle} = state;
-            debugFgLog('getStatusForActiveTab tabId: ', tabId, ', href: ', window.location.href);
+            debugFgLog('getStatusForActiveTab tabId: ', tabId, ', href: ', href);
 
             sendResponse({
               orgName,
@@ -233,8 +237,10 @@ async function initializeTabWordHighlighter () {
             //   // if (!response.success) {
             //   //   debugFgLog('chrome.runtime.sendMessage("updateBackgroundForButtonChange")', lastError.message);
             //   // }
+            }).then(() => {
+              console.log('return from updateForegroundForButtonChange after send message updateBackgroundForButtonChange');
+              return false;  // Does not return a response, so return false
             });
-            return false;  // Does not return a response, so return false
           } else {
             console.error('tabWordHighlighter in chrome.runtime.onMessage.addListener received unknown command: ' + request.command);
             return false;
@@ -243,10 +249,10 @@ async function initializeTabWordHighlighter () {
       }
     );
   } else {
-    debugFgLog('not in a unframed endorsement page: ', window.location);
+    debugFgLog('not in a unframed endorsement page: ', location);
   }
 
-  if (window.location.href !== 'about:blank') {  // Avoid worthless queries
+  if (href !== 'about:blank') {  // Avoid worthless queries
     await sendGetStatus();  // Initial get status
   }
 }
@@ -508,8 +514,8 @@ function createWediv () {
     closeIFrameDialog();
   });
   window.addEventListener('message', function (e) {
-    e.stopPropagation();
     if (e.data === 'closeIFrameDialog') {
+      e.stopPropagation();
       console.log('------ close ------ close ------ close ------ close ------ close ------ close ------ close ------ close ------ close ------');
       debugFgLog('tabWordHighlighter (create new) receiving close message from iFrame: ', e.data);
       debugFgLog('closing iFrame dialog after creating a new endorsement');
@@ -773,6 +779,7 @@ async function findWords () {
             uniqueNames: uniqueNameMatches,
             altColor: uniqueNameMatches.length ? '' : 'darkgreen',
           }, '^^^^^^^^^^^^^^^^^^^ sendMessage showHighlightsCount #1 in findWords');
+          console.log('sending showHighlightsCount in findWords (777), after noResponseSendMessageWrapper');
         } catch (e) {
           debugFgLog('Caught showHighlightsCount > 0: ', e);
         }

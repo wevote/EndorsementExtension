@@ -4,8 +4,9 @@
 * ~~"Non-current" Candidates in right pane show up in green, but do not have the data that is available in the right pane.  Fixed in https://github.com/wevote/WebApp/pull/3689~~
 
 **Lower Priority**
-* Sometimes in first load on paned view, all the icons in the right panel aree red triangle warning signs, but the state inside the "open up" is correct.
+* Sometimes in first load on paned view, all the icons in the right panel are red triangle warning signs, but the state inside the "open up" is correct.
 * Edits that end without a save, should not refresh the screen.  Send a different 'closeIFrameDialog' message, for no-save.
+* Figure out how to avoid "Could not establish connection. Receiving end does not exist." errors on pages with iFrames
 * It would be nice to have the warmup delay adjust to how long it took the first highlights to appear, rather than a fixed 10 seconds after an edit with the WebApp in an iFrame.  The delay is for slow to load pages, but a crude workaround.
   * Tried timing the first load, and using that value (plus a couple of seconds) for the second warmup, but the load time was all over the place, and ended up starting too soon, and having the highlights not appear (fail).
   * Tried using web-vitals library ... super cool, but did not trigger until the first user interaction.
@@ -20,6 +21,10 @@
 
 **Test Cases**
 * https://candidates.aipacpac.org/page/featured/
+* https://www.sandiegorepublicans.org/endorsements
+* http://newdemactionfund.com/candidates
+* https://www.peaceaction.org/2024endorsements/
+* https://twitter.com/yft860/status/1669113136442494977  (Elon won't allow us to iFrame his site)
 * Prior years:  https://giffords.org/elections/endorsements/past-endorsements/
 
 **6/29/23**

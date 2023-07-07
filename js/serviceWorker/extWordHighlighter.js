@@ -335,9 +335,9 @@ function updateContextMenu (inUrl, tabId){
 
     // clues at: https://stackoverflow.com/questions/33834785/chrome-extension-context-menu-not-working-after-update
     setTimeout(() => {
-      const { runtime: { lastError }, contextMenus: { create, remove } } = chrome;
+      const { runtime: { lastError }, contextMenus: { create, removeAll } } = chrome;
       // console.log('----------------------------------- contextMenuCreated, before remove');
-      remove('idContextMenuCreateNew', () => {
+      removeAll(() => {
         let myError = chrome.runtime.lastError;  // null or Error object, 4/29/23 Painfully discovered barely documented magic code, do not simplify
         if (myError) {
           console.log('----------------------------------- contextMenuCreated myError: ', myError.message);
@@ -350,7 +350,8 @@ function updateContextMenu (inUrl, tabId){
         }, () => {
           let myError = chrome.runtime.lastError;  // null or Error object, 4/29/23 Painfully discovered barely documented magic code, do not simplify
           if (myError) {
-            console.log('----------------------------------- contextMenuCreated myError during create: ', myError.message);
+            // July 2023, this happens a lot, and clearly the old entry has been at least attepted to be deleted, but the menu works so don't over log it
+            debugFgLog('----------------------------------- contextMenuCreated myError during create: ', myError.message);
           }
         });
       });

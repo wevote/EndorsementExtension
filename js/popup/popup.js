@@ -44,16 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
       url
     } = tab;
     console.log('hello from after tabs query tab tabId', tabId, tab);
-    sendMessage(tabId, {
-      command: 'logFromPopup',
-      payload: 'Initial message after getting active tabId: ' + tabId,
-    }, function (response) {
-      let myError = chrome.tabs.lastError;  // null or Error object, 4/29/23 Painfully discovered barely documented magic code, do not simplify
-      if (myError) {
-        console.log('hello from after tabs query myError: ', myError.message);
-      }
-      console.log('logFromPopup: ', response);
-    });
+    logFromPopup (tabId, 'Initial message after getting active tabId: ' + tabId);
     console.log('after first log response', tabId);
     addButtonListeners(tabId, url);
     console.log('after addButtonListeners', tabId);
@@ -66,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const lastPlus12 = lastDate.setHours(lastDate.getHours() + 12);
     if (state.tabId !== tabId || /* state.windowId !== windowId ||*/ state.url !== url || lastPlus12 < Date.now()) {
       console.log('RESETTING STORAGE DUE TO TAB CHANGE OR OUTDATED STORAGE ', state.tabId, tabId, state.windowId, windowId, state.url, url, lastPlus12, Date.now());
-      await reInitializeGlobalState();
+      await reInitializeGlobalState(url);
       let isFromPDF = false;
       if (url && url.length > 5) {
         isFromPDF = url.toLowerCase().endsWith('.pdf');
@@ -170,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }, async function () {
         console.log(lastError ? `resetThisTabButton lastError ${lastError.message}` : 'resetThisTabButton returned');
-        const state = await reInitializeGlobalState();
+        const state = await reInitializeGlobalState(url);
         debugStorage('#resetThisTabButton response state:', state);
         // const state = await getGlobalState();
         await updateButtonDisplayedState();
@@ -195,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
           tabId: tabId,
         });
       } else {
-        await reInitializeGlobalState();
+        await reInitializeGlobalState('');
       }
       // if (state.showHighlights) {
       //   $('#highlightingMasterSwitch').prop('checked', true);
