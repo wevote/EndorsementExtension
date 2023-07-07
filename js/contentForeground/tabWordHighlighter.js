@@ -736,8 +736,8 @@ async function findWords () {
       timingFgLog(t1, t2, 'myHilitor.apply in findWords took ', 8.0);
 
       // debugFgLog('after myHilitor.apply num highlights: ' + highlightsObj.numberOfHighlights);
-      const currentEndorsements = await getCurrentEndorsements();
-      let count = highlightsObj.numberOfHighlights || currentEndorsements.endorsementsGlobalState.length;
+      const endorsements = await getCurrentEndorsements();
+      let count = highlightsObj.numberOfHighlights || endorsements.length;
       if (highlightsObj.numberOfHighlights > 0) {
         highlightMarkers = highlightsObj.markers;
         markerPositions = [];

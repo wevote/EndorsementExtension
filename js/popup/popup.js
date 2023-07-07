@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function addButtonListeners(tabId, url) {
+  function addButtonListeners (tabId, url) {
     // Reset the highlighted tab
     $('#resetThisTabButton').click(() => {
       chrome.action.setBadgeText({text: ''});

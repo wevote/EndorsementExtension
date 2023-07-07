@@ -1,13 +1,10 @@
-**6/29/23**
-* Loses state in the "W" pop-up after using the paned view.
-* Sometimes after a few edits on left, then on right, when you go back to left the onclick for Greens gets broken.
-* ~~In non-paneled view, sometimes postions and currentEndorsements are not initialized,
-  so you always get 'Add' instead of the 'Edit candidate endoresment" modal dialog.~~
-* ~~Remove buttons in popup.js, leaves green badgeText displaying~~
-* ~~Sometimes the first attempt at "Open Edit Panel" does not respond, and needs to be rerun.~~
-* ~~Can't edit two candidates between hard refreshes, right-click does not work 2nd time~~
+**7/6/23**
+* ~~No repro: Sometimes after a few edits on left, then on right, when you go back to left the onclick for Greens gets broken.~~
+* ~~No repro: Loses state in the "W" pop-up after using the paned view.~~
+* ~~"Non-current" Candidates in right pane show up in green, but do not have the data that is available in the right pane.  Fixed in https://github.com/wevote/WebApp/pull/3689~~
 
 **Lower Priority**
+* Sometimes in first load on paned view, all the icons in the right panel aree red triangle warning signs, but the state inside the "open up" is correct.
 * Edits that end without a save, should not refresh the screen.  Send a different 'closeIFrameDialog' message, for no-save.
 * It would be nice to have the warmup delay adjust to how long it took the first highlights to appear, rather than a fixed 10 seconds after an edit with the WebApp in an iFrame.  The delay is for slow to load pages, but a crude workaround.
   * Tried timing the first load, and using that value (plus a couple of seconds) for the second warmup, but the load time was all over the place, and ended up starting too soon, and having the highlights not appear (fail).
@@ -25,6 +22,13 @@
 * https://candidates.aipacpac.org/page/featured/
 * Prior years:  https://giffords.org/elections/endorsements/past-endorsements/
 
+**6/29/23**
+* ~~In non-paneled view, sometimes postions and currentEndorsements are not initialized,
+  so you always get 'Add' instead of the 'Edit candidate endoresment" modal dialog.~~
+* ~~Remove buttons in popup.js, leaves green badgeText displaying~~
+* ~~Sometimes the first attempt at "Open Edit Panel" does not respond, and needs to be rerun.~~
+* ~~Can't edit two candidates between hard refreshes, right-click does not work 2nd time~~
+* 
 * **6/27/23**
 * ~~yellow highlights disappear in non-paneled mode, after adding a candidate~~
 

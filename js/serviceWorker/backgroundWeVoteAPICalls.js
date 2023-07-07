@@ -35,7 +35,7 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
   const t1 = performance.now();
   if (showVoterGuideHighlights && showCandidateOptionsHighlights) {
     // Get the entries already found from page scan
-    console.log('background voterGuidePossibilityHighlightsRetrieve (get the greens/reds/grays)', voterGuidePossibilityHighlightsRetrieve);
+    debugSwLog('background voterGuidePossibilityHighlightsRetrieve (get the greens/reds/grays)', voterGuidePossibilityHighlightsRetrieve);
     fetch(voterGuidePossibilityHighlightsRetrieve, {method: 'GET'}).then((resp) => resp.json()).then((voterGuidePossibilityHighlightsRetrieveResponse) => {
       getHighlightsListsFromApiServerDebug && debugSwLog('ENTERING COMBINED backgroundWeVoteAPICalls > voterGuidePossibilityHighlightsRetrieve API results received');
       debugSwLog('------------------- voterGuidePossibilityHighlightsRetrieve API SUCCESS voterGuidePossibilityHighlightsRetrieve: ' + voterGuidePossibilityHighlightsRetrieve);
@@ -44,7 +44,7 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
 
       // Get all candidates in this year's elections
       const t3 = performance.now();
-      console.log('background ballotItemHighlightsRetrieve (get the yellows) ', ballotItemHighlightsRetrieve);
+      debugSwLog('background ballotItemHighlightsRetrieve (get the yellows) ', ballotItemHighlightsRetrieve);
       fetch(ballotItemHighlightsRetrieve).then((resp) => resp.json()).then((ballotItemHighlightsRetrieveResponse) => {
         debugSwLog('ballotItemHighlightsRetrieve API SUCCESS', ballotItemHighlightsRetrieveResponse);
         debugSwLog('------------------- ballotItemHighlightsRetrieve API SUCCESS: ' + ballotItemHighlightsRetrieve);
@@ -64,7 +64,7 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
     });
   } else if (showVoterGuideHighlights) {
     // Get the entries already found from page scan
-    console.log('ZZZZZZZZZZ background showVoterGuideHighlights', voterGuidePossibilityHighlightsRetrieve);
+    debugSwLog('ZZZZZZZZZZ background showVoterGuideHighlights', voterGuidePossibilityHighlightsRetrieve);
     fetch(voterGuidePossibilityHighlightsRetrieve, {method: 'GET'}).then((resp) => resp.json()).then((voterGuidePossibilityHighlightsRetrieveResponse) => {
       const { url_to_scan: voterGuidePossibilityRecognizedNamesRetrieveUrl } = voterGuidePossibilityHighlightsRetrieveResponse;
       getHighlightsListsFromApiServerDebug && debugSwLog('ENTERING showVOTERGUIDEHighlights backgroundWeVoteAPICalls > voterGuidePossibilityHighlightsRetrieve API results received.');
@@ -92,7 +92,7 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
       timingSwLog(t30, t31, 'ballotItemHighlightsRetrieve retrieve took', 8.0);
 
       const t32 = performance.now();
-      // UPDATE THIS
+      // TODO UPDATE THIS: Yow! What is locationURL and voterGuidePossibilityHighlightsRetrieveResponse?
       processHighlightsRetrieve(tabId, locationURL, ballotItemHighlightsRetrieveResponse, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse);
       const t33 = performance.now();
       timingSwLog(t32, t33, 'processHighlightsRetrieve end-to-end took', 8.0);
@@ -159,13 +159,11 @@ function getOrganizationFound (locationHref, sendResponse) {
   const hrefEncoded = encodeURIComponent(locationHref);
   const t0 = performance.now();
   getVoterDeviceId().then((voterDeviceId) => {
-    console.log('getOrganizationFound voterDeviceId Value currently is ', voterDeviceId);
+    debugSwLog('getOrganizationFound voterDeviceId Value currently is ', voterDeviceId);
 
     const voterDeviceUrlVariable = voterDeviceId ? `voter_device_id=${voterDeviceId}&` : '';
     const apiURL = `${rootApiURL}/voterGuidePossibilityRetrieve/?${voterDeviceUrlVariable}url_to_scan=${hrefEncoded}${allowAnyYearForVoterGuides ? '&limit_to_this_year=false' : ''}`;
     debugSwLog('ENTERING backgroundWeVoteAPICalls > getOrganizationFound, voterGuidePossibilityRetrieve apiURL: ' + apiURL);
-    // debugSwLog('ENTERING backgroundWeVoteAPICalls > getOrganizationFound, voterGuidePossibilityRetrieve url_to_scan: ' + hrefEncoded);
-    console.log('background apiURL', apiURL);
     fetch(apiURL).then((resp) => resp.json()).then((results) => {
       const t1 = performance.now();
       // This takes 4 to 8.5 seconds to execute
