@@ -1,12 +1,11 @@
-**7/6/23**
-* ~~No repro: Sometimes after a few edits on left, then on right, when you go back to left the onclick for Greens gets broken.~~
-* ~~No repro: Loses state in the "W" pop-up after using the paned view.~~
-* ~~"Non-current" Candidates in right pane show up in green, but do not have the data that is available in the right pane.  Fixed in https://github.com/wevote/WebApp/pull/3689~~
+**/7/11**
+* ~~On Intel 2 core mac, need an extra time delay before the initial getStatus, otherwise red error.~~
+* ~~On Intel 2 core mac, new sender.id 'jiionpiimglpdipnbaleobdoonemkmlj' now being received -- allow it!~~
 
 **Lower Priority**
 * Sometimes in first load on paned view, all the icons in the right panel are red triangle warning signs, but the state inside the "open up" is correct.
 * Edits that end without a save, should not refresh the screen.  Send a different 'closeIFrameDialog' message, for no-save.
-* Figure out how to avoid "Could not establish connection. Receiving end does not exist." errors on pages with iFrames
+* Figure out how to avoid "Could not establish connection. Receiving end does not exist." errors on pages with iFrames like "Chat with us" or double-click, or for those who implement Google Analytics in an iframe.
 * It would be nice to have the warmup delay adjust to how long it took the first highlights to appear, rather than a fixed 10 seconds after an edit with the WebApp in an iFrame.  The delay is for slow to load pages, but a crude workaround.
   * Tried timing the first load, and using that value (plus a couple of seconds) for the second warmup, but the load time was all over the place, and ended up starting too soon, and having the highlights not appear (fail).
   * Tried using web-vitals library ... super cool, but did not trigger until the first user interaction.
@@ -26,6 +25,11 @@
 * https://www.peaceaction.org/2024endorsements/
 * https://twitter.com/yft860/status/1669113136442494977  (Elon won't allow us to iFrame his site)
 * Prior years:  https://giffords.org/elections/endorsements/past-endorsements/
+
+**7/6/23**
+* ~~No repro: Sometimes after a few edits on left, then on right, when you go back to left the onclick for Greens gets broken.~~
+* ~~No repro: Loses state in the "W" pop-up after using the paned view.~~
+* ~~"Non-current" Candidates in right pane show up in green, but do not have the data that is available in the right pane.  Fixed in https://github.com/wevote/WebApp/pull/3689~~
 
 **6/29/23**
 * ~~In non-paneled view, sometimes postions and currentEndorsements are not initialized,

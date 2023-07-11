@@ -780,11 +780,9 @@ function getThisTabsStatus (tabURL, sendResponse) {
       debugSwLog('extWordHighlighter.getThisTabsStatus query returned no tabs, and DID NOT FIND AN EXISTING tabsHighlighted SO WE created a new tabInfoObj entry with a tabId of -1');
     }
 
-    // Feb 16, 2023 partial abandoning of the local storage of global state
     const state = await getGlobalState();
     const { showEditor, showHighlights } = state;
     status = {...status, showEditor, showHighlights, highlighterEnabled: showHighlights};
-    // Feb 16, 2023 end of change
 
     debugSwLog('extWordHighlighter.getThisTabsStatus: ', status);
     sendResponse(status);

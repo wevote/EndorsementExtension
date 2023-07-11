@@ -46,6 +46,12 @@ document.addEventListener('DOMContentLoaded', async function () {  // This waste
     document.body.append(script);
   }
   console.log(`jQuery ${$.fn.jquery} has been loaded successfully!`);
+
+  // July 2023: latest highlight this uses this ready function instead of warmup??
+  $(document).ready(function () {
+    console.log('&&&&&&&&&&&&&&&&&&&&&&&&&&&& document ready in tabWordHighlighter    &&&&&&&&&&&&&&&&&&&&&&&&&&&&');
+  });
+
   // use jQuery below
   await initializeTabWordHighlighter();  // heavy-handed for a tab that will not need initialization, ie all other than the one we want
   detectBodyBind();
@@ -125,18 +131,22 @@ async function initializeTabWordHighlighter () {
       // eslint-disable-next-line complexity
       async function (request, sender, sendResponse) {
         const tabWordHighlighterListenerDebug = true;
-        tabWordHighlighterListenerDebug && debugFgLog('onMessage.addListener() in tabWordHighlighter got a message: ', request, sender, sendResponse);
+        tabWordHighlighterListenerDebug && debugFgLog('message listener in tabWordHighlighter got a message: ', request, sender, sendResponse);
         // console.log('Message listener in tabWordHighlighter received: ', request.command);
 
         if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
             sender.id === 'lfifjogjdncflocpmhfhhlflgndgkjdo' ||
             sender.id === 'eofojjpbgfdogalmibgljcgdipkhoclc' ||
             sender.id === 'ikoadphkdpbhakeghnjpepfgnodmonpk' ||
+            sender.id === 'jiionpiimglpdipnbaleobdoonemkmlj' ||      // New on intel macs 7/11/23
             sender.id === 'highlightthis@deboel.eu') {
 
           const state = await getGlobalState();
           const { showHighlights, showPanels, tabId, url, pdfURL } = state;
-          debugFgLog('@@@@@@@@@@@ Message listener in tabWordHighlighter received: ', request.command, request.selection);
+          debugFgLog('@@@@@@@@@@@ Message listener in tabWordHighlighter received: ',
+            request.command,
+            request.selection ? JSON.stringify(request.selection) : '',
+            request.payload ? JSON.stringify(request.payload) : '');
 
           if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
             if (href.toLowerCase().endsWith('.pdf')) {
@@ -218,7 +228,7 @@ async function initializeTabWordHighlighter () {
           } else if (request.command === 'updateForegroundForButtonChange') {
             debugSwLog('extWordHighlighter "updateForegroundForButtonChange" received from popup');
             const { pdfURL, tabId, tabUrl } = request.payload;
-            console.log('updateForegroundForButtonChange: ', request.payload);
+            console.log('updateForegroundForButtonChange: ', JSON.stringify(request.payload));
             // March 30, 2023, we know the tabId and tabURL for sure here, so save them.  In the case of PDF, these will change later.
             console.log('updateForegroundForButtonChange, saving tabId and tabURL to global state');
             await updateGlobalState({ tabId: tabId, url: tabUrl });
@@ -245,6 +255,8 @@ async function initializeTabWordHighlighter () {
             console.error('tabWordHighlighter in chrome.runtime.onMessage.addListener received unknown command: ' + request.command);
             return false;
           }
+        } else {
+          console.log('Message ignored due to unknown sender id: ', sender.id);
         }
       }
     );
@@ -253,7 +265,10 @@ async function initializeTabWordHighlighter () {
   }
 
   if (href !== 'about:blank') {  // Avoid worthless queries
-    await sendGetStatus();  // Initial get status
+    setTimeout(async () => {
+      // time to DOMContentLoaded takes 300 to 900ms on a 1.1Ghz Dual-Core Intel, and 39ms on an Apple M1 Max 10 core.  getStatus fails on Intel without this delay
+      await sendGetStatus();  // Initial get status
+    }, navigator.hardwareConcurrency > 8 ? 0 : 1500);  // Timers like this are the last resort
   }
 }
 
