@@ -268,7 +268,7 @@ async function initializeTabWordHighlighter () {
     setTimeout(async () => {
       // time to DOMContentLoaded takes 300 to 900ms on a 1.1Ghz Dual-Core Intel, and 39ms on an Apple M1 Max 10 core.  getStatus fails on Intel without this delay
       await sendGetStatus();  // Initial get status
-    }, navigator.hardwareConcurrency > 8 ? 0 : 1500);  // Timers like this are the last resort
+    }, navigator.hardwareConcurrency >= 10 ? 0 : 1500);  // Timers like this are the last resort
   }
 }
 
