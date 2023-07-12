@@ -582,10 +582,6 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
   }
 });
 
-chrome.notifications.onButtonClicked.addListener((ob) => {
-  console.log('chrome.notifications.onButtonClicked chrome.notifications.onButtonClicked.addListener >>>>>>>>>>>>>>>>>>>> ', ob);
-});
-
 chrome.commands.onCommand.addListener(function (command) {
   console.log('onCommand');
   const {tabs: {sendMessage, query}} = chrome;

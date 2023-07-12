@@ -134,11 +134,13 @@ async function initializeTabWordHighlighter () {
         tabWordHighlighterListenerDebug && debugFgLog('message listener in tabWordHighlighter got a message: ', request, sender, sendResponse);
         // console.log('Message listener in tabWordHighlighter received: ', request.command);
 
-        if (sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
+        if (sender.id === 'iehabmcmgpcollmfldiemagcdhnegmnk' ||      // New from Chrome store 7/12/23
+            sender.id === 'pmpmiggdjnjhdlhgpfcafbkghhcjocai' ||
             sender.id === 'lfifjogjdncflocpmhfhhlflgndgkjdo' ||
             sender.id === 'eofojjpbgfdogalmibgljcgdipkhoclc' ||
             sender.id === 'ikoadphkdpbhakeghnjpepfgnodmonpk' ||
             sender.id === 'jiionpiimglpdipnbaleobdoonemkmlj' ||      // New on intel macs 7/11/23
+            sender.id === 'ijckochdechhhdpdjfeglcjhmfhgeldn' ||      // Dale 7/12/23
             sender.id === 'highlightthis@deboel.eu') {
 
           const state = await getGlobalState();
