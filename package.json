@@ -1,6 +1,6 @@
 {
   "name": "wevoteusa",
-  "version": "1.0.1.1",
+  "version": "1.0.1.01",
   "description": "We Vote Chrome Extension",
   "private": true,
   "main": "server.js",

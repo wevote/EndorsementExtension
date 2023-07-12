@@ -1,6 +1,6 @@
 {
    "name": "WeVote Endorsement Chrome Extension",
-   "version": "1.0.1.1",
+   "version": "1.0.1.01",
    "manifest_version": 3,
    "description": "Highlights existing, and new opportunities, for endorsements on voter guide pages.",
    "icons": {
