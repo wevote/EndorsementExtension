@@ -2,7 +2,7 @@
 const debugServiceWorker = false;
 const debugStorageEvents = false;
 const debugTimingServiceWorker = false;
-const debugTimingForegroundContent = false;        // debugFgLog
+const debugTimingForegroundContent = true;        // debugFgLog
 const debugPopUpMessages = false;
 const debugHilitorEnabled = false;              // This can tremendously slow down page processing
 const debugHilitorMatchEnabled = false;

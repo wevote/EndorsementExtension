@@ -19,6 +19,7 @@
 * Get those last 'Uncaught (in promise) Error: Could not establish connection. Receiving end does not exist.' errors
 
 **Test Cases**
+* http://maggieslist.org/press/the-messenger-a-pac-dedicated-to-electing-gop-women-issues-first-wave-of-2024-endorsements-exclusive
 * https://candidates.aipacpac.org/page/featured/
 * https://www.sandiegorepublicans.org/endorsements
 * http://newdemactionfund.com/candidates
