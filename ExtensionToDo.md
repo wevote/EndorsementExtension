@@ -1,6 +1,6 @@
-**/7/11**
-* ~~On Intel 2 core mac, need an extra time delay before the initial getStatus, otherwise red error.~~
-* ~~On Intel 2 core mac, new sender.id 'jiionpiimglpdipnbaleobdoonemkmlj' now being received -- allow it!~~
+**7/23/23**
+*In order to have an "Official URL" for the chrome store, they need to verify it with an HTML File
+* Works on my fast and slow Mac, but not on Dales, to be investigated before releasing:  http://maggieslist.org/press/the-messenger-a-pac-dedicated-to-electing-gop-women-issues-first-wave-of-2024-endorsements-exclusive
 
 **Lower Priority**
 * Sometimes in first load on paned view, all the icons in the right panel are red triangle warning signs, but the state inside the "open up" is correct.
@@ -27,7 +27,11 @@
 * https://twitter.com/yft860/status/1669113136442494977  (Elon won't allow us to iFrame his site)
 * Prior years:  https://giffords.org/elections/endorsements/past-endorsements/
 
-**7/6/23**
+**7/11/23**
+* ~~On Intel 2 core mac, need an extra time delay before the initial getStatus, otherwise red error.~~
+* ~~On Intel 2 core mac, new sender.id 'jiionpiimglpdipnbaleobdoonemkmlj' now being received -- allow it!~~
+
+* **7/6/23**
 * ~~No repro: Sometimes after a few edits on left, then on right, when you go back to left the onclick for Greens gets broken.~~
 * ~~No repro: Loses state in the "W" pop-up after using the paned view.~~
 * ~~"Non-current" Candidates in right pane show up in green, but do not have the data that is available in the right pane.  Fixed in https://github.com/wevote/WebApp/pull/3689~~
