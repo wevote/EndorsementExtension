@@ -1,5 +1,5 @@
 **7/23/23**
-*In order to have an "Official URL" for the chrome store, they need to verify it with an HTML File
+* In order to have an "Official URL" for the chrome store, they need to verify it with an HTML File
 * Works on my fast and slow Mac, but not on Dales, to be investigated before releasing:  http://maggieslist.org/press/the-messenger-a-pac-dedicated-to-electing-gop-women-issues-first-wave-of-2024-endorsements-exclusive
 
 **Lower Priority**
