@@ -1,4 +1,7 @@
 /* eslint-disable no-undef */
+setInterval(() => {
+  self.serviceWorker.postMessage("test");
+}, 10000);
 
 self.oninstall = () => {
   console.log('serviceWorker.js install');

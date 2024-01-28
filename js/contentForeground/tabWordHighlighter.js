@@ -141,6 +141,7 @@ async function initializeTabWordHighlighter () {
             sender.id === 'ikoadphkdpbhakeghnjpepfgnodmonpk' ||
             sender.id === 'jiionpiimglpdipnbaleobdoonemkmlj' ||      // New on intel macs 7/11/23
             sender.id === 'ijckochdechhhdpdjfeglcjhmfhgeldn' ||      // Dale 7/12/23
+            sender.id === 'hpmgpbonilnlgbbmjllnpomdngadpkpk' ||
             sender.id === 'highlightthis@deboel.eu') {
 
           const state = await getGlobalState();
@@ -233,7 +234,11 @@ async function initializeTabWordHighlighter () {
             console.log('updateForegroundForButtonChange: ', JSON.stringify(request.payload));
             // March 30, 2023, we know the tabId and tabURL for sure here, so save them.  In the case of PDF, these will change later.
             console.log('updateForegroundForButtonChange, saving tabId and tabURL to global state');
-            await updateGlobalState({ tabId: tabId, url: tabUrl });
+            if (showHighlights) {
+              await updateGlobalState({ tabId: tabId, url: tabUrl });
+            } else {
+              await updateGlobalState({ tabId: -1, url: tabUrl });
+            }
 
             debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage updateBackgroundForButtonChange in isInANonWeVoteIFrame');
             sendMessage({
