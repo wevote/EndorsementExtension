@@ -55,6 +55,11 @@ constructionT0 = -1;
   constructionT0 = performance.now();
 })();
 
+chrome.alarms.create({ periodInMinutes: 0.3 })
+chrome.alarms.onAlarm.addListener(() => {
+  console.log('log for Alarm')
+});
+
 function getWordsInGroup (groupName, highlightsList) {
   // eslint-disable-next-line prefer-destructuring
   const display = groupName.split('_')[0];
