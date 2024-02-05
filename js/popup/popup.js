@@ -167,6 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
         await updateButtonDisplayedState();
         setBadgeText({text: ''});
       });
+      // WV-202 fix: add a timeout so the modal closes after clicking Reset
       setTimeout(() => {
         closeDialogAfterTimeout && window.close();
       }, 1000);
