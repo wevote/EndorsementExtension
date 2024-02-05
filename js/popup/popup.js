@@ -167,6 +167,9 @@ document.addEventListener('DOMContentLoaded', function () {
         await updateButtonDisplayedState();
         setBadgeText({text: ''});
       });
+      setTimeout(() => {
+        closeDialogAfterTimeout && window.close();
+      }, 1000);
     });
 
     // Highlight Candidates on This Tab

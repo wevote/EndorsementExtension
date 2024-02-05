@@ -142,6 +142,7 @@ async function initializeTabWordHighlighter () {
             sender.id === 'jiionpiimglpdipnbaleobdoonemkmlj' ||      // New on intel macs 7/11/23
             sender.id === 'ijckochdechhhdpdjfeglcjhmfhgeldn' ||      // Dale 7/12/23
             sender.id === 'hpmgpbonilnlgbbmjllnpomdngadpkpk' ||
+            sender.id === 'gegmpkodghekkhhlkcfhlnppiolngoba' ||      // Matt 2/2024
             sender.id === 'highlightthis@deboel.eu') {
 
           const state = await getGlobalState();
