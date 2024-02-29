@@ -35,6 +35,9 @@ let printHighlights = true;
 let uniqueNameMatches = [];
 let voterDeviceId = '';
 let debug = false;
+let lastWidth =0
+let lastHeight =0
+let firsttimeopenpanel = true
 
 document.addEventListener('DOMContentLoaded', async function () {  // This wastes about 1 ms for every open tab in the browser, that we are not going to highlight on
   const t0 = performance.now();
@@ -68,8 +71,52 @@ document.addEventListener('DOMContentLoaded', async function () {  // This waste
       await mergeToGlobalState({'voterDeviceId': voterDeviceId});
       timingLog(t0, t1, 'DOMContentLoaded mergeToGlobalState voterDeviceId took', 8.0);
     }
-  }
+  } 
+
+// Select the node that will be observed for mutations
+  let targetNode = document.body;
+
+  // Options for the observer (which mutations to observe)
+  const config = { attributes: false, childList: true,  characterData:true, subtree:true };
+  const observer = new MutationObserver(async(entries) => {
+      for (const entry of entries) {
+        if (entry.type== 'childList' && entry.addedNodes.length >1){
+          let state = await getGlobalState();
+          showHighlights = state.showHighlights;
+          showPanels = state.showPanels;
+          pdfURL = state.pdfURL;
+          tabId = state.tabId;
+          tabUrl = state.url;
+          if (showPanels){
+            if(firsttimeopenpanel){
+              if(entry.target!==document.body){
+                observer.disconnect()
+                setTimeout(() => { 
+                  let targetNode = document.querySelector('#frameDiv');
+                  if (targetNode) {
+                      observer.observe(targetNode, config);
+                  } else {
+                      console.error("Element with ID 'frameDiv' not found.");
+                  }
+                }, 5000);
+              }
+              firsttimeopenpanel = false
+            }else {
+              showPanels= false
+              displayHighlightingAndPossiblyEditor(showHighlights, showPanels, tabId);
+            }           
+          }
+          else if (showHighlights) {
+            displayHighlightingAndPossiblyEditor(showHighlights, showPanels, tabId);
+          }
+        }
+      }
+  });
+    
+  observer.observe(targetNode, config);
 });
+
+
 
 function isInANonWeVoteIFrame () {
   return (window.self !== window.top  && $('.weVoteEndorsementFrame').length === 0) || window.location.href === 'about:blank';

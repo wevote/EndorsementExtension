@@ -57,7 +57,7 @@ constructionT0 = -1;
 
 chrome.alarms.create({ periodInMinutes: 0.3 })
 chrome.alarms.onAlarm.addListener(() => {
-  console.log('log for Alarm')
+  return;
 });
 
 function getWordsInGroup (groupName, highlightsList) {
@@ -86,29 +86,18 @@ function getWordsInGroup (groupName, highlightsList) {
   return wordList;
 }
 
-function combineHighlightsLists (ballotItemHighlights, voterGuideHighlights) {
+function combineHighlightsLists (voterGuideHighlights) {
   const overlayOrganizationPositionsDebug = false;
   debugSwLog('ENTERING extWordHighlighter > combineHighlightsLists');
   aliasNames = [];
   nameToIdMap = {};
-  for (let i = 0; i < ballotItemHighlights.length; i++) {
-    let highlight = ballotItemHighlights[i];
-    const {we_vote_id: weVoteId, name} = highlight;
-    if (name && name.length > 2) {
+  for (let i = 0; i < voterGuideHighlights.length; i++) {
+    let highlight = voterGuideHighlights[i];
+    const {we_vote_id: weVoteId, name, display} = highlight;
+    if (name && name.length > 2 && weVoteId === '' && display=== 'DEFAULT') {
       nameToIdMap[name.toLowerCase()] = weVoteId;
       highlight.display = 'DEFAULT';
-      highlight.stance = '';
-      // Find first highlight dicts in the voterGuideHighlights that shares the same candidate we vote id
-      let match = voterGuideHighlights.find(function (possibleAlias) {
-        return possibleAlias.we_vote_id === weVoteId;
-      });
-      if (match && match.display) {
-        // If there is a match in voterGuideHighlights, overwrite the default with the org specific highlight
-        const {display: displayMatch, stance: stanceMatch} = match;
-        overlayOrganizationPositionsDebug && debugSwLog('For ' + name + ' overwriting to ' + displayMatch + ', ' + stanceMatch + ', from ', match);
-        highlight.display = displayMatch;
-        highlight.stance = stanceMatch;
-      }
+      highlight.stance = '';      
     } else {
       debugSwLog('Bad highlight received in promoteAliases ', highlight);
     }
@@ -136,10 +125,11 @@ async function initializeEndorsementDetectionList (voterGuideHighlights) {
   debugSwLog('ENTERING initializePositionsArray, needed for non-paned mode Edit/Add decision for the modal pop up');
   const nameArray = [];
   let currentEndorsementsArray = [];
+  splChar = /[!@#$%^&*(),.?":{}|<>]/;
   for (let i = 0; i < voterGuideHighlights.length; i++) {
     let highlight = voterGuideHighlights[i];
     const {we_vote_id: weVoteId, name, stance} = highlight;
-    if (name && name.length > 2 && !nameArray.includes(name.toLowerCase())) {
+    if (name && name.length > 2 && !nameArray.includes(name.toLowerCase()) && !splChar.test(name)) {
       nameArray.push(name.toLowerCase());
       currentEndorsementsArray.push({
         ballot_item_name: name,
@@ -156,10 +146,11 @@ async function initializeEndorsementDetectionList (voterGuideHighlights) {
   }
 }
 
-function initializeHighlightsData (ballotItemHighlights, voterGuideHighlights, neverHighLightOnLocal) {
+
+function initializeHighlightsData (voterGuideHighlights, neverHighLightOnLocal) {
   const initializeHighlightsDataDebug = true;
-  initializeHighlightsDataDebug && debugSwLog('ENTERING extWord > initializeHighlightsData, ballotItemHighlights.length:', ballotItemHighlights.length);
-  combineHighlightsLists(ballotItemHighlights, voterGuideHighlights);
+  initializeHighlightsDataDebug && debugSwLog('ENTERING extWord > initializeHighlightsData, voterGuideHighlights.length:', voterGuideHighlights.length);
+  combineHighlightsLists(voterGuideHighlights);
 
   HighlightsData.Version = '12';
   HighlightsData.neverHighlightOn =  preProcessNeverList(neverHighLightOnLocal);
@@ -178,7 +169,7 @@ function initializeHighlightsData (ballotItemHighlights, voterGuideHighlights, n
       'FindWords': true,
       'ShowOn': [],
       'DontShowOn': [],
-      'Words': getWordsInGroup(groupName, ballotItemHighlights),
+      'Words': getWordsInGroup(groupName, voterGuideHighlights),
       'Type': 'local',
       'Modified': Date.now()
     };
@@ -610,12 +601,12 @@ chrome.runtime.onMessage.addListener(
       // Highlight the captured positions
       showVoterGuideHighlights = true;
       showCandidateOptionsHighlights = false;
-      getHighlightsListsFromApiServer(request.url, request.voterDeviceId, request.tabId, request.doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights);
+      getHighlightsListsFromApiServer(request.url, request.voterDeviceId, request.tabId, request.doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights,request.pageContent);
     } else if (request.command === 'getCombinedHighlights') {
       // Highlight the captured positions AND the recognized candidate names
       showVoterGuideHighlights = true;
       showCandidateOptionsHighlights = true;
-      getHighlightsListsFromApiServer(request.url, request.voterDeviceId, request.tabId, request.doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights);
+      getHighlightsListsFromApiServer(request.url, request.voterDeviceId, request.tabId, request.doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights,request.pageContent);
     } else if (request.command === 'getPositions') {
       console.log('getPositions received with request ', request);
       getPossiblePositions(request.voterGuidePossibilityId, request.hrefURL, request.voterDeviceId, request.isIFrame, sendResponse);
