@@ -314,7 +314,7 @@ function getVoterInfo () {
   );
 }
 
-async function topMenu () {
+function topMenu () {
   let topMarkup = '' +
     '<div id="topMenuContainer" class="topMenuContainer">' +
     '  <img id="orgLogo" class="gridOrgIcon" src="https://wevote.us/img/endorsement-extension/endorsement-icon48.png" alt="">' +
