@@ -314,26 +314,39 @@ function getVoterInfo () {
   );
 }
 
-function topMenu () {
+async function topMenu () {
   let topMarkup = '' +
     '<div id="topMenuContainer" class="topMenuContainer">' +
     '  <img id="orgLogo" class="gridOrgIcon" src="https://wevote.us/img/endorsement-extension/endorsement-icon48.png" alt="">' +
-    '  <div id="orgName" class="gridOrgName core-text"></div>' +
-    '  <span class="gridSend">' +
-    '    <span class="innerGridSend core-text">' +
-    '      <span class="topCommentLabel core-text">Send us a comment about this page: </span>' +
-    '      <input type="text" id="emailWe" class="core-text" name="email" placeholder="Your email" >' +
-    '      <input type="text" id="topComment" class="core-text" name="topComment" placeholder="Comment here..." >' +
-    '      <button type="button" id="sendTopComment" class="sendTopComment weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">Send</button>' +
-    '    </span>' +
+    '  <span id="orgName" class="gridOrgName core-text"></span>' +
+    '  <button type="button" id="openAdminButton" class="openInAdminApp weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">ADMIN APP</button>' +
+    '  <span class="innerGridSend core-text">' +
+    '    <span class="topCommentLabel core-text">Send us a comment about this page: </span>' +
+    '    <input type="text" id="emailWe" class="core-text" name="email" placeholder="Your email" >' +
+    '    <input type="text" id="topComment" class="core-text" name="topComment" placeholder="Comment here..." >' +
+    '    <button type="button" id="sendTopComment" class="sendTopComment weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">Send</button>' +
     '  </span>' +
-    '  <span id="signIn" class="gridSignInTop  removeContentStyles">&#129300</span>' +
+    '  <span id="signIn" class="gridSignInTop">&#129300</span>' +
     '  <span id="loginPopUp"></span>' +
     '  <div id="dlgAnchor"></div>' +
   '</div>';
   $('#topMenu').append(topMarkup);
 
   setSignInOutMarkup ();
+
+  // WV-224: Add event listener to the "Open Admin" button
+  $('#openAdminButton').click(async function () {
+    const state = await getGlobalState();
+    const { voterGuidePossibilityId} = state;
+    let adminUrl;
+    if (voterGuidePossibilityId === undefined) {
+      adminUrl = 'https://api.wevoteusa.org/vg/create'
+    } else {
+      adminUrl = 'https://api.wevoteusa.org/vg/create/?voter_guide_possibility_id=' + (voterGuidePossibilityId);
+    }
+    window.open(adminUrl, '_blank');
+    console.log('voterGuidePossibilityId:', voterGuidePossibilityId);
+  });
 }
 
 // Get the yellows, all the candidates that are known
@@ -1467,6 +1480,14 @@ function orgChoiceDialog (orgList) {
       });
     });
   });
+}
+
+async function openAdminPage () {
+  const { chrome: { runtime: { sendMessage, lastError } } } = window;
+  debugFgLog('ENTERING openAdminPage');
+  const state = await getGlobalState();
+  const { organizationWeVoteId, voterGuidePossibilityId, voterWeVoteId } = state;
+  window.open('https://api.wevoteusa.org/vg/create/?voter_guide_possibility_id=8852');
 }
 
 async function sendTopComment () {

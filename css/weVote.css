@@ -371,6 +371,7 @@
 [class^="openInAdminApp"], [class^="saveButton"], [class^="deleteButton"], [class^="openInWebApp"], [class^="revealLeft"] {
   margin: 1px 2px 1px 1px;
   width: fit-content;
+  height: fit-content;
   font-size: 12px !important;
   line-height: 24px;
 }
