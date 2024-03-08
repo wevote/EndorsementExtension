@@ -92,24 +92,20 @@ async function initializeTabWordHighlighter () {
     debugFgLog('############ tabWordHighlighter INITIALIZED with url: ', href);
   }
 
-  const { chrome: { runtime: { sendMessage, lastError } } } = window;
   await updateGlobalState({ neverHighlightOn: defaultNeverHighlightOn });
 
   if (isInOurIFrame()) {
     debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage myTabId in initializeTabWordHighlighter');
-    sendMessage({
-      command: 'myTabId',
-    }, async function (response) {
-      if (lastError) {
-        debugFgLog(' chrome.runtime.sendMessage("myTabId")', lastError.message);
-      }
-
+    try {
+      const response = await sendMessageAsync({ command: 'myTabId' });
       const { tabId } = response;
-      console.log('3/17/23  TEST TEST TEST think this is a tabId: ', tabId);
+      console.log('3/17/23 TEST TEST TEST think this is a tabId: ', tabId);
       $('#frame').attr('name', 'tabId=' + tabId);
-      await updateGlobalState({ tabId: tabId });  // TODO: 7/8/22  this looks wrong
+      await updateGlobalState({ tabId: tabId });
       debugFgLog('tabWordHighlighter initializeTabWordHighlighter tab.id: ' + tabId);
-    });
+    } catch (error) {
+      debugFgLog('chrome.runtime.sendMessage("myTabId")', error.message);
+    }
   }
 
   // If not in our iFrame
@@ -126,141 +122,162 @@ async function initializeTabWordHighlighter () {
       }
     }
     //only listen for messages in the main page, not in iframes
-    const { runtime: { onMessage } } = chrome;
-    onMessage.addListener(
-      // eslint-disable-next-line complexity
-      async function (request, sender, sendResponse) {
+    // const { runtime: { onMessage } } = chrome;
+
+    // Debugging functions
+      const debugFgLog = (message, ...optionalParams) => {
         const tabWordHighlighterListenerDebug = true;
-        tabWordHighlighterListenerDebug && debugFgLog('message listener in tabWordHighlighter got a message: ', request, sender, sendResponse);
-        // console.log('Message listener in tabWordHighlighter received: ', request.command);
+        if (tabWordHighlighterListenerDebug) {
+          console.log(message, ...optionalParams);
+        }
+      };
 
-        // development for story WV-219, fix "sender.id" error. Remove if-else condition from code.
-        // To confirm messages from other extensions are not being processed, post sender info to console.
-        console.log('Message listener in tabWordHighlighter received sender, sender.id: ', sender, sender.id);
+      const timingFgLog = (startTime, endTime, message, threshold) => {
+        const duration = endTime - startTime;
+        if (duration > threshold) {
+          debugFgLog(`${message} ${duration}ms`);
+        }
+      };
 
-        const state = await getGlobalState();
-        const { showHighlights, showPanels, tabId, url, pdfURL } = state;
-        debugFgLog('@@@@@@@@@@@ Message listener in tabWordHighlighter received: ',
-          request.command,
-          request.selection ? JSON.stringify(request.selection) : '',
-          request.payload ? JSON.stringify(request.payload) : '');
-
-        if (request.command === 'displayHighlightsForTabAndPossiblyEditPanes') {
-          if (href.toLowerCase().endsWith('.pdf')) {
-            debugFgLog('displayHighlightsForTabAndPossiblyEditPanes skipping PDF file');
-            return false;
-          }
-          const t1 = performance.now();
-          // const { priorHighlighterEnabledThisTab } = state;
-          // const { showHighlights, showPanels, tabId } = request;
-          await clearPriorDataOnModeChange(showHighlights, showPanels);
-
-          debugFgLog('------------------------------- ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes');
-          debugFgLog('ENTERING tabWordHighlighter > displayHighlightsForTabAndPossiblyEditPanes showHighlights: ', showHighlights, ', showPanels: ', showPanels, ', href: ', href);
-          if (!showHighlights) {
-            debugFgLog('displayHighlightsForTabAndPossiblyEditPanes (before reload)');
-            await updateGlobalState({
-              priorData: [],
-              priorHighlighterEnabledThisTab: false,
-            });
-            location.reload();
-          }
-          if (href !== 'about:blank' && showHighlights) {  // Avoid worthless queries
-            if (href !== url && href !== pdfURL && url !== '') {
-              console.log('Skipping non-selected tab href: ', href);
-              return false;
+      function sendMessageAsync(message){
+        return new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage(message, (response) => {
+            const error = chrome.runtime.lastError;
+            if (error) {
+              reject(error);
+            } else {
+              resolve(response);
             }
-            console.log('Processing selected tab href: ', href);
-            displayHighlightingAndPossiblyEditor(showHighlights, showPanels, tabId);
-          }
-          const t2 = performance.now();
-          timingFgLog(t1, t2, 'displayHighlightsForTabAndPossiblyEditPanes processing took', 8.0);
-          return false;
-        } else if (request.command === 'ScrollHighlight') {
-          jumpNext();
-          showMarkers();
-          return false;
-        } else if (request.command === 'hardResetActiveTab') {
-          console.log('hardResetActiveTab tabWordHighlighter location: ', location);
-          location.reload();
-          return false;
-        } else if (request.command === 'getMarkers') {
-          sendResponse(highlightMarkers);
-          return true;
-        } else if (request.command === 'ClearHighlights') {
-          highlightMarkers = {};
-          return false;
-        } else if (request.command === 'ReHighlight') {
-          reHighlight(request.words);
-          return false;
-        } else if (request.command === 'createEndorsement') {
-          console.log('================================  received createEndorsement request.selection: ', request.selection);
-          if (request.selection === undefined) {
-            console.log('================================  received createEndorsement with UNDEFINED request.selection');
-          } else {
-            await openSuggestionPopUp(request.selection);
-          }
-          return false;
-        } else if (request.command === 'revealRight') {
-          revealRightAction(request.selection);
-          return false;
-        } else if (request.command === 'getStatusForActiveTab') {
-          const encodedHref = encodeURIComponent(location.href);
-          const {orgName, organizationWeVoteId, organizationTwitterHandle} = state;
-          debugFgLog('getStatusForActiveTab tabId: ', tabId, ', href: ', href);
+          })
+        })
+      }
 
-          sendResponse({
-            orgName,
-            organizationWeVoteId,
-            organizationTwitterHandle,
-            encodedHref
-          });
-          return false;
-        } else if (request.command === 'disableExtension') {
-          // enableHighlightsForAllTabs(false);
-          return false;
-        } else if (request.command === 'logFromPopup') {
-          console.log('popup: ' + request.payload);
-          return false;
-        } else if (request.command === 'updateForegroundForButtonChange') {
-          debugSwLog('extWordHighlighter "updateForegroundForButtonChange" received from popup');
-          const { pdfURL, tabId, tabUrl } = request.payload;
-          console.log('updateForegroundForButtonChange: ', JSON.stringify(request.payload));
-          // March 30, 2023, we know the tabId and tabURL for sure here, so save them.  In the case of PDF, these will change later.
-          console.log('updateForegroundForButtonChange, saving tabId and tabURL to global state');
-          if (showHighlights) {
-            await updateGlobalState({ tabId: tabId, url: tabUrl });
-          } else {
-            await updateGlobalState({ tabId: -1, url: tabUrl });
-          }
-
-          debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage updateBackgroundForButtonChange in isInANonWeVoteIFrame');
-          sendMessage({
-            command: 'updateBackgroundForButtonChange',
-            showHighlights,
-            showPanels,
-            pdfURL,
-            tabId,
-            tabUrl
-          // }, function (response) {  // Don't send/look for unneeded responses, avoids 'Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.' errors
-          //   console.log('chrome.runtime.sendMessage("updateBackgroundForButtonChange") response: ', response);
-          //   // console.log('chrome.runtime.sendMessage("updateBackgroundForButtonChange") lstError', lastError);
-          //   // if (!response.success) {
-          //   //   debugFgLog('chrome.runtime.sendMessage("updateBackgroundForButtonChange")', lastError.message);
-          //   // }
-          }).then(() => {
-            console.log('return from updateForegroundForButtonChange after send message updateBackgroundForButtonChange');
-            return false;  // Does not return a response, so return false
-          });
-        } else {
-          console.error('tabWordHighlighter in chrome.runtime.onMessage.addListener received unknown command: ' + request.command);
+      // Use command pattern to handle onMessage events
+      async function handleDisplayHighlightsForTabAndPossiblyEditPanes(request, state) {
+        const { showHighlights, showPanels, tabId, url, pdfURL } = state;
+        if (href.toLowerCase().endsWith('.pdf')) {
+          debugFgLog('Skipping PDF file for displayHighlightsForTabAndPossiblyEditPanes');
           return false;
         }
+        const t1 = performance.now();
+        await clearPriorDataOnModeChange(showHighlights, showPanels);
+        debugFgLog('Processing displayHighlightsForTabAndPossiblyEditPanes');
+        if (href !== 'about:blank' && showHighlights) {
+          if (href !== url && href !== pdfURL && url !== '') {
+            console.log('Skipping non-selected tab href: ', href);
+            return false;
+          }
+          console.log('Processing selected tab href: ', href);
+          displayHighlightingAndPossiblyEditor(showHighlights, showPanels, tabId);
+        }
+        const t2 = performance.now();
+        timingFgLog(t1, t2, 'Processing took for displayHighlightsForTabAndPossiblyEditPanes', 8.0);
+        return false;
       }
-    );
-  } else {
-    debugFgLog('not in a unframed endorsement page: ', location);
-  }
+
+      async function handleScrollHighlight() {
+        jumpNext();
+        showMarkers();
+        return false;
+      }
+
+      async function handleHardResetActiveTab() {
+        console.log('Reloading tab for hardResetActiveTab');
+        location.reload();
+        return false;
+      }
+
+      async function handleGetMarkers(sendResponse) {
+        sendResponse(highlightMarkers);
+        return true;
+      }
+
+      async function handleClearHighlights() {
+        highlightMarkers = {};
+        return false;
+      }
+
+      async function handleReHighlight(request) {
+        reHighlight(request.words);
+        return false;
+      }
+
+      async function handleCreateEndorsement(request) {
+        console.log('Processing createEndorsement: ', request.selection);
+        if (request.selection !== undefined) {
+          await openSuggestionPopUp(request.selection);
+        } else {
+          console.log('Undefined selection for createEndorsement');
+        }
+        return false;
+      }
+
+      async function handleRevealRight(request) {
+        revealRightAction(request.selection);
+        return false;
+      }
+
+      async function handleGetStatusForActiveTab(state, sendResponse) {
+        const { tabId, orgName, organizationWeVoteId, organizationTwitterHandle } = state;
+        const encodedHref = encodeURIComponent(location.href);
+        debugFgLog('getStatusForActiveTab response prepared');
+        sendResponse({
+          orgName,
+          organizationWeVoteId,
+          organizationTwitterHandle,
+          encodedHref
+        });
+        return true;
+      }
+
+      async function handleUpdateForegroundForButtonChange(request, state) {
+        const { showHighlights, showPanels } = state;
+        const { pdfURL, tabId, tabUrl } = request.payload;
+        debugFgLog('Processing updateForegroundForButtonChange');
+        await updateGlobalState({ tabId: showHighlights ? tabId : -1, url: tabUrl });
+        sendMessageAsync({
+          command: 'updateBackgroundForButtonChange',
+          showHighlights,
+          showPanels,
+          pdfURL,
+          tabId,
+          tabUrl
+        });
+        return false;
+      }
+
+      // Main message listener function with switch case
+      chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
+        console.log('Received message: ', request.command, ' from sender: ', sender);
+        const state = await getGlobalState();
+
+        switch (request.command) {
+          case 'displayHighlightsForTabAndPossiblyEditPanes':
+            return handleDisplayHighlightsForTabAndPossiblyEditPanes(request, state);
+          case 'ScrollHighlight':
+            return handleScrollHighlight();
+          case 'hardResetActiveTab':
+            return handleHardResetActiveTab();
+          case 'getMarkers':
+            return handleGetMarkers(sendResponse);
+          case 'ClearHighlights':
+            return handleClearHighlights();
+          case 'ReHighlight':
+            return handleReHighlight(request);
+          case 'createEndorsement':
+            return handleCreateEndorsement(request);
+          case 'revealRight':
+            return handleRevealRight(request);
+          case 'getStatusForActiveTab':
+            return handleGetStatusForActiveTab(state, sendResponse);
+          case 'updateForegroundForButtonChange':
+            return handleUpdateForegroundForButtonChange(request, state);
+          default:
+            console.error('Unknown command received: ' + request.command);
+            return false;
+        }
+      });
+    }
 
   if (href !== 'about:blank') {  // Avoid worthless queries
     setTimeout(async () => {
