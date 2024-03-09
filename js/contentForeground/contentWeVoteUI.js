@@ -326,7 +326,7 @@ function topMenu () {
     '    <input type="text" id="topComment" class="core-text" name="topComment" placeholder="Comment here..." >' +
     '    <button type="button" id="sendTopComment" class="sendTopComment weButton u2i-button u2i-widget u2i-corner-all removeContentStyles">Send</button>' +
     '  </span>' +
-    '  <span id="signIn" class="gridSignInTop">&#129300</span>' +
+    '  <span id="signIn" class="gridSignInTop removeContentStyles">&#129300</span>' +
     '  <span id="loginPopUp"></span>' +
     '  <div id="dlgAnchor"></div>' +
   '</div>';
@@ -337,7 +337,7 @@ function topMenu () {
   // WV-224: Add event listener to the "Open Admin" button
   $('#openAdminButton').click(async function () {
     const state = await getGlobalState();
-    const { voterGuidePossibilityId} = state;
+    const { voterGuidePossibilityId } = state;
     let adminUrl;
     if (voterGuidePossibilityId === undefined) {
       adminUrl = 'https://api.wevoteusa.org/vg/create'
@@ -1480,14 +1480,6 @@ function orgChoiceDialog (orgList) {
       });
     });
   });
-}
-
-async function openAdminPage () {
-  const { chrome: { runtime: { sendMessage, lastError } } } = window;
-  debugFgLog('ENTERING openAdminPage');
-  const state = await getGlobalState();
-  const { organizationWeVoteId, voterGuidePossibilityId, voterWeVoteId } = state;
-  window.open('https://api.wevoteusa.org/vg/create/?voter_guide_possibility_id=8852');
 }
 
 async function sendTopComment () {
