@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async function () {  // This waste
       timingLog(t0, t1, 'DOMContentLoaded mergeToGlobalState voterDeviceId took', 8.0);
     }
   } 
-
+// Introduced Mutation Observer to observe the DOM changes and update the page as needed 03/11/2014
 // Select the node that will be observed for mutations
   let targetNode = document.body;
 

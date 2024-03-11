@@ -7,6 +7,7 @@ let voterGuidePossibilityPositionsRetrieveT0 = 0;
 /* eslint no-undef: 0 */
 
 async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tabId, doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights, pageContent) {
+  // Replaced ballotItemHighlightsRetrieve API call with voterGuidePossibilityHighlightsRetrieve API (POST Method) - 03/11/2024
   const getHighlightsListsFromApiServerDebug = true;
   debugSwLog('ENTERING backgroundWeVoteAPICalls > getHighlightsListsFromApiServer, showVoterGuideHighlights:', showVoterGuideHighlights, ', showCandidateOptionsHighlights:', showCandidateOptionsHighlights);
   if (!showVoterGuideHighlights && !showCandidateOptionsHighlights) {
