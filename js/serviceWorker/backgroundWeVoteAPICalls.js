@@ -12,7 +12,6 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
   if (!showVoterGuideHighlights && !showCandidateOptionsHighlights) {
     debugSwLog('EXITING getHighlightsListsFromApiServer without highlighting');
   }
-
   const state = await getGlobalState();
   const { pdfURL } = state;
   let urlToEncode = locationHref;
@@ -21,7 +20,6 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
       urlToEncode = pdfURL;
     }
   }
-
 
   const hrefEncoded = encodeURIComponent(urlToEncode); //'https://www.emilyslist.org/pages/entry/state-and-local-candidates');
   // let ballotItemHighlightsRetrieve = `${rootCdnURL}/ballotItemHighlightsRetrieve/`; // Use CDN

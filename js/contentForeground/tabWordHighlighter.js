@@ -37,7 +37,7 @@ let voterDeviceId = '';
 let debug = false;
 let lastWidth =0
 let lastHeight =0
-let firsttimeopenpanel = true
+let firstTimePanelOpen = true
 
 document.addEventListener('DOMContentLoaded', async function () {  // This wastes about 1 ms for every open tab in the browser, that we are not going to highlight on
   const t0 = performance.now();
@@ -82,13 +82,10 @@ document.addEventListener('DOMContentLoaded', async function () {  // This waste
       for (const entry of entries) {
         if (entry.type== 'childList' && entry.addedNodes.length >1){
           let state = await getGlobalState();
-          showHighlights = state.showHighlights;
-          showPanels = state.showPanels;
-          pdfURL = state.pdfURL;
-          tabId = state.tabId;
-          tabUrl = state.url;
+          let { showHighlights, showPanels, tabId} = state;
+
           if (showPanels){
-            if(firsttimeopenpanel){
+            if(firstTimePanelOpen){
               if(entry.target!==document.body){
                 observer.disconnect()
                 setTimeout(() => { 
@@ -100,9 +97,9 @@ document.addEventListener('DOMContentLoaded', async function () {  // This waste
                   }
                 }, 5000);
               }
-              firsttimeopenpanel = false
+              firstTimePanelOpen = false
             }else {
-              showPanels= false
+              showPanels = false
               displayHighlightingAndPossiblyEditor(showHighlights, showPanels, tabId);
             }           
           }

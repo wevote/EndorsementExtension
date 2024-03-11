@@ -364,7 +364,6 @@ async function doGetCombinedHighlights (showPanels, tabId, urlToQuery) {
   if(showPanels){
     var myIFrame = document.getElementById("frame");
     var pageContent = myIFrame.contentWindow.document.body.innerText;
-    // pageContent = document.querySelector('#frameDiv').innerText
   }else {
     pageContent = document.body.innerText
   }
@@ -407,7 +406,6 @@ async function getHighlights (showHighlights, showPanels, tabId) {
     console.log('**************** before send message getHighlights in getVoterDeviceId(), tabId', tabId);
     debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getHighlights in getHighlights');
     let pageContent = document.body.innerText
-    console.log('pagecontent1>>>>>>',pageContent)
     sendMessage({ command: 'getHighlights', url: urlToQuery, 'voterDeviceId': voterDeviceId, tabId: tabId, doReHighlight: false, pageContent:pageContent },
       async function (response) {
         if (lastError) {
