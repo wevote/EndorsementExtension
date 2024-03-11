@@ -35,8 +35,6 @@ let printHighlights = true;
 let uniqueNameMatches = [];
 let voterDeviceId = '';
 let debug = false;
-let lastWidth =0
-let lastHeight =0
 let firstTimePanelOpen = true
 
 document.addEventListener('DOMContentLoaded', async function () {  // This wastes about 1 ms for every open tab in the browser, that we are not going to highlight on

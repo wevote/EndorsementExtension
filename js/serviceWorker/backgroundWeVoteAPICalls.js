@@ -21,16 +21,10 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
       urlToEncode = pdfURL;
     }
   }
-
   const hrefEncoded = encodeURIComponent(urlToEncode); //'https://www.emilyslist.org/pages/entry/state-and-local-candidates');
-  // let ballotItemHighlightsRetrieve = `${rootCdnURL}/ballotItemHighlightsRetrieve/`; // Use CDN
-  // if (overrideStartingYear) {  // This is for testing old endorsement pages that need candidate data that is a few years old
-  //   ballotItemHighlightsRetrieve += '?starting_year=' + startingYearOverride;
-  // }
   const voterGuidePossibilityHighlightsRetrieve = `${rootApiURL}/voterGuidePossibilityHighlightsRetrieve/?voter_device_id=${voterDeviceId}&limit_to_existing=true&url_to_scan=${hrefEncoded}`;
   const voterGuidePossibilityHighlightsRetrieve2 =`${rootApiURL}/voterGuidePossibilityHighlightsRetrieve/` 
   debugSwLog('voterGuidePossibilityHighlightsRetrieve: ', voterGuidePossibilityHighlightsRetrieve);
-  // debugSwLog('ballotItemHighlightsRetrieve: ' + ballotItemHighlightsRetrieve);
 
   const t1 = performance.now();
   if (showVoterGuideHighlights && showCandidateOptionsHighlights){

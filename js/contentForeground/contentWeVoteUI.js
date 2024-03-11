@@ -147,7 +147,7 @@ function signIn (attemptLogin) {
         let domHasChanged = false;
         $('body').on('domChanged', function () {
           debugFgLog('content, domChanged listener tripped! ================');
-                    domHasChanged = true;
+          domHasChanged = true;
         });
         $('body').trigger('domChanged');
         // Sign in has been confirmed, the panels have been drawn, now it is time to do the highlighting (on a loading page) so
