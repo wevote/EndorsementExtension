@@ -199,6 +199,14 @@ async function initializeTabWordHighlighter () {
       // Use command pattern to handle onMessage events
       async function handleDisplayHighlightsForTabAndPossiblyEditPanes(request, state) {
         const { showHighlights, showPanels, tabId, url, pdfURL } = state;
+        if (!showHighlights) {
+          debugFgLog('displayHighlightsForTabAndPossiblyEditPanes (before reload)');
+          await updateGlobalState({
+            priorData: [],
+            priorHighlighterEnabledThisTab: false,
+          });
+          location.reload();
+        }
         if (href.toLowerCase().endsWith('.pdf')) {
           debugFgLog('Skipping PDF file for displayHighlightsForTabAndPossiblyEditPanes');
           return false;
