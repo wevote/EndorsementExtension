@@ -6,13 +6,13 @@ let voterGuidePossibilityPositionsRetrieveT0 = 0;
 /* eslint-disable no-unused-vars */
 /* eslint no-undef: 0 */
 
-async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tabId, doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights) {
+async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tabId, doReHighlight, sendResponse, showVoterGuideHighlights, showCandidateOptionsHighlights, pageContent) {
+  // Replaced ballotItemHighlightsRetrieve API call with voterGuidePossibilityHighlightsRetrieve API (POST Method) - 03/11/2024
   const getHighlightsListsFromApiServerDebug = true;
   debugSwLog('ENTERING backgroundWeVoteAPICalls > getHighlightsListsFromApiServer, showVoterGuideHighlights:', showVoterGuideHighlights, ', showCandidateOptionsHighlights:', showCandidateOptionsHighlights);
   if (!showVoterGuideHighlights && !showCandidateOptionsHighlights) {
     debugSwLog('EXITING getHighlightsListsFromApiServer without highlighting');
   }
-
   const state = await getGlobalState();
   const { pdfURL } = state;
   let urlToEncode = locationHref;
@@ -21,44 +21,37 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
       urlToEncode = pdfURL;
     }
   }
-
-
   const hrefEncoded = encodeURIComponent(urlToEncode); //'https://www.emilyslist.org/pages/entry/state-and-local-candidates');
-  let ballotItemHighlightsRetrieve = `${rootCdnURL}/ballotItemHighlightsRetrieve/`; // Use CDN
-  if (overrideStartingYear) {  // This is for testing old endorsement pages that need candidate data that is a few years old
-    ballotItemHighlightsRetrieve += '?starting_year=' + startingYearOverride;
-  }
   const voterGuidePossibilityHighlightsRetrieve = `${rootApiURL}/voterGuidePossibilityHighlightsRetrieve/?voter_device_id=${voterDeviceId}&limit_to_existing=true&url_to_scan=${hrefEncoded}`;
+  const voterGuidePossibilityHighlightsRetrieve2 =`${rootApiURL}/voterGuidePossibilityHighlightsRetrieve/` 
   debugSwLog('voterGuidePossibilityHighlightsRetrieve: ', voterGuidePossibilityHighlightsRetrieve);
-  debugSwLog('ballotItemHighlightsRetrieve: ' + ballotItemHighlightsRetrieve);
 
   const t1 = performance.now();
-  if (showVoterGuideHighlights && showCandidateOptionsHighlights) {
-    // Get the entries already found from page scan
+  if (showVoterGuideHighlights && showCandidateOptionsHighlights){
     debugSwLog('background voterGuidePossibilityHighlightsRetrieve (get the greens/reds/grays)', voterGuidePossibilityHighlightsRetrieve);
-    fetch(voterGuidePossibilityHighlightsRetrieve, {method: 'GET'}).then((resp) => resp.json()).then((voterGuidePossibilityHighlightsRetrieveResponse) => {
-      getHighlightsListsFromApiServerDebug && debugSwLog('ENTERING COMBINED backgroundWeVoteAPICalls > voterGuidePossibilityHighlightsRetrieve API results received');
-      debugSwLog('------------------- voterGuidePossibilityHighlightsRetrieve API SUCCESS voterGuidePossibilityHighlightsRetrieve: ' + voterGuidePossibilityHighlightsRetrieve);
-      const t2 = performance.now();
-      timingSwLog(t1, t2, 'voterGuidePossibilityHighlightsRetrieve API retrieve took', 8.0);
+    const formData = new URLSearchParams();
+    formData.append('voter_device_id', voterDeviceId);
+    formData.append('url_to_scan', urlToEncode);
+    formData.append('visible_text_to_scan', pageContent);
 
-      // Get all candidates in this year's elections
-      const t3 = performance.now();
-      debugSwLog('background ballotItemHighlightsRetrieve (get the yellows) ', ballotItemHighlightsRetrieve);
-      fetch(ballotItemHighlightsRetrieve).then((resp) => resp.json()).then((ballotItemHighlightsRetrieveResponse) => {
-        debugSwLog('ballotItemHighlightsRetrieve API SUCCESS', ballotItemHighlightsRetrieveResponse);
-        debugSwLog('------------------- ballotItemHighlightsRetrieve API SUCCESS: ' + ballotItemHighlightsRetrieve);
-        const t4 = performance.now();
-        timingSwLog(t3, t4, 'ballotItemHighlightsRetrieve retrieve took', 8.0);
-
-        const t5 = performance.now();
-        processHighlightsRetrieve(tabId, locationHref, ballotItemHighlightsRetrieveResponse, voterGuidePossibilityHighlightsRetrieveResponse,
+    fetch(voterGuidePossibilityHighlightsRetrieve2, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: formData.toString()
+    }).then((resp) => resp.json()).then((voterGuidePossibilityHighlightsRetrieveResponse) => {
+        console.log('voterGuidePossibilityHighlightsRetrieve2',voterGuidePossibilityHighlightsRetrieveResponse)
+        getHighlightsListsFromApiServerDebug && debugSwLog('ENTERING COMBINED backgroundWeVoteAPICalls > voterGuidePossibilityHighlightsRetrieve API results received');
+        debugSwLog('------------------- voterGuidePossibilityHighlightsRetrieve API SUCCESS voterGuidePossibilityHighlightsRetrieve: ' + voterGuidePossibilityHighlightsRetrieve);
+        const t2 = performance.now();
+        timingSwLog(t1, t2, 'voterGuidePossibilityHighlightsRetrieve API retrieve took', 8.0);
+        // Get all candidates in this year's elections
+        const t3 = performance.now();
+        processHighlightsRetrieve(tabId, locationHref, voterGuidePossibilityHighlightsRetrieveResponse,
           doReHighlight, sendResponse);
         const t6 = performance.now();
         timingSwLog(t5, t6, 'processHighlightsRetrieve end-to-end took', 8.0);
-      }).catch((err) => {
-        debugSwLog('ballotItemHighlightsRetrieve API error', err);
-      });
     }).catch((err) => {
       debugSwLog('voterGuidePossibilityHighlightsRetrieve API error', err);
     });
@@ -77,9 +70,12 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
       processVoterGuideHighlightsRetrieve(tabId, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse, voterGuidePossibilityRecognizedNamesRetrieveUrl);
       const t22 = performance.now();
       timingSwLog(t21, t22, 'processVoterGuideHighlightsRetrieve end-to-end took', 8.0);
+
+
     }).catch((err) => {
       debugSwLog('voterGuidePossibilityHighlightsRetrieve API error', err);
     });
+
   } else if (showCandidateOptionsHighlights) {
     // Get all candidates in this year's elections
     const t30 = performance.now();
@@ -102,24 +98,21 @@ async function getHighlightsListsFromApiServer (locationHref, voterDeviceId, tab
   }
 }
 
-function processHighlightsRetrieve (tabId, url, ballotItemHighlightsRetrieveResponse, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse) {
+function processHighlightsRetrieve (tabId, url, voterGuidePossibilityHighlightsRetrieveResponse, doReHighlight, sendResponse) {
   const processHighlightsRetrieveDebug = false;
   debugSwLog('ENTERING backgroundWeVoteAPICalls > processHighlightsRetrieve');
-  let ballotItemHighlights = ballotItemHighlightsRetrieveResponse['highlight_list'];
-  let neverHighLightOnLocal = ballotItemHighlightsRetrieveResponse['never_highlight_on'];
+  let neverHighLightOnLocal = voterGuidePossibilityHighlightsRetrieveResponse['never_highlight_on'];
   let voterGuideHighlights = voterGuidePossibilityHighlightsRetrieveResponse['highlight_list'];
 
-  processHighlightsRetrieveDebug && debugSwLog('get json ballotItemHighlights: ', ballotItemHighlights);
-  debugSwLog('get json ballotItemHighlights.length: ', ballotItemHighlights.length);
   const t0 = performance.now();
-  initializeHighlightsData(ballotItemHighlights, voterGuideHighlights, neverHighLightOnLocal);
+  initializeHighlightsData(voterGuideHighlights, neverHighLightOnLocal);
   timingSwLog(t0, performance.now(), 'initializeHighlightsData took', 5.0);
   if (doReHighlight) {
     requestReHighlight(tabId, url);
   }
   sendResponse({
-    success: ballotItemHighlightsRetrieveResponse.success,
-    highlights: ballotItemHighlights.length,
+    success: voterGuidePossibilityHighlightsRetrieveResponse.success,
+    highlights: voterGuidePossibilityHighlightsRetrieveResponse.length,
     nameToIdMap,
   });
 }

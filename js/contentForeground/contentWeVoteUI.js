@@ -149,6 +149,7 @@ function signIn (attemptLogin) {
           debugFgLog('content, domChanged listener tripped! ================');
           domHasChanged = true;
         });
+        $('body').trigger('domChanged');
         // Sign in has been confirmed, the panels have been drawn, now it is time to do the highlighting (on a loading page) so
         // we need to keep looping until the page has finished updating)
         const interval = setInterval(function (){
@@ -360,9 +361,14 @@ async function doGetCombinedHighlights (showPanels, tabId, urlToQuery) {
   const { chrome: { runtime: { sendMessage, lastError } } } = window;
   const state = await getGlobalState();
   const { voterWeVoteId } = state;
-
+  if(showPanels){
+    var myIFrame = document.getElementById("frame");
+    var pageContent = myIFrame.contentWindow.document.body.innerText;
+  }else {
+    pageContent = document.body.innerText
+  }
   debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getCombinedHighlights in doGetCombinedHighlights');
-  sendMessage({command: 'getCombinedHighlights', voterWeVoteId: voterWeVoteId, tabId: tabId, url: urlToQuery, doReHighlight: true},
+  sendMessage({command: 'getCombinedHighlights', voterWeVoteId: voterWeVoteId, tabId: tabId, url: urlToQuery, doReHighlight: true, pageContent},
     function (response) {
       if (lastError) {
         debugFgLog('ERROR: chrome.runtime.sendMessage("getCombinedHighlights")', lastError.message);
@@ -399,7 +405,8 @@ async function getHighlights (showHighlights, showPanels, tabId) {
   await getVoterDeviceId().then((voterDeviceId) => {
     console.log('**************** before send message getHighlights in getVoterDeviceId(), tabId', tabId);
     debugFgLog('^^^^^^^^^^^^^^^^^^^ sendMessage getHighlights in getHighlights');
-    sendMessage({ command: 'getHighlights', url: urlToQuery, 'voterDeviceId': voterDeviceId, tabId: tabId, doReHighlight: false },
+    let pageContent = document.body.innerText
+    sendMessage({ command: 'getHighlights', url: urlToQuery, 'voterDeviceId': voterDeviceId, tabId: tabId, doReHighlight: false, pageContent:pageContent },
       async function (response) {
         if (lastError) {
           debugFgLog(' chrome.runtime.sendMessage("getHighlights")', lastError.message);

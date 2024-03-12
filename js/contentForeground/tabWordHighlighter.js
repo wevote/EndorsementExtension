@@ -35,6 +35,7 @@ let printHighlights = true;
 let uniqueNameMatches = [];
 let voterDeviceId = '';
 let debug = false;
+let firstTimePanelOpen = true
 
 document.addEventListener('DOMContentLoaded', async function () {  // This wastes about 1 ms for every open tab in the browser, that we are not going to highlight on
   const t0 = performance.now();
@@ -68,8 +69,49 @@ document.addEventListener('DOMContentLoaded', async function () {  // This waste
       await mergeToGlobalState({'voterDeviceId': voterDeviceId});
       timingLog(t0, t1, 'DOMContentLoaded mergeToGlobalState voterDeviceId took', 8.0);
     }
-  }
+  } 
+// Introduced Mutation Observer to observe the DOM changes and update the page as needed 03/11/2014
+// Select the node that will be observed for mutations
+  let targetNode = document.body;
+
+  // Options for the observer (which mutations to observe)
+  const config = { attributes: false, childList: true,  characterData:true, subtree:true };
+  const observer = new MutationObserver(async(entries) => {
+      for (const entry of entries) {
+        if (entry.type== 'childList' && entry.addedNodes.length >1){
+          let state = await getGlobalState();
+          let { showHighlights, showPanels, tabId} = state;
+
+          if (showPanels){
+            if(firstTimePanelOpen){
+              if(entry.target!==document.body){
+                observer.disconnect()
+                setTimeout(() => { 
+                  let targetNode = document.querySelector('#frameDiv');
+                  if (targetNode) {
+                      observer.observe(targetNode, config);
+                  } else {
+                      console.error("Element with ID 'frameDiv' not found.");
+                  }
+                }, 5000);
+              }
+              firstTimePanelOpen = false
+            }else {
+              showPanels = false
+              displayHighlightingAndPossiblyEditor(showHighlights, showPanels, tabId);
+            }           
+          }
+          else if (showHighlights) {
+            displayHighlightingAndPossiblyEditor(showHighlights, showPanels, tabId);
+          }
+        }
+      }
+  });
+    
+  observer.observe(targetNode, config);
 });
+
+
 
 function isInANonWeVoteIFrame () {
   return (window.self !== window.top  && $('.weVoteEndorsementFrame').length === 0) || window.location.href === 'about:blank';
@@ -155,6 +197,14 @@ async function initializeTabWordHighlighter () {
       // Use command pattern to handle onMessage events
       async function handleDisplayHighlightsForTabAndPossiblyEditPanes(request, state) {
         const { showHighlights, showPanels, tabId, url, pdfURL } = state;
+        if (!showHighlights) {
+          debugFgLog('displayHighlightsForTabAndPossiblyEditPanes (before reload)');
+          await updateGlobalState({
+            priorData: [],
+            priorHighlighterEnabledThisTab: false,
+          });
+          location.reload();
+        }
         if (href.toLowerCase().endsWith('.pdf')) {
           debugFgLog('Skipping PDF file for displayHighlightsForTabAndPossiblyEditPanes');
           return false;
