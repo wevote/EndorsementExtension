@@ -63,6 +63,7 @@ function displayEditPanes () {
   let weFlexBox = $('#weFlexBox');
   $(weFlexBox).append('<div id="frameDiv"><iframe id="frame" width="100%" name="tabId" ></iframe></div>');
   $(weFlexBox).append('<div id="sideArea"></div>');
+  $('#sideArea').css('width', '450px');
   $('#frame').attr('src', hr).attr('class','weVoteEndorsementFrame');
 
   // The Service Worker thread IS NOT the same JavaScript thread that the Content Foreground
