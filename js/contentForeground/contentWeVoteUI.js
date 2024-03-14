@@ -911,7 +911,7 @@ function unfurlableGrid (index, name, photo, party, office, description, inLeftP
     }
     if (showBar) {
       iconContainer +=
-        '  <div style="transform: translate(19px, -26px); color: white; font-size: 10pt; background-color:' + backgroundColor(stance, isStored) + '; width: 2px;">&#124;</div>';
+        '  <div style="transform: translate(19px, -19px); color: white; font-size: 10pt; background-color:' + backgroundColor(stance, isStored) + '; width: 2px;">&#124;</div>';
     }
     if (showComment) {    // https://material.io/resources/icons/?style=baseline comment
       iconContainer +=

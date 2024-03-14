@@ -93,7 +93,7 @@
 .thumbIconSVG {
   height:22px;
   width: 22px;
-  transform: translate(-2px, -3px);
+  transform: translate(-2px, -1px);
 }
 .thumbIconSVGContent {
   height:22px;
@@ -108,7 +108,7 @@
 
 .commentIconSVG {
   height: 18px;
-  transform: translate(23px, -43px);
+  transform: translate(23px, -38px);
 }
 
 .commentOnly {
